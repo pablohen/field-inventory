@@ -82,9 +82,12 @@ export async function electLeader<Api extends AnyApi>(opts: {
   };
 
   const run = (method: string, args: unknown[]): Promise<unknown> => {
-    const fn = api?.[method];
-    if (!fn) return Promise.reject(new Error(`UNKNOWN_METHOD:${method}`));
-    return fn(...args);
+    if (!api || !Object.hasOwn(api, method)) {
+      const err = new Error(`Unknown method: ${method}`);
+      err.name = 'UnknownMethod';
+      return Promise.reject(err);
+    }
+    return api[method](...args);
   };
 
   channel.addEventListener('message', (ev: MessageEvent<Message>) => {

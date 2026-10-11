@@ -45,7 +45,12 @@ export async function openReplica(
     clientName: 'fi-handheld',
   });
   // Per-connection; without it a stray local write diverges the replica for good.
-  await db.exec('PRAGMA query_only = 1');
+  try {
+    await db.exec('PRAGMA query_only = 1');
+  } catch (err) {
+    await db.close().catch(() => {});
+    throw err;
+  }
   return {
     name: cfg.name,
     ...toSql(db),

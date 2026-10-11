@@ -185,3 +185,22 @@ describe('electLeader', () => {
     expect([a, b]).toEqual(['t1:A', 't1:B']);
   });
 });
+
+describe('electLeader dispatch', () => {
+  it('rejects inherited/unknown methods with UnknownMethod over the channel', async () => {
+    const locks = new FakeLocks();
+    const hub = channelPair();
+    const mk = () =>
+      electLeader<Api>({
+        locks: locks as unknown as LockManager,
+        channel: hub.make(),
+        onLeader: async () => apiFor('t1'),
+      });
+    await mk();
+    const t2 = await mk();
+    const err = await (t2.call as (m: string) => Promise<unknown>)(
+      'toString',
+    ).catch((e) => e);
+    expect(err.name).toBe('UnknownMethod');
+  });
+});
