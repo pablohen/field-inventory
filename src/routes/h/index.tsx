@@ -59,26 +59,51 @@ function HandheldHome() {
               >
                 Stock
               </Button>
-              {(
-                [
-                  ['count', 'Count'],
-                  ['move', 'Move'],
-                  ['transfer-in', 'Transfer in'],
-                  ['pick', 'Pick'],
-                  ['adjust', 'Adjust'],
-                ] as const
-              ).map(([slug, label]) => (
-                // TODO(T11): Link
-                <Button
-                  key={slug}
-                  component="a"
-                  href={`/h/${encodeURIComponent(wh)}/${slug}`}
-                  size="compact-md"
-                  variant="light"
-                >
-                  {label}
-                </Button>
-              ))}
+              <Button
+                renderRoot={(props) => (
+                  <Link to="/h/$wh/count" params={{ wh }} {...props} />
+                )}
+                size="compact-md"
+                variant="light"
+              >
+                Count
+              </Button>
+              <Button
+                renderRoot={(props) => (
+                  <Link to="/h/$wh/move" params={{ wh }} {...props} />
+                )}
+                size="compact-md"
+                variant="light"
+              >
+                Move
+              </Button>
+              <Button
+                renderRoot={(props) => (
+                  <Link to="/h/$wh/transfer-in" params={{ wh }} {...props} />
+                )}
+                size="compact-md"
+                variant="light"
+              >
+                Transfer in
+              </Button>
+              <Button
+                renderRoot={(props) => (
+                  <Link to="/h/$wh/pick" params={{ wh }} {...props} />
+                )}
+                size="compact-md"
+                variant="light"
+              >
+                Pick
+              </Button>
+              <Button
+                renderRoot={(props) => (
+                  <Link to="/h/$wh/adjust" params={{ wh }} {...props} />
+                )}
+                size="compact-md"
+                variant="light"
+              >
+                Adjust
+              </Button>
             </Group>
             <Exceptions wh={wh} />
           </Stack>

@@ -17,6 +17,7 @@ import {
   findProduct,
   inTransitTo,
   myOpenExceptions,
+  reasonCodes,
 } from './stock';
 import type { SyncState } from './sync-loop';
 
@@ -55,6 +56,12 @@ export function createLeaderApi(deps: LeaderApiDeps) {
     },
     async findLocation(wh: string, scan: string) {
       return findLocation(replicaFor(wh), scan);
+    },
+    /** Catalog reason codes whose `appliesTo` array includes the movement type. */
+    async reasonCodes(movementType: string) {
+      const catalog = deps.replicas.get('catalog');
+      if (!catalog) throw new Error('UNKNOWN_CATALOG');
+      return reasonCodes(catalog, movementType);
     },
     async assignedPickLists(wh: string, userId: string) {
       return assignedPickLists(replicaFor(wh), userId, deps.outbox);

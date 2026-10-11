@@ -390,3 +390,21 @@ export async function inTransitTo(
   }
   return out;
 }
+
+/** Reason codes whose `appliesTo` JSON array includes `movementType`, ordered by code. */
+export async function reasonCodes(
+  catalog: Sql,
+  movementType: string,
+): Promise<{ code: string; label: string }[]> {
+  const rows = await catalog.all<{
+    code: string;
+    label: string;
+    appliesTo: string;
+  }>('SELECT code, label, appliesTo FROM ReasonCode ORDER BY code');
+  return rows
+    .filter((r) => {
+      const applies = safeJson<unknown>(r.appliesTo, []);
+      return Array.isArray(applies) && applies.includes(movementType);
+    })
+    .map((r) => ({ code: r.code, label: r.label }));
+}

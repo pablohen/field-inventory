@@ -14,7 +14,12 @@ import { Route as HRouteRouteImport } from './routes/h/route'
 import { Route as HIndexRouteImport } from './routes/h/index'
 import { Route as HAttentionRouteImport } from './routes/h/attention'
 import { Route as HLoginRouteImport } from './routes/h/login'
+import { Route as HWhAdjustRouteImport } from './routes/h/$wh.adjust'
+import { Route as HWhCountRouteImport } from './routes/h/$wh.count'
+import { Route as HWhMoveRouteImport } from './routes/h/$wh.move'
+import { Route as HWhPickRouteImport } from './routes/h/$wh.pick'
 import { Route as HWhStockRouteImport } from './routes/h/$wh.stock'
+import { Route as HWhTransferInRouteImport } from './routes/h/$wh.transfer-in'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -41,9 +46,34 @@ const HLoginRoute = HLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => HRouteRoute,
 } as any)
+const HWhAdjustRoute = HWhAdjustRouteImport.update({
+  id: '/$wh/adjust',
+  path: '/$wh/adjust',
+  getParentRoute: () => HRouteRoute,
+} as any)
+const HWhCountRoute = HWhCountRouteImport.update({
+  id: '/$wh/count',
+  path: '/$wh/count',
+  getParentRoute: () => HRouteRoute,
+} as any)
+const HWhMoveRoute = HWhMoveRouteImport.update({
+  id: '/$wh/move',
+  path: '/$wh/move',
+  getParentRoute: () => HRouteRoute,
+} as any)
+const HWhPickRoute = HWhPickRouteImport.update({
+  id: '/$wh/pick',
+  path: '/$wh/pick',
+  getParentRoute: () => HRouteRoute,
+} as any)
 const HWhStockRoute = HWhStockRouteImport.update({
   id: '/$wh/stock',
   path: '/$wh/stock',
+  getParentRoute: () => HRouteRoute,
+} as any)
+const HWhTransferInRoute = HWhTransferInRouteImport.update({
+  id: '/$wh/transfer-in',
+  path: '/$wh/transfer-in',
   getParentRoute: () => HRouteRoute,
 } as any)
 
@@ -53,14 +83,24 @@ export interface FileRoutesByFullPath {
   '/h/attention': typeof HAttentionRoute
   '/h/login': typeof HLoginRoute
   '/h/': typeof HIndexRoute
+  '/h/$wh/adjust': typeof HWhAdjustRoute
+  '/h/$wh/count': typeof HWhCountRoute
+  '/h/$wh/move': typeof HWhMoveRoute
+  '/h/$wh/pick': typeof HWhPickRoute
   '/h/$wh/stock': typeof HWhStockRoute
+  '/h/$wh/transfer-in': typeof HWhTransferInRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/h/attention': typeof HAttentionRoute
   '/h/login': typeof HLoginRoute
   '/h': typeof HIndexRoute
+  '/h/$wh/adjust': typeof HWhAdjustRoute
+  '/h/$wh/count': typeof HWhCountRoute
+  '/h/$wh/move': typeof HWhMoveRoute
+  '/h/$wh/pick': typeof HWhPickRoute
   '/h/$wh/stock': typeof HWhStockRoute
+  '/h/$wh/transfer-in': typeof HWhTransferInRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -69,13 +109,39 @@ export interface FileRoutesById {
   '/h/attention': typeof HAttentionRoute
   '/h/login': typeof HLoginRoute
   '/h/': typeof HIndexRoute
+  '/h/$wh/adjust': typeof HWhAdjustRoute
+  '/h/$wh/count': typeof HWhCountRoute
+  '/h/$wh/move': typeof HWhMoveRoute
+  '/h/$wh/pick': typeof HWhPickRoute
   '/h/$wh/stock': typeof HWhStockRoute
+  '/h/$wh/transfer-in': typeof HWhTransferInRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/h' | '/h/attention' | '/h/login' | '/h/' | '/h/$wh/stock'
+  fullPaths:
+    | '/'
+    | '/h'
+    | '/h/attention'
+    | '/h/login'
+    | '/h/'
+    | '/h/$wh/adjust'
+    | '/h/$wh/count'
+    | '/h/$wh/move'
+    | '/h/$wh/pick'
+    | '/h/$wh/stock'
+    | '/h/$wh/transfer-in'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/h/attention' | '/h/login' | '/h' | '/h/$wh/stock'
+  to:
+    | '/'
+    | '/h/attention'
+    | '/h/login'
+    | '/h'
+    | '/h/$wh/adjust'
+    | '/h/$wh/count'
+    | '/h/$wh/move'
+    | '/h/$wh/pick'
+    | '/h/$wh/stock'
+    | '/h/$wh/transfer-in'
   id:
     | '__root__'
     | '/'
@@ -83,7 +149,12 @@ export interface FileRouteTypes {
     | '/h/attention'
     | '/h/login'
     | '/h/'
+    | '/h/$wh/adjust'
+    | '/h/$wh/count'
+    | '/h/$wh/move'
+    | '/h/$wh/pick'
     | '/h/$wh/stock'
+    | '/h/$wh/transfer-in'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -128,11 +199,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HLoginRouteImport
       parentRoute: typeof HRouteRoute
     }
+    '/h/$wh/adjust': {
+      id: '/h/$wh/adjust'
+      path: '/$wh/adjust'
+      fullPath: '/h/$wh/adjust'
+      preLoaderRoute: typeof HWhAdjustRouteImport
+      parentRoute: typeof HRouteRoute
+    }
+    '/h/$wh/count': {
+      id: '/h/$wh/count'
+      path: '/$wh/count'
+      fullPath: '/h/$wh/count'
+      preLoaderRoute: typeof HWhCountRouteImport
+      parentRoute: typeof HRouteRoute
+    }
+    '/h/$wh/move': {
+      id: '/h/$wh/move'
+      path: '/$wh/move'
+      fullPath: '/h/$wh/move'
+      preLoaderRoute: typeof HWhMoveRouteImport
+      parentRoute: typeof HRouteRoute
+    }
+    '/h/$wh/pick': {
+      id: '/h/$wh/pick'
+      path: '/$wh/pick'
+      fullPath: '/h/$wh/pick'
+      preLoaderRoute: typeof HWhPickRouteImport
+      parentRoute: typeof HRouteRoute
+    }
     '/h/$wh/stock': {
       id: '/h/$wh/stock'
       path: '/$wh/stock'
       fullPath: '/h/$wh/stock'
       preLoaderRoute: typeof HWhStockRouteImport
+      parentRoute: typeof HRouteRoute
+    }
+    '/h/$wh/transfer-in': {
+      id: '/h/$wh/transfer-in'
+      path: '/$wh/transfer-in'
+      fullPath: '/h/$wh/transfer-in'
+      preLoaderRoute: typeof HWhTransferInRouteImport
       parentRoute: typeof HRouteRoute
     }
   }
@@ -142,14 +248,24 @@ interface HRouteRouteChildren {
   HAttentionRoute: typeof HAttentionRoute
   HLoginRoute: typeof HLoginRoute
   HIndexRoute: typeof HIndexRoute
+  HWhAdjustRoute: typeof HWhAdjustRoute
+  HWhCountRoute: typeof HWhCountRoute
+  HWhMoveRoute: typeof HWhMoveRoute
+  HWhPickRoute: typeof HWhPickRoute
   HWhStockRoute: typeof HWhStockRoute
+  HWhTransferInRoute: typeof HWhTransferInRoute
 }
 
 const HRouteRouteChildren: HRouteRouteChildren = {
   HAttentionRoute: HAttentionRoute,
   HLoginRoute: HLoginRoute,
   HIndexRoute: HIndexRoute,
+  HWhAdjustRoute: HWhAdjustRoute,
+  HWhCountRoute: HWhCountRoute,
+  HWhMoveRoute: HWhMoveRoute,
+  HWhPickRoute: HWhPickRoute,
   HWhStockRoute: HWhStockRoute,
+  HWhTransferInRoute: HWhTransferInRoute,
 }
 
 const HRouteRouteWithChildren =

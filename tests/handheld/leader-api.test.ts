@@ -46,7 +46,7 @@ async function setup() {
     closeAll,
     now: () => new Date('2026-01-01T10:00:05Z'),
   });
-  return { api, outbox, runSync, closeAll };
+  return { api, outbox, runSync, closeAll, replicas };
 }
 
 describe('createLeaderApi', () => {
@@ -57,6 +57,7 @@ describe('createLeaderApi', () => {
       'displayedStock',
       'findProduct',
       'findLocation',
+      'reasonCodes',
       'assignedPickLists',
       'assignedCountTasks',
       'myOpenExceptions',
@@ -101,6 +102,31 @@ describe('createLeaderApi', () => {
     expect(await api.assignedCountTasks('w1', 'u1')).toEqual([]);
     expect(await api.myOpenExceptions('w1')).toEqual([]);
     expect(await api.inTransitTo('w1')).toEqual([]);
+  });
+
+  it('reasonCodes returns the catalog codes that apply to the type', async () => {
+    const { api, replicas } = await setup();
+    const catalog = replicas.get('catalog') as Replica;
+    for (const [code, label, applies] of [
+      ['DAMAGED', 'Damaged', ['ADJUST']],
+      ['FOUND', 'Found', ['ADJUST', 'COUNT']],
+      ['PICK_ONLY', 'Pick only', ['PICK']],
+      ['BROKEN', 'Broken json', 'not json'],
+    ] as const) {
+      await catalog.run(
+        'INSERT INTO ReasonCode (code, label, appliesTo) VALUES (?, ?, ?)',
+        [
+          code,
+          label,
+          typeof applies === 'string' ? applies : JSON.stringify(applies),
+        ],
+      );
+    }
+    expect(await api.reasonCodes('ADJUST')).toEqual([
+      { code: 'DAMAGED', label: 'Damaged' },
+      { code: 'FOUND', label: 'Found' },
+    ]);
+    expect(await api.reasonCodes('MOVE')).toEqual([]);
   });
 
   it('throws UNKNOWN_WAREHOUSE for a warehouse without a replica', async () => {
