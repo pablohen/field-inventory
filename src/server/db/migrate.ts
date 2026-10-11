@@ -46,11 +46,20 @@ export async function applyMigrations(
   for (const file of files) {
     if (applied.has(file)) continue;
     const sql = await readFile(join(dir, file), 'utf8');
-    await client.executeMultiple(sql);
-    await client.execute({
-      sql: 'INSERT INTO _migrations (name, appliedAt) VALUES (?, ?)',
-      args: [file, new Date().toISOString()],
-    });
+    const tx = await client.transaction('write');
+    try {
+      await tx.executeMultiple(sql);
+      await tx.execute({
+        sql: 'INSERT INTO _migrations (name, appliedAt) VALUES (?, ?)',
+        args: [file, new Date().toISOString()],
+      });
+      await tx.commit();
+    } catch (e) {
+      await tx.rollback();
+      throw e;
+    } finally {
+      tx.close();
+    }
   }
   return currentVersion(client);
 }

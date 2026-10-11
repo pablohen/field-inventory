@@ -1,4 +1,4 @@
-import { mkdtempSync, readdirSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createClient } from '@libsql/client';
@@ -32,6 +32,26 @@ describe('migrations', () => {
     const first = await applyMigrations(client, 'prisma/warehouse/migrations');
     const second = await applyMigrations(client, 'prisma/warehouse/migrations');
     expect(second).toBe(first);
+  });
+
+  it('rolls back a file that fails partway and can be re-run once fixed', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'fi-migdir-'));
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, '001.sql'), 'CREATE TABLE one (id INTEGER);');
+    writeFileSync(
+      join(dir, '002.sql'),
+      'CREATE TABLE two (id INTEGER);\nINSERT INTO nope VALUES (1);',
+    );
+    const client = createClient({ url: tmpUrl() });
+    await expect(applyMigrations(client, dir)).rejects.toThrow();
+    expect(await currentVersion(client)).toBe(1);
+    const tables = await client.execute(
+      "SELECT name FROM sqlite_master WHERE name = 'two'",
+    );
+    expect(tables.rows).toHaveLength(0);
+
+    writeFileSync(join(dir, '002.sql'), 'CREATE TABLE two (id INTEGER);');
+    expect(await applyMigrations(client, dir)).toBe(2);
   });
 
   it('SCHEMA_VERSIONS match the number of migration files', () => {
