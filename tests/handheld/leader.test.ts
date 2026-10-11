@@ -201,6 +201,6 @@ describe('electLeader dispatch', () => {
     const err = await (t2.call as (m: string) => Promise<unknown>)(
       'toString',
     ).catch((e) => e);
-    expect(err.name).toBe('UnknownMethod');
+    expect((err as Error).name).toBe('UnknownMethod');
   });
 });
