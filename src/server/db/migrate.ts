@@ -5,7 +5,7 @@ import type { Client } from '@libsql/client';
 
 /** Hand-maintained; tests/server/migrate.test.ts checks it against the files on disk. */
 export const SCHEMA_VERSIONS = {
-  global: 1,
+  global: 2,
   catalog: 1,
   warehouse: 1,
 } as const;

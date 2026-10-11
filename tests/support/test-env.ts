@@ -3,6 +3,8 @@ import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { type Client, createClient } from '@libsql/client';
+import { hashPin } from '#/server/auth/password';
+import type { Role } from '#/server/auth/session';
 import {
   type CatalogClient,
   closeClients,
@@ -28,6 +30,12 @@ export interface TestEnv {
     id: string;
     warehouses: string[];
     revoked?: boolean;
+  }): Promise<void>;
+  seedUser(opts: {
+    id: string;
+    username: string;
+    pin: string;
+    role?: Role;
   }): Promise<void>;
   seedProduct(opts: {
     id: string;
@@ -123,6 +131,18 @@ export async function createTestEnv(): Promise<TestEnv> {
           data: { deviceId: id, warehouseId: wh },
         });
       }
+    },
+
+    async seedUser({ id, username, pin, role }) {
+      await global.user.create({
+        data: {
+          id,
+          name: username,
+          username,
+          pinHash: await hashPin(pin),
+          role: role ?? 'worker',
+        },
+      });
     },
 
     async seedProduct({ id, sku, countTolerance, categoryTolerance }) {

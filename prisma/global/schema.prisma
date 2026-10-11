@@ -8,9 +8,11 @@ generator client {
 }
 
 model User {
-  id   String @id
-  name String
-  role String // worker | supervisor | admin
+  id       String @id
+  name     String
+  username String @unique
+  pinHash  String
+  role     String // worker | supervisor | admin
 }
 
 model Warehouse {
