@@ -143,6 +143,15 @@ describe('useRecordMovement', () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['h', 'w1'] });
   });
 
+  it('invalidates ["h", "sync"] after a successful record', async () => {
+    const { queryClient, result } = setup(async () => {});
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    await act(async () => {
+      await result.current.mutateAsync(input);
+    });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['h', 'sync'] });
+  });
+
   it('rolls back and raises the storage banner on StorageFullError', async () => {
     const err = new Error('Device storage is full');
     err.name = 'StorageFullError';

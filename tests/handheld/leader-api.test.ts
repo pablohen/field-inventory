@@ -89,6 +89,44 @@ describe('createLeaderApi', () => {
     expect(await api.listOutbox()).toEqual([]);
   });
 
+  it('syncState recomputes pending and attention counts from the outbox', async () => {
+    const { api, outbox } = await setup();
+    expect(await api.syncState()).toMatchObject({
+      pendingCount: 0,
+      attentionCount: 0,
+    });
+    await api.record(pick);
+    await api.record({ ...pick, id: '22222222-2222-4222-8222-222222222222' });
+    expect(await api.syncState()).toMatchObject({
+      pendingCount: 2,
+      attentionCount: 0,
+    });
+    await outbox.run(
+      "UPDATE outbox SET status = 'needs_attention' WHERE id = ?",
+      [pick.id],
+    );
+    expect(await api.syncState()).toMatchObject({
+      pendingCount: 1,
+      attentionCount: 1,
+    });
+    await api.discardOutbox(pick.id);
+    expect(await api.syncState()).toMatchObject({
+      pendingCount: 1,
+      attentionCount: 0,
+    });
+  });
+
+  it('syncState counts a corrupt row as attention', async () => {
+    const { api, outbox } = await setup();
+    await outbox.run(
+      "INSERT INTO outbox (id, warehouseId, input, status, lastError, createdAt) VALUES ('bad', 'w1', 'not json', 'pending', NULL, '2026-01-01T00:00:00Z')",
+    );
+    expect(await api.syncState()).toMatchObject({
+      pendingCount: 0,
+      attentionCount: 1,
+    });
+  });
+
   it('record rejects an invalid input', async () => {
     const { api } = await setup();
     await expect(api.record({ ...pick, qty: 0 })).rejects.toThrow();

@@ -92,7 +92,14 @@ export function createLeaderApi(deps: LeaderApiDeps) {
       return deps.runSync();
     },
     async syncState() {
-      return deps.getSyncState();
+      // Counts are recomputed from the outbox so they stay live between syncs.
+      const rows = await listOutbox(deps.outbox);
+      const pendingCount = rows.filter((r) => r.status === 'pending').length;
+      return {
+        ...deps.getSyncState(),
+        pendingCount,
+        attentionCount: rows.length - pendingCount,
+      };
     },
     async resetDevice() {
       await resetDevice(deps.closeAll);

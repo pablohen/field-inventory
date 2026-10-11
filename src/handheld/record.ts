@@ -121,6 +121,9 @@ export function useRecordMovement(warehouseId: string) {
       if (err.name === 'StorageFullError') setBanner('storage');
     },
     onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ['h', warehouseId] }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['h', warehouseId] }),
+        queryClient.invalidateQueries({ queryKey: ['h', 'sync'] }),
+      ]),
   });
 }
