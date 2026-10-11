@@ -35,6 +35,9 @@ const config = defineConfig({
   resolve: { tsconfigPaths: true },
   server: { headers: SECURITY_HEADERS },
   preview: { headers: SECURITY_HEADERS },
+  // @tursodatabase/sync-wasm spawns `new Worker(..., { type: 'module' })`;
+  // the default 'iife' worker format breaks the emnapi thread pool.
+  worker: { format: 'es' },
   optimizeDeps: { exclude: ['@tursodatabase/sync-wasm'] },
   plugins: [devtools(), tanstackStart(), viteReact(), pwaForStart()],
 });
