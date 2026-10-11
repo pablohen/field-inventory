@@ -1,0 +1,99 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../../src/generated/warehouse"
+}
+
+model Location {
+  id     String  @id
+  code   String  @unique
+  zone   String?
+  active Boolean @default(true)
+}
+
+// Append-only ledger. Enums (type, source) are stored as String and validated by Zod.
+model Movement {
+  seq                    Int      @id @default(autoincrement())
+  id                     String   @unique
+  type                   String // PICK | MOVE | COUNT | ADJUST | TRANSFER_OUT | TRANSFER_IN
+  skuId                  String
+  fromLocationId         String?
+  toLocationId           String?
+  qty                    Int
+  reasonCode             String?
+  ref                    String?
+  counterpartWarehouseId String?
+  userId                 String
+  deviceId               String
+  occurredAt             DateTime
+  receivedAt             DateTime @default(now())
+  source                 String // device | supervisor | system
+
+  @@index([skuId, toLocationId, occurredAt])
+  @@index([skuId, fromLocationId, occurredAt])
+  @@index([type, ref])
+}
+
+// Updated only by the server, in the same transaction as each movement. May go negative.
+model StockBalance {
+  skuId      String
+  locationId String
+  qty        Int
+
+  @@id([skuId, locationId])
+}
+
+model PickList {
+  id             String     @id
+  status         String
+  assignedUserId String?
+  createdBy      String
+  createdAt      DateTime   @default(now())
+  lines          PickLine[]
+}
+
+model PickLine {
+  id           String   @id
+  pickListId   String
+  skuId        String
+  locationId   String
+  qtyRequested Int
+  pickList     PickList @relation(fields: [pickListId], references: [id])
+}
+
+model CountTask {
+  id             String  @id
+  scope          String // JSON: locations / zone / skus
+  assignedUserId String?
+  status         String
+}
+
+model Exception {
+  id          String    @id
+  type        String
+  status      String    @default("OPEN") // OPEN | RESOLVED
+  movementIds String // JSON array
+  skuId       String?
+  locationId  String?
+  deviceId    String?
+  details     String // JSON
+  version     Int       @default(1)
+  resolvedBy  String?
+  resolution  String?
+  note        String?
+  createdAt   DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  @@index([status, type])
+}
+
+model DeviceClockSample {
+  id         Int      @id @default(autoincrement())
+  deviceId   String
+  deviceTime DateTime
+  serverTime DateTime
+  skewMs     Int
+}

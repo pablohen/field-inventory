@@ -1,0 +1,32 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../../src/generated/catalog"
+}
+
+model ProductCategory {
+  id             String    @id
+  name           String
+  countTolerance Int       @default(0)
+  products       Product[]
+}
+
+model Product {
+  id             String           @id
+  sku            String           @unique
+  name           String
+  barcodes       String           @default("[]") // JSON array of strings
+  uom            String           @default("EA")
+  countTolerance Int?
+  categoryId     String?
+  category       ProductCategory? @relation(fields: [categoryId], references: [id])
+}
+
+model ReasonCode {
+  code      String @id
+  label     String
+  appliesTo String @default("[]") // JSON array of movement types
+}

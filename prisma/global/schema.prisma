@@ -1,0 +1,39 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../../src/generated/global"
+}
+
+model User {
+  id   String @id
+  name String
+  role String // worker | supervisor | admin
+}
+
+model Warehouse {
+  id            String            @id
+  name          String
+  tursoDbName   String
+  schemaVersion Int               @default(0)
+  devices       DeviceWarehouse[]
+}
+
+model Device {
+  id         String            @id
+  label      String
+  enrolledAt DateTime          @default(now())
+  revokedAt  DateTime?
+  warehouses DeviceWarehouse[]
+}
+
+model DeviceWarehouse {
+  deviceId    String
+  warehouseId String
+  device      Device    @relation(fields: [deviceId], references: [id])
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@id([deviceId, warehouseId])
+}
