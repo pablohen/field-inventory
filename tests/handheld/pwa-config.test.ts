@@ -1,8 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
+  buildIdFromManifest,
+  handleShellNavigation,
   isNetworkOnly,
   isShellNavigation,
   SHELL_URL,
+  shellCacheName,
+  staleShellCaches,
   withIsolationHeaders,
 } from '#/pwa/sw-routes';
 import {
@@ -79,5 +83,70 @@ describe('sw routing helpers', () => {
     expect(out.headers.get('content-type')).toBe('text/html');
     expect(out.status).toBe(200);
     expect(await out.text()).toBe('<html></html>');
+  });
+});
+
+describe('versioned shell cache', () => {
+  it('derives a stable id that changes with the manifest', () => {
+    const a = [{ url: 'assets/a-1.js', revision: null }, 'x.css'];
+    expect(buildIdFromManifest(a)).toBe(buildIdFromManifest([...a].reverse()));
+    expect(buildIdFromManifest(a)).not.toBe(
+      buildIdFromManifest([{ url: 'assets/a-2.js', revision: null }, 'x.css']),
+    );
+    expect(shellCacheName('abc')).toBe('fi-shell-abc');
+  });
+
+  it('prunes every other shell cache, including the legacy one', () => {
+    expect(
+      staleShellCaches(
+        ['fi-shell', 'fi-shell-old', 'fi-shell-new', 'workbox-precache-v2'],
+        'fi-shell-new',
+      ),
+    ).toEqual(['fi-shell', 'fi-shell-old']);
+  });
+});
+
+describe('handleShellNavigation', () => {
+  const shell = () =>
+    Promise.resolve(new Response('shell', { headers: { 'x-a': '1' } }));
+
+  it('returns the network response and never touches the shell on success', async () => {
+    const readShell = vi.fn(shell);
+    const res = await handleShellNavigation({
+      fetchNetwork: () => Promise.resolve(new Response('net')),
+      readShell,
+      timeoutMs: 50,
+    });
+    expect(await res.text()).toBe('net');
+    expect(readShell).not.toHaveBeenCalled();
+  });
+
+  it('serves only the versioned shell, with isolation headers, on failure', async () => {
+    const res = await handleShellNavigation({
+      fetchNetwork: () => Promise.reject(new Error('offline')),
+      readShell: shell,
+      timeoutMs: 50,
+    });
+    expect(await res.text()).toBe('shell');
+    expect(res.headers.get('Cross-Origin-Embedder-Policy')).toBe(
+      'require-corp',
+    );
+  });
+
+  it('falls back on timeout and rethrows when there is no shell', async () => {
+    const hang = () => new Promise<Response>(() => {});
+    const res = await handleShellNavigation({
+      fetchNetwork: hang,
+      readShell: shell,
+      timeoutMs: 10,
+    });
+    expect(await res.text()).toBe('shell');
+    await expect(
+      handleShellNavigation({
+        fetchNetwork: () => Promise.reject(new Error('offline')),
+        readShell: () => Promise.resolve(undefined),
+        timeoutMs: 10,
+      }),
+    ).rejects.toThrow('offline');
   });
 });
