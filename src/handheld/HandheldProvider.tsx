@@ -47,6 +47,7 @@ export function HandheldProvider({ children }: { children: ReactNode }) {
   );
   const [session, setSession] = useState(getCachedSession);
   const [banner, setBanner] = useState<BannerKind>(null);
+  const [bootError, setBootError] = useState('');
   const [missing, setMissing] = useState<MissingCapability[]>([]);
 
   useEffect(() => {
@@ -65,7 +66,12 @@ export function HandheldProvider({ children }: { children: ReactNode }) {
       (b) => {
         if (!cancelled) setBackend(b);
       },
-      (err) => console.error('Handheld backend failed to start', err),
+      (err) => {
+        console.error('Handheld backend failed to start', err);
+        if (cancelled) return;
+        setBootError(err instanceof Error ? err.message : String(err));
+        setBanner('boot');
+      },
     );
     return () => {
       cancelled = true;
@@ -106,6 +112,9 @@ export function HandheldProvider({ children }: { children: ReactNode }) {
 
   if (banner === 'capabilities') {
     return <BlockingBanner kind="capabilities" missing={missing} />;
+  }
+  if (banner === 'boot') {
+    return <BlockingBanner kind="boot" message={bootError} />;
   }
   return (
     <HandheldContext.Provider value={value}>

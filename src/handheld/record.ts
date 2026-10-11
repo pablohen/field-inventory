@@ -7,6 +7,15 @@ import {
 } from '#/domain/schemas';
 import { useHandheld } from './context';
 
+export type StockFilter = { skuId?: string; locationId?: string };
+
+/** The one shape of a stock query key; screens and the hook must both use it. */
+export function stockKey(warehouseId: string, filter?: StockFilter) {
+  return filter
+    ? (['h', warehouseId, 'stock', filter] as const)
+    : (['h', warehouseId, 'stock'] as const);
+}
+
 export type MovementContext = {
   warehouseId: string;
   userId: string;
@@ -81,7 +90,6 @@ function applyDeltas(
 export function useRecordMovement(warehouseId: string) {
   const queryClient = useQueryClient();
   const { backend, setBanner } = useHandheld();
-  const stockKey = ['h', warehouseId, 'stock'] as const;
 
   return useMutation<void, Error, MovementInput, Snapshot>({
     mutationKey: ['h', warehouseId, 'record'],
@@ -91,17 +99,16 @@ export function useRecordMovement(warehouseId: string) {
       await backend.call('record', input);
     },
     onMutate: async (input) => {
-      await queryClient.cancelQueries({ queryKey: stockKey });
+      await queryClient.cancelQueries({ queryKey: stockKey(warehouseId) });
       const snapshot = queryClient.getQueriesData<StockRow[]>({
-        queryKey: stockKey,
+        queryKey: stockKey(warehouseId),
       }) as Snapshot;
       const deltas = movementDeltas(toMovement(input, 'device'));
       for (const [key, rows] of snapshot) {
         if (!Array.isArray(rows)) continue;
-        const filter = (key[3] ?? {}) as {
-          skuId?: string;
-          locationId?: string;
-        };
+        const f = key[3];
+        if (f !== undefined && (typeof f !== 'object' || f === null)) continue;
+        const filter = (f ?? {}) as StockFilter;
         queryClient.setQueryData(key, applyDeltas(rows, deltas, filter));
       }
       return snapshot;

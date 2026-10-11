@@ -4,6 +4,7 @@ import type { MissingCapability } from '../capabilities';
 export function BlockingBanner(
   props:
     | { kind: 'capabilities'; missing: MissingCapability[] }
+    | { kind: 'boot'; message: string }
     | { kind: 'storage'; onDismiss?: () => void },
 ) {
   if (props.kind === 'capabilities') {
@@ -17,6 +18,13 @@ export function BlockingBanner(
             ))}
           </List>
         </Stack>
+      </Alert>
+    );
+  }
+  if (props.kind === 'boot') {
+    return (
+      <Alert color="red" title="The handheld app could not start">
+        {props.message}
       </Alert>
     );
   }

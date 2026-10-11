@@ -23,11 +23,11 @@ export class HttpError extends Error {
  * `HttpError` carrying the numeric `status` (`pushErrorKind` reads it).
  * Transport failures stay as the original `TypeError`.
  */
-export function createPush(
-  fn: ServerFn,
+/** Wraps fetch so any non-2xx throws an `HttpError` carrying the status. */
+export function checkedFetch(
   fetchImpl: FetchFn = (...a) => globalThis.fetch(...a),
-): SyncDeps['push'] {
-  const checked: FetchFn = async (...args) => {
+): FetchFn {
+  return async (...args) => {
     const res = await fetchImpl(...args);
     if (!res.ok) {
       const body = await res.text().catch(() => '');
@@ -35,6 +35,13 @@ export function createPush(
     }
     return res;
   };
+}
+
+export function createPush(
+  fn: ServerFn,
+  fetchImpl: FetchFn = (...a) => globalThis.fetch(...a),
+): SyncDeps['push'] {
+  const checked = checkedFetch(fetchImpl);
   return async (batch) => {
     const out = await fn({ data: batch, fetch: checked });
     if (

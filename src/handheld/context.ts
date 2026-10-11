@@ -4,7 +4,7 @@ import type { LeaderApi } from './leader-api';
 import type { CachedSession } from './session-store';
 import type { SyncState } from './sync-loop';
 
-export type BannerKind = 'capabilities' | 'storage' | null;
+export type BannerKind = 'capabilities' | 'storage' | 'boot' | null;
 
 export type HandheldValue = {
   /** Null until the leader election finishes (or when there is no device id). */
