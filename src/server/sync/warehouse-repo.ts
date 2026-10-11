@@ -4,7 +4,12 @@ import {
   type ProcessContext,
   touchedKeys,
 } from '#/domain/process';
-import type { Movement, MovementSource, MovementType } from '#/domain/types';
+import type {
+  ExceptionDraft,
+  Movement,
+  MovementSource,
+  MovementType,
+} from '#/domain/types';
 import type { CatalogClient, WarehouseClient } from '#/server/db/clients';
 
 /** The interactive-transaction client passed to `$transaction` callbacks. */
@@ -19,7 +24,7 @@ export function withMovementTx<T>(
   return db.$transaction(fn);
 }
 
-interface MovementRow {
+export interface MovementRow {
   id: string;
   type: string;
   skuId: string;
@@ -35,7 +40,7 @@ interface MovementRow {
   source: string;
 }
 
-function toDomain(r: MovementRow): Movement {
+export function toDomain(r: MovementRow): Movement {
   return {
     id: r.id,
     type: r.type as MovementType,
@@ -152,7 +157,15 @@ export async function persistEffects(
       update: { qty: { increment: d.delta } },
     });
   }
-  for (const e of effects.exceptions) {
+  await persistExceptions(tx, effects.exceptions);
+}
+
+/** Inserts OPEN exception rows for the given drafts. */
+export async function persistExceptions(
+  tx: WarehouseTx,
+  drafts: ExceptionDraft[],
+): Promise<void> {
+  for (const e of drafts) {
     await tx.exception.create({
       data: {
         id: crypto.randomUUID(),
