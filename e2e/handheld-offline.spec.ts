@@ -36,13 +36,23 @@ test('count and adjust offline, then sync back to zero pending', async ({
   await page.goto('/h/login');
   await page.getByLabel('Device id').fill('dev-handheld-1');
   await page.getByLabel('Username').fill('ana');
-  await page.getByLabel('PIN').first().click();
+  await page
+    .getByRole('group', { name: 'PIN' })
+    .locator('input')
+    .first()
+    .click();
   await page.keyboard.type(DEV_PIN);
   await page.getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL(/\/h$/);
   await waitForServiceWorkerControl(page);
 
-  // 2. Count A-01 + first product = 7.
+  // The first replica pull must finish before any scan (lookups read local replicas).
+  await page.goto('/h');
+  await expect(page.getByText(/^Synced /)).toBeVisible({ timeout: 30_000 });
+
+  // 2. Go offline BEFORE recording, so the scheduled sync cannot push the COUNT early.
+  //    Scans only need the local replicas; the page loads from the service worker.
+  await context.setOffline(true);
   await page.goto('/h/wh-1/count');
   await scan(page, 'Scan location', LOCATION);
   await scan(page, 'Scan product', PRODUCT.barcodes[0]);
@@ -51,11 +61,11 @@ test('count and adjust offline, then sync back to zero pending', async ({
   await expect(page.getByText('Recorded')).toBeVisible();
   await expect(page.getByText('1 pending')).toBeVisible();
 
+  // A COUNT carries no delta: displayed stock is the seeded 10.
   const before = await displayedQty(page);
 
-  // 3. Offline: the app loads from the SW and keeps its state.
+  // 3. Offline reload: the app loads from the SW, still 1 pending, same stock.
   await page.goto('/h/wh-1/count');
-  await context.setOffline(true);
   await page.reload();
   await expect(page.getByText('1 pending')).toBeVisible();
   expect(await displayedQty(page)).toBe(before);
