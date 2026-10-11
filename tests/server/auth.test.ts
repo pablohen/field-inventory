@@ -1,6 +1,6 @@
 import { SignJWT } from 'jose';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loginCore } from '#/server/auth/auth.fn';
+import { loginCore } from '#/server/auth/login-core';
 import { hashPin, verifyPin } from '#/server/auth/password';
 import { signSession, verifySession } from '#/server/auth/session';
 import { createTestEnv, type TestEnv } from '../support/test-env';

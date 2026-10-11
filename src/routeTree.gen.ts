@@ -10,33 +10,85 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HRouteRouteImport } from './routes/h/route'
+import { Route as HIndexRouteImport } from './routes/h/index'
+import { Route as HAttentionRouteImport } from './routes/h/attention'
+import { Route as HLoginRouteImport } from './routes/h/login'
+import { Route as HWhStockRouteImport } from './routes/h/$wh.stock'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HRouteRoute = HRouteRouteImport.update({
+  id: '/h',
+  path: '/h',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HIndexRoute = HIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => HRouteRoute,
+} as any)
+const HAttentionRoute = HAttentionRouteImport.update({
+  id: '/attention',
+  path: '/attention',
+  getParentRoute: () => HRouteRoute,
+} as any)
+const HLoginRoute = HLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => HRouteRoute,
+} as any)
+const HWhStockRoute = HWhStockRouteImport.update({
+  id: '/$wh/stock',
+  path: '/$wh/stock',
+  getParentRoute: () => HRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/h': typeof HRouteRouteWithChildren
+  '/h/attention': typeof HAttentionRoute
+  '/h/login': typeof HLoginRoute
+  '/h/': typeof HIndexRoute
+  '/h/$wh/stock': typeof HWhStockRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/h/attention': typeof HAttentionRoute
+  '/h/login': typeof HLoginRoute
+  '/h': typeof HIndexRoute
+  '/h/$wh/stock': typeof HWhStockRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/h': typeof HRouteRouteWithChildren
+  '/h/attention': typeof HAttentionRoute
+  '/h/login': typeof HLoginRoute
+  '/h/': typeof HIndexRoute
+  '/h/$wh/stock': typeof HWhStockRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/h' | '/h/attention' | '/h/login' | '/h/' | '/h/$wh/stock'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/h/attention' | '/h/login' | '/h' | '/h/$wh/stock'
+  id:
+    | '__root__'
+    | '/'
+    | '/h'
+    | '/h/attention'
+    | '/h/login'
+    | '/h/'
+    | '/h/$wh/stock'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  HRouteRoute: typeof HRouteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +100,64 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/h': {
+      id: '/h'
+      path: '/h'
+      fullPath: '/h'
+      preLoaderRoute: typeof HRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/h/': {
+      id: '/h/'
+      path: '/'
+      fullPath: '/h/'
+      preLoaderRoute: typeof HIndexRouteImport
+      parentRoute: typeof HRouteRoute
+    }
+    '/h/attention': {
+      id: '/h/attention'
+      path: '/attention'
+      fullPath: '/h/attention'
+      preLoaderRoute: typeof HAttentionRouteImport
+      parentRoute: typeof HRouteRoute
+    }
+    '/h/login': {
+      id: '/h/login'
+      path: '/login'
+      fullPath: '/h/login'
+      preLoaderRoute: typeof HLoginRouteImport
+      parentRoute: typeof HRouteRoute
+    }
+    '/h/$wh/stock': {
+      id: '/h/$wh/stock'
+      path: '/$wh/stock'
+      fullPath: '/h/$wh/stock'
+      preLoaderRoute: typeof HWhStockRouteImport
+      parentRoute: typeof HRouteRoute
+    }
   }
 }
 
+interface HRouteRouteChildren {
+  HAttentionRoute: typeof HAttentionRoute
+  HLoginRoute: typeof HLoginRoute
+  HIndexRoute: typeof HIndexRoute
+  HWhStockRoute: typeof HWhStockRoute
+}
+
+const HRouteRouteChildren: HRouteRouteChildren = {
+  HAttentionRoute: HAttentionRoute,
+  HLoginRoute: HLoginRoute,
+  HIndexRoute: HIndexRoute,
+  HWhStockRoute: HWhStockRoute,
+}
+
+const HRouteRouteWithChildren =
+  HRouteRoute._addFileChildren(HRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  HRouteRoute: HRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

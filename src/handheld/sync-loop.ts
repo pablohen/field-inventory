@@ -9,6 +9,8 @@ export const BACKOFF_BASE_MS = 1000;
 export const BACKOFF_MAX_MS = 60000;
 export const CHECKPOINT_EVERY = 20;
 export const SYNC_INTERVAL_MS = 30000;
+/** Age of the last pull after which the UI warns the data is stale (matches the server's `staleWarningMs`). */
+export const STALE_WARNING_MS = 4 * 3600_000;
 
 export type SyncPhase =
   | 'idle'
