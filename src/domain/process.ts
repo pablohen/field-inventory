@@ -32,7 +32,7 @@ export interface Effects {
 }
 
 /** Keys a movement touches, including a COUNT's own (sku, toLocation) key. */
-function touchedKeys(m: Movement): string[] {
+export function touchedKeys(m: Movement): string[] {
   const keys = new Set(movementDeltas(m).map(balanceKeyString));
   if (m.type === 'COUNT' && m.toLocationId !== null) {
     keys.add(balanceKeyString({ skuId: m.skuId, locationId: m.toLocationId }));
