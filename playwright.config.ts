@@ -9,10 +9,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: 'list',
-  use: {
-    baseURL: `http://localhost:${PORT}`,
-    ...devices['Desktop Chrome'],
-  },
+  use: { baseURL: `http://localhost:${PORT}` },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: `pnpm build && pnpm exec vite preview --port ${PORT} --strictPort`,

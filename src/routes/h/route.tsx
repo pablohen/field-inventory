@@ -27,6 +27,14 @@ export const Route = createFileRoute('/h')({
 /** Production only; the SW is served from the root with a narrower scope. */
 function registerServiceWorker(): void {
   if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
+  // A new SW claims open pages; reload once so they drop stale chunk refs.
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloaded || !hadController) return;
+    reloaded = true;
+    location.reload();
+  });
   navigator.serviceWorker
     .register(SW_URL, { scope: SW_SCOPE })
     .catch((err) => console.error('service worker registration failed', err));

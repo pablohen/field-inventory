@@ -1,7 +1,8 @@
 import type { VitePWAOptions } from 'vite-plugin-pwa';
 
 /** The SW script is served from the root but registered with a narrower scope. */
-export const SW_SCOPE = '/h/';
+// No trailing slash: `/h` (the start_url) and `/h/...` are both in scope.
+export const SW_SCOPE = '/h';
 export const SW_URL = '/sw.js';
 
 export const MAX_PRECACHE_FILE_BYTES = 16 * 1024 * 1024;
@@ -24,7 +25,6 @@ export const pwaOptions: Partial<VitePWAOptions> = {
   outDir: 'dist/client',
   filename: 'sw.ts',
   injectRegister: false,
-  registerType: 'autoUpdate',
   scope: SW_SCOPE,
   manifestFilename: 'manifest.webmanifest',
   manifest: {

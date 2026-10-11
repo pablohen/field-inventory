@@ -23,17 +23,27 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       const response = await fetch(SHELL_URL, { cache: 'reload' });
-      if (response.ok) {
-        const cache = await caches.open(SHELL_CACHE);
-        await cache.put(SHELL_URL, withIsolationHeaders(response));
-      }
+      // Fail the install (the old SW stays) rather than ship without a shell.
+      if (!response.ok)
+        throw new Error(`shell fetch failed: ${response.status}`);
+      const cache = await caches.open(SHELL_CACHE);
+      await cache.put(SHELL_URL, withIsolationHeaders(response));
       await self.skipWaiting();
     })(),
   );
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      // Drop every shell entry except the /h document fetched at install.
+      const cache = await caches.open(SHELL_CACHE);
+      for (const req of await cache.keys()) {
+        if (new URL(req.url).pathname !== SHELL_URL) await cache.delete(req);
+      }
+      await self.clients.claim();
+    })(),
+  );
 });
 
 // Server functions and Turso traffic: never cached.
@@ -48,6 +58,9 @@ registerRoute(
     networkTimeoutSeconds: NAVIGATION_TIMEOUT_SECONDS,
     plugins: [
       {
+        // One shared document: every /h/... navigation reads and refreshes /h.
+        cacheKeyWillBeUsed: async () =>
+          new URL(SHELL_URL, self.location.origin).href,
         handlerDidError: async () => {
           const cached = await caches.match(SHELL_URL, {
             cacheName: SHELL_CACHE,

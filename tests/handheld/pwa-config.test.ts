@@ -14,15 +14,15 @@ import {
 import { SECURITY_HEADERS } from '#/server/http/security-headers';
 
 describe('pwa options', () => {
-  it('scopes the app to /h/ and serves the SW from the root', () => {
-    expect(SW_SCOPE).toBe('/h/');
+  it('scopes the app to /h (start_url included) and serves the SW from the root', () => {
+    expect(SW_SCOPE).toBe('/h');
     expect(SW_URL).toBe('/sw.js');
-    expect(pwaOptions.scope).toBe('/h/');
+    expect(pwaOptions.scope).toBe('/h');
     expect(pwaOptions.manifest).toMatchObject({
       name: 'Field Inventory',
       short_name: 'Inventory',
       start_url: '/h',
-      scope: '/h/',
+      scope: '/h',
       display: 'standalone',
     });
   });
@@ -43,9 +43,11 @@ describe('sw routing helpers', () => {
     expect(SHELL_URL).toBe('/h');
     const nav = { mode: 'navigate' };
     expect(isShellNavigation(nav, new URL('https://x/h'))).toBe(true);
+    expect(isShellNavigation(nav, new URL('https://x/h/'))).toBe(true);
     expect(isShellNavigation(nav, new URL('https://x/h/login'))).toBe(true);
     expect(isShellNavigation(nav, new URL('https://x/h/wh1/count'))).toBe(true);
     expect(isShellNavigation(nav, new URL('https://x/hx'))).toBe(false);
+    expect(isShellNavigation(nav, new URL('https://x/hx/y'))).toBe(false);
     expect(isShellNavigation(nav, new URL('https://x/'))).toBe(false);
     expect(
       isShellNavigation({ mode: 'cors' }, new URL('https://x/h/login')),

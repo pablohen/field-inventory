@@ -4,7 +4,7 @@ import viteReact from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { pwaOptions } from './src/pwa-options.ts';
-import { SECURITY_HEADERS } from './src/server/http/security-headers';
+import { SECURITY_HEADERS } from './src/server/http/security-headers.ts';
 
 /**
  * vite-plugin-pwa only builds the service worker when the (shared) resolved
@@ -16,6 +16,7 @@ function pwaForStart(): Plugin[] {
   const api = plugins.find((p) => p.name === 'vite-plugin-pwa')?.api as
     | { generateSW: () => Promise<void> }
     | undefined;
+  if (!api) throw new Error('vite-plugin-pwa api not found');
   const clientSw: Plugin = {
     name: 'field-inventory:pwa-client-sw',
     apply: 'build',
@@ -23,7 +24,7 @@ function pwaForStart(): Plugin[] {
     closeBundle: {
       sequential: true,
       async handler() {
-        if (this.environment.name === 'client') await api?.generateSW();
+        if (this.environment.name === 'client') await api.generateSW();
       },
     },
   };

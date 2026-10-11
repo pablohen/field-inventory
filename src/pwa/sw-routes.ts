@@ -17,7 +17,7 @@ export function isNetworkOnly(url: URL): boolean {
   return url.hostname === 'turso.io' || url.hostname.endsWith('.turso.io');
 }
 
-/** Document navigations inside the handheld app (`/h` or `/h/...`). */
+/** Document navigations inside the handheld app (`/h` or `/h/...`, not `/hx`). */
 export function isShellNavigation(
   request: { mode: string },
   url: URL,
