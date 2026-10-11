@@ -68,7 +68,7 @@ function HandheldHome() {
                   ['adjust', 'Adjust'],
                 ] as const
               ).map(([slug, label]) => (
-                // Built in Task 11; plain anchors until those routes exist.
+                // TODO(T11): Link
                 <Button
                   key={slug}
                   component="a"

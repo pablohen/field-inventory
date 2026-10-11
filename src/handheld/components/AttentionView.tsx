@@ -20,6 +20,19 @@ export function AttentionView() {
   const [confirming, setConfirming] = useState<OutboxRow | null>(null);
   const [error, setError] = useState('');
 
+  const blocked =
+    syncState?.phase === 'device_revoked' ||
+    syncState?.phase === 'device_unknown';
+
+  const { data: pendingRows } = useQuery({
+    queryKey: ['h', 'attention', 'pending'],
+    queryFn: () =>
+      (backend as NonNullable<typeof backend>).call('listOutbox', {
+        status: 'pending',
+      }),
+    enabled: backend !== null && blocked,
+  });
+
   const { data } = useQuery({
     queryKey: ['h', 'attention'],
     queryFn: () =>
@@ -31,33 +44,52 @@ export function AttentionView() {
 
   const discard = async () => {
     if (!backend || !confirming) return;
+    setError('');
     try {
       await backend.call('discardOutbox', confirming.id);
       setConfirming(null);
       await queryClient.invalidateQueries({ queryKey: ['h'] });
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      // Close the modal so the alert is visible.
+      setConfirming(null);
+      setError(
+        `Could not discard: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   };
 
   const exportAll = async () => {
     if (!backend) return;
-    const json = await backend.call('exportOutbox');
-    const deviceId = session?.deviceId ?? getDeviceId() ?? 'device';
-    const url = URL.createObjectURL(
-      new Blob([json], { type: 'application/json' }),
-    );
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = exportFilename(deviceId, new Date());
-    a.click();
-    URL.revokeObjectURL(url);
+    setError('');
+    try {
+      const json = await backend.call('exportOutbox');
+      const deviceId = session?.deviceId ?? getDeviceId() ?? 'device';
+      const url = URL.createObjectURL(
+        new Blob([json], { type: 'application/json' }),
+      );
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = exportFilename(deviceId, new Date());
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      setError(
+        `Could not export: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   };
 
   return (
     <Stack>
-      {syncState?.phase === 'device_revoked' && (
-        <Alert color="red" title="This device was revoked">
+      {blocked && (
+        <Alert
+          color="red"
+          title={
+            syncState?.phase === 'device_revoked'
+              ? 'This device was revoked'
+              : "This device isn't enrolled"
+          }
+        >
           <Stack gap="xs">
             <span>Export the outbox so the records are not lost.</span>
             <Button onClick={() => void exportAll()}>Export outbox</Button>
@@ -65,7 +97,7 @@ export function AttentionView() {
         </Alert>
       )}
       {error && <Alert color="red">{error}</Alert>}
-      {(data ?? []).length === 0 && (
+      {(data ?? []).length === 0 && !blocked && (
         <Text c="dimmed">Nothing needs attention</Text>
       )}
       {(data ?? []).map((row) => (
@@ -87,6 +119,19 @@ export function AttentionView() {
           </Group>
         </Card>
       ))}
+      {blocked && (pendingRows ?? []).length > 0 && (
+        <Stack gap="xs">
+          <Text fw={500}>Not yet synced</Text>
+          {(pendingRows ?? []).map((row) => (
+            <Card key={row.id} withBorder>
+              <Text>{describe(row)}</Text>
+              <Text size="sm" c="dimmed">
+                Not yet synced
+              </Text>
+            </Card>
+          ))}
+        </Stack>
+      )}
       <Modal
         opened={confirming !== null}
         onClose={() => setConfirming(null)}

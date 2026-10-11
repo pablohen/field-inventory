@@ -152,6 +152,23 @@ describe('StatusPill', () => {
     expect(await screen.findByText('Sign in to sync')).toBeTruthy();
   });
 
+  it.each([
+    ['device_revoked', 'Device revoked', '/h/attention'],
+    ['device_unknown', 'Device not enrolled', '/h/attention'],
+  ] as const)(
+    '%s shows a badge linking to attention',
+    async (phase, text, href) => {
+      await pill({ phase }, T0);
+      const a = (await screen.findByText(text)).closest('a');
+      expect(a?.getAttribute('href')).toBe(href);
+    },
+  );
+
+  it('shows Update required for update_required', async () => {
+    await pill({ phase: 'update_required' }, T0);
+    expect(await screen.findByText('Update required')).toBeTruthy();
+  });
+
   it('shows pending and attention counts, attention links to /h/attention', async () => {
     await pill({ pendingCount: 3, attentionCount: 2 }, T0);
     expect(await screen.findByText('3 pending')).toBeTruthy();
@@ -219,6 +236,62 @@ describe('AttentionView', () => {
       }).value,
     );
     expect(await screen.findByText('Export outbox')).toBeTruthy();
+  });
+
+  it('shows Export and read-only pending rows when device_unknown', async () => {
+    const pending = {
+      id: 'p1',
+      warehouseId: 'w1',
+      status: 'pending',
+      lastError: null,
+      createdAt: '2026-01-01T00:00:00Z',
+      input: { type: 'MOVE' },
+    };
+    const c = vi.fn(async (m: string, f?: { status?: string }) =>
+      m === 'listOutbox'
+        ? f?.status === 'pending'
+          ? [pending]
+          : []
+        : undefined,
+    );
+    await mount(
+      <AttentionView />,
+      fakeValue({
+        call: c as never,
+        syncState: { ...initialSyncState, phase: 'device_unknown' },
+      }).value,
+    );
+    expect(await screen.findByText('Export outbox')).toBeTruthy();
+    expect(await screen.findByText('MOVE in w1')).toBeTruthy();
+    expect(screen.getAllByText('Not yet synced').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Discard')).toBeNull();
+  });
+
+  it('shows an error when export fails', async () => {
+    const c = vi.fn(async (m: string) => {
+      if (m === 'exportOutbox') throw new Error('boom');
+      return [];
+    });
+    await mount(
+      <AttentionView />,
+      fakeValue({
+        call: c as never,
+        syncState: { ...initialSyncState, phase: 'device_revoked' },
+      }).value,
+    );
+    fireEvent.click(await screen.findByText('Export outbox'));
+    expect(await screen.findByText(/Could not export: boom/)).toBeTruthy();
+  });
+
+  it('shows the discard error outside the modal', async () => {
+    const c = vi.fn(async (m: string) => {
+      if (m === 'discardOutbox') throw new Error('nope');
+      return rows;
+    });
+    await mount(<AttentionView />, fakeValue({ call: c as never }).value);
+    fireEvent.click((await screen.findAllByText('Discard'))[0] as HTMLElement);
+    fireEvent.click(await screen.findByText('Confirm discard'));
+    expect(await screen.findByText(/Could not discard: nope/)).toBeTruthy();
   });
 
   it('names the export file by device and date', () => {

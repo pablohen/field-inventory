@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SessionClaims } from '#/server/auth/session';
 import type { SyncDeps } from '#/server/sync/sync-movements';
-import { defaultDeps, handleSync } from '#/server/sync/sync-movements.fn';
+import { defaultDeps, handleSync } from '#/server/sync/sync-movements.server';
 
 afterEach(() => {
   vi.unstubAllEnvs();

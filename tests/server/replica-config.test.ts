@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SessionClaims } from '#/server/auth/session';
-import { replicaConfigCore } from '#/server/replicas/replica-config.fn';
+import { replicaConfigCore } from '#/server/replicas/replica-config.server';
 import {
   type TokenMinter,
   tursoTokenMinter,

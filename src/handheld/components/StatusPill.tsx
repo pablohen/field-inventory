@@ -85,6 +85,22 @@ export function StatusPill({ now: nowProp }: { now?: number }) {
           Sign in to sync
         </Badge>
       )}
+      {(syncState.phase === 'device_revoked' ||
+        syncState.phase === 'device_unknown') && (
+        <Badge
+          color="red"
+          component={Link}
+          to="/h/attention"
+          style={{ cursor: 'pointer' }}
+        >
+          {syncState.phase === 'device_revoked'
+            ? 'Device revoked'
+            : 'Device not enrolled'}
+        </Badge>
+      )}
+      {syncState.phase === 'update_required' && (
+        <Badge color="orange">Update required</Badge>
+      )}
       {stale && <Badge color="yellow">Data is stale</Badge>}
       <Badge color="gray" variant="outline">
         {syncState.lastPullAt
