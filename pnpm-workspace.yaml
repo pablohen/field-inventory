@@ -3,3 +3,15 @@ allowBuilds:
   esbuild: true
   lightningcss: true
   prisma: true
+# @tursodatabase/database-wasm-common depends on @emnapi/core directly and on
+# @napi-rs/wasm-runtime, which pnpm resolved to a newer @emnapi/core and
+# @emnapi/wasi-threads. The duplicated emnapi runtime breaks the sync-wasm
+# thread pool ("Cannot read properties of undefined (reading 'whenLoaded')").
+# Keep one version under the Turso engine; remove when upstream aligns.
+# Guarded by tests/handheld/emnapi-single-version.test.ts.
+overrides:
+  '@tursodatabase/database-wasm-common>@emnapi/core': 1.8.1
+  '@tursodatabase/database-wasm-common>@emnapi/runtime': 1.8.1
+  '@tursodatabase/database-wasm-common>@napi-rs/wasm-runtime': 1.0.7
+  '@napi-rs/wasm-runtime@1.0.7>@emnapi/core': 1.8.1
+  '@napi-rs/wasm-runtime@1.0.7>@emnapi/runtime': 1.8.1
