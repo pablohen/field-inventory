@@ -1,6 +1,5 @@
 import {
   balanceKeyString,
-  detectNegative,
   movementDeltas,
 } from '#/domain/balance';
 import {
@@ -52,8 +51,6 @@ export function processMovement(
 ): Effects {
   const movements: Movement[] = [m];
   const exceptions: ExceptionDraft[] = [];
-  const running = new Map(ctx.balances);
-  const raised = new Set(ctx.openNegativeKeys);
   const ledgers = new Map<string, Movement[]>();
 
   const ledgerFor = (key: string): Movement[] => {
@@ -70,29 +67,12 @@ export function processMovement(
       if (!l.some((y) => y.id === x.id)) l.push(x);
     }
   };
-  const applyNegativeCheck = (x: Movement): void => {
-    for (const e of detectNegative(x, running, raised)) {
-      exceptions.push(e);
-      if (e.skuId !== null && e.locationId !== null) {
-        raised.add(
-          balanceKeyString({ skuId: e.skuId, locationId: e.locationId }),
-        );
-      }
-    }
-    for (const d of movementDeltas(x)) {
-      const key = balanceKeyString(d);
-      running.set(key, (running.get(key) ?? 0) + d.delta);
-    }
-  };
-
   record(m);
-  applyNegativeCheck(m);
 
   const queue: Movement[] = [];
   const produce = (adjust: Movement): void => {
     movements.push(adjust);
     record(adjust);
-    applyNegativeCheck(adjust);
     queue.push(adjust);
   };
 
@@ -126,10 +106,6 @@ export function processMovement(
     }
   }
 
-  if (m.type === 'PICK') {
-    exceptions.push(...detectOverPick(m, ctx.pickLine, ctx.pickedBefore));
-  }
-
   const totals = new Map<string, BalanceDelta>();
   for (const x of movements) {
     for (const d of movementDeltas(x)) {
@@ -139,6 +115,29 @@ export function processMovement(
     }
   }
   const balanceDeltas = [...totals.values()].filter((d) => d.delta !== 0);
+
+  // Negativity is judged once, on the net result of the whole call.
+  for (const d of balanceDeltas) {
+    const key = balanceKeyString(d);
+    const before = ctx.balances.get(key) ?? 0;
+    const after = before + d.delta;
+    if (after < 0 && !ctx.openNegativeKeys.has(key)) {
+      exceptions.push({
+        type: 'NEGATIVE_BALANCE',
+        movementIds: movements
+          .filter((x) => touchedKeys(x).includes(key))
+          .map((x) => x.id),
+        skuId: d.skuId,
+        locationId: d.locationId,
+        deviceId: m.deviceId,
+        details: { before, after },
+      });
+    }
+  }
+
+  if (m.type === 'PICK') {
+    exceptions.push(...detectOverPick(m, ctx.pickLine, ctx.pickedBefore));
+  }
 
   return { movements, balanceDeltas, exceptions };
 }

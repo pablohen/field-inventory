@@ -162,6 +162,48 @@ describe('processMovement', () => {
     });
   });
 
+  describe('transient negative netted out by the cascade', () => {
+    const count0 = mv({
+      id: 'c1',
+      type: 'COUNT',
+      qty: 0,
+      occurredAt: at('10:00'),
+    });
+    const adj0 = mv({
+      id: 'a1',
+      qty: -10,
+      ref: 'c1',
+      reasonCode: 'COUNT_AUTO',
+      source: 'system',
+      occurredAt: at('10:00'),
+    });
+    const ledger = [receipt, count0, adj0];
+
+    it('a fully compensated late PICK raises no NEGATIVE_BALANCE', () => {
+      const e = processMovement(
+        pick({ qty: 10, occurredAt: at('09:00') }),
+        ctxFor(ledger),
+        idGen(),
+      );
+      expect(e.movements).toHaveLength(2);
+      expect(netOn(e, KEY)).toBe(0);
+      expect(e.exceptions).toEqual([]);
+    });
+
+    it('a plain PICK below zero still raises exactly one', () => {
+      const e = processMovement(
+        pick({ qty: 4, occurredAt: at('09:00') }),
+        ctxFor([receipt, pick({ id: 'p0', qty: 8, occurredAt: at('08:30') })]),
+        idGen(),
+      );
+      expect(e.exceptions.map((x) => x.type)).toEqual(['NEGATIVE_BALANCE']);
+      expect(e.exceptions[0]).toMatchObject({
+        movementIds: ['p1'],
+        details: { before: 2, after: -2 },
+      });
+    });
+  });
+
   it('raises OVER_PICK', () => {
     const e = processMovement(
       pick({ qty: 3 }),
