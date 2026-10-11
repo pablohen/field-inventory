@@ -24,6 +24,7 @@ describe('syncMovementsCore', () => {
     counter = 0;
     env = await createTestEnv();
     await env.seedDevice({ id: DEV, warehouses: [WH, WH2] });
+    await env.seedUser({ id: 'u1', username: 'u1', pin: '1234' });
     await env.seedProduct({ id: 'P1', sku: 'P1', countTolerance: 5 });
     for (const wh of [WH, WH2]) {
       await env.seedLocation(wh, { id: 'L1', code: 'L1' });
@@ -212,6 +213,36 @@ describe('syncMovementsCore', () => {
     const res = await syncMovementsCore(deps, batch([adjust()]));
     expect(res.status).toBe('WAREHOUSE_NOT_READY');
     expect(await movementCount()).toBe(0);
+  });
+
+  it('rejects a row whose deviceId differs from the batch and accepts the rest', async () => {
+    const good = adjust();
+    const foreign = adjust({ deviceId: 'other-device' });
+    const res = await ok(syncMovementsCore(deps, batch([good, foreign])));
+    expect(res.results).toEqual([
+      { id: good.id, status: 'accepted' },
+      { id: foreign.id, status: 'invalid', reason: 'DEVICE_MISMATCH' },
+    ]);
+    expect(await movementCount()).toBe(1);
+  });
+
+  it('rejects a row from an unknown user', async () => {
+    const good = adjust();
+    const ghost = adjust({ userId: 'ghost' });
+    const res = await ok(syncMovementsCore(deps, batch([good, ghost])));
+    expect(res.results).toEqual([
+      { id: good.id, status: 'accepted' },
+      { id: ghost.id, status: 'invalid', reason: 'UNKNOWN_USER' },
+    ]);
+    expect(await movementCount()).toBe(1);
+  });
+
+  it('accepts rows recorded by a different known user on the same device', async () => {
+    await env.seedUser({ id: 'u2', username: 'u2', pin: '1234' });
+    const res = await ok(
+      syncMovementsCore(deps, batch([adjust(), adjust({ userId: 'u2' })])),
+    );
+    expect(res.results.map((r) => r.status)).toEqual(['accepted', 'accepted']);
   });
 
   it('throws on an invalid envelope', async () => {

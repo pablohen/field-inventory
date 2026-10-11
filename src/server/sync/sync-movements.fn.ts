@@ -1,6 +1,8 @@
 import { createServerFn } from '@tanstack/react-start';
 import { ZodError } from 'zod';
+import { syncBatchSchema } from '#/domain/schemas';
 import type { ExceptionDraft } from '#/domain/types';
+import { requireSession, type SessionClaims } from '#/server/auth/session';
 import { catalogDb, globalDb, warehouseDb } from '#/server/db/clients';
 import {
   type SyncDeps,
@@ -42,7 +44,18 @@ export function defaultDeps(): SyncDeps {
 }
 
 /** Runs the sync; an invalid envelope (ZodError) becomes a 400 response. */
-export async function handleSync(deps: SyncDeps, data: unknown) {
+export async function handleSync(
+  deps: SyncDeps,
+  data: unknown,
+  session: SessionClaims,
+) {
+  const envelope = syncBatchSchema.safeParse(data);
+  if (envelope.success && envelope.data.deviceId !== session.deviceId) {
+    throw new Response(JSON.stringify({ error: 'Session device mismatch' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
   try {
     return await syncMovementsCore(deps, data);
   } catch (error) {
@@ -61,6 +74,11 @@ export async function handleSync(deps: SyncDeps, data: unknown) {
 
 export const syncMovements = createServerFn({ method: 'POST' })
   .validator((d: unknown) => d)
-  .handler(
-    ({ data }) => handleSync(defaultDeps(), data) as Promise<WireSyncResponse>,
-  );
+  .handler(async ({ data }) => {
+    const session = await requireSession();
+    return handleSync(
+      defaultDeps(),
+      data,
+      session,
+    ) as Promise<WireSyncResponse>;
+  });

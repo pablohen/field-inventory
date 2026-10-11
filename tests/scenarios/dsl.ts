@@ -53,8 +53,18 @@ export async function runScenario(s: Scenario): Promise<void> {
   try {
     const wh = s.setup.warehouses;
     await env.seedDevice({ id: SETUP_DEVICE, warehouses: wh });
+    await env.seedUser({
+      id: `user-${SETUP_DEVICE}`,
+      username: `user-${SETUP_DEVICE}`,
+      pin: '1234',
+    });
     for (const d of s.setup.devices) {
       await env.seedDevice({ id: d.id, warehouses: d.warehouses });
+      await env.seedUser({
+        id: `user-${d.id}`,
+        username: `user-${d.id}`,
+        pin: '1234',
+      });
     }
     for (const p of s.setup.products) {
       await env.seedProduct({

@@ -246,7 +246,7 @@ export async function syncMovementsCore(
   );
 
   const results: RowResult[] = new Array(batch.movements.length);
-  const valid: ValidRow[] = [];
+  const parsedRows: { index: number; input: MovementInput }[] = [];
   batch.movements.forEach((row, index) => {
     const parsed = movementInputSchema.safeParse(row);
     if (!parsed.success) {
@@ -259,17 +259,41 @@ export async function syncMovementsCore(
       };
       return;
     }
-    const wh = assigned.get(parsed.data.warehouseId);
-    if (!wh) {
-      results[index] = {
-        id: parsed.data.id,
-        status: 'invalid',
-        reason: 'WAREHOUSE_NOT_ASSIGNED',
-      };
-      return;
-    }
-    valid.push({ index, input: parsed.data, dbName: wh.tursoDbName });
+    parsedRows.push({ index, input: parsed.data });
   });
+
+  const userIds = [...new Set(parsedRows.map((r) => r.input.userId))];
+  const knownUsers = new Set(
+    userIds.length === 0
+      ? []
+      : (
+          await deps.global.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true },
+          })
+        ).map((u) => u.id),
+  );
+
+  const valid: ValidRow[] = [];
+  for (const { index, input } of parsedRows) {
+    const reject = (reason: string) => {
+      results[index] = { id: input.id, status: 'invalid', reason };
+    };
+    if (input.deviceId !== batch.deviceId) {
+      reject('DEVICE_MISMATCH');
+      continue;
+    }
+    if (!knownUsers.has(input.userId)) {
+      reject('UNKNOWN_USER');
+      continue;
+    }
+    const wh = assigned.get(input.warehouseId);
+    if (!wh) {
+      reject('WAREHOUSE_NOT_ASSIGNED');
+      continue;
+    }
+    valid.push({ index, input, dbName: wh.tursoDbName });
+  }
 
   for (const wh of assigned.values()) {
     const targeted = valid.some((v) => v.input.warehouseId === wh.id);

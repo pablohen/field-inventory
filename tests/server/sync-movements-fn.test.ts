@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { SessionClaims } from '#/server/auth/session';
 import type { SyncDeps } from '#/server/sync/sync-movements';
 import { defaultDeps, handleSync } from '#/server/sync/sync-movements.fn';
 
@@ -34,9 +35,17 @@ describe('defaultDeps', () => {
 
 describe('handleSync', () => {
   const deps = {} as SyncDeps;
+  const session: SessionClaims = {
+    userId: 'u1',
+    deviceId: 'd',
+    role: 'worker',
+    exp: 0,
+  };
 
   it('maps an invalid envelope to a 400 Response', async () => {
-    const thrown = await handleSync(deps, { nope: true }).catch((e) => e);
+    const thrown = await handleSync(deps, { nope: true }, session).catch(
+      (e) => e,
+    );
     expect(thrown).toBeInstanceOf(Response);
     expect((thrown as Response).status).toBe(400);
     const body = await (thrown as Response).json();
@@ -56,6 +65,24 @@ describe('handleSync', () => {
       sentAt: '2026-03-01T12:00:00Z',
       movements: [],
     };
-    await expect(handleSync(failing, valid)).rejects.toBe(boom);
+    await expect(handleSync(failing, valid, session)).rejects.toBe(boom);
+  });
+
+  it('throws a 403 Response when the session is for another device', async () => {
+    const batch = {
+      deviceId: 'd',
+      schemaVersion: 1,
+      sentAt: '2026-03-01T12:00:00Z',
+      movements: [],
+    };
+    const thrown = await handleSync(deps, batch, {
+      ...session,
+      deviceId: 'other',
+    }).catch((e) => e);
+    expect(thrown).toBeInstanceOf(Response);
+    expect((thrown as Response).status).toBe(403);
+    expect(await (thrown as Response).json()).toEqual({
+      error: 'Session device mismatch',
+    });
   });
 });
