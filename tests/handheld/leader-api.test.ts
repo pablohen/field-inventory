@@ -35,18 +35,18 @@ async function setup() {
     ['w2', asReplica('w2', await replicaSql('warehouse'))],
     ['catalog', asReplica('catalog', await replicaSql('catalog'))],
   ]);
-  const runSync = vi.fn(async () => ({ ...initialSyncState, pendingCount: 1 }));
+  const runNow = vi.fn(async () => {});
   const closeAll = vi.fn(async () => {});
   const api = createLeaderApi({
     outbox,
     replicas,
     deviceId: 'd1',
-    runSync,
-    getSyncState: () => initialSyncState,
+    runNow,
+    getSyncState: () => ({ ...initialSyncState, pendingCount: 1 }),
     closeAll,
     now: () => new Date('2026-01-01T10:00:05Z'),
   });
-  return { api, outbox, runSync, closeAll, replicas };
+  return { api, outbox, runNow, closeAll, replicas };
 }
 
 describe('createLeaderApi', () => {
@@ -186,9 +186,9 @@ describe('createLeaderApi', () => {
   });
 
   it('delegates sync and reset', async () => {
-    const { api, runSync } = await setup();
+    const { api, runNow } = await setup();
     expect((await api.syncNow()).pendingCount).toBe(1);
-    expect(runSync).toHaveBeenCalledOnce();
+    expect(runNow).toHaveBeenCalledOnce();
     expect(await api.syncState()).toEqual(initialSyncState);
   });
 });

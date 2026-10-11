@@ -87,7 +87,7 @@ export async function startLeader(deviceId: string): Promise<LeaderApi> {
     outbox,
     replicas,
     deviceId,
-    runSync,
+    runNow: stop.runNow,
     getSyncState: runner.getState,
     now: () => new Date(),
     closeAll: async () => {

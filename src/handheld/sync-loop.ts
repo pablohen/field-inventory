@@ -276,6 +276,11 @@ type SchedulerEnv = EventTarget & {
 export type SyncSchedulerStop = (() => void) & {
   /** Runs now, ignoring `nextRetryAt` (still single-flight). */
   triggerNow(): void;
+  /**
+   * Like `triggerNow`, but resolves once the scheduler is idle again: the run
+   * it triggered, or the in-flight run plus its queued rerun, has completed.
+   */
+  runNow(): Promise<void>;
 };
 
 /**
@@ -291,6 +296,27 @@ export function startSyncScheduler(
   let running = false;
   let rerun: { force: boolean } | null = null;
   let stopped = false;
+  let waiters: Array<() => void> = [];
+  let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const clearRetry = () => {
+    if (retryTimer !== null) clearTimeout(retryTimer);
+    retryTimer = null;
+  };
+  const scheduleRetry = () => {
+    clearRetry();
+    if (stopped) return;
+    const at = getNextRetryAt();
+    if (at === null) return;
+    const t = new Date(at).getTime();
+    if (Number.isNaN(t)) return;
+    const delay = t - Date.now();
+    if (delay <= 0) return;
+    retryTimer = setTimeout(() => {
+      retryTimer = null;
+      trigger(false);
+    }, delay);
+  };
 
   const due = () => {
     const at = getNextRetryAt();
@@ -317,7 +343,14 @@ export function startSyncScheduler(
         running = false;
         const again = rerun;
         rerun = null;
-        if (again) trigger(again.force);
+        scheduleRetry();
+        if (again) {
+          trigger(again.force);
+        } else {
+          const done = waiters;
+          waiters = [];
+          for (const w of done) w();
+        }
       }
     })();
   };
@@ -333,9 +366,19 @@ export function startSyncScheduler(
   const stop = (() => {
     stopped = true;
     clearInterval(timer);
+    clearRetry();
+    const done = waiters;
+    waiters = [];
+    for (const w of done) w();
     env.removeEventListener('online', onOnline);
     env.removeEventListener('visibilitychange', onVisibility);
   }) as SyncSchedulerStop;
   stop.triggerNow = () => trigger(true);
+  stop.runNow = () => {
+    if (stopped) return Promise.resolve();
+    const idle = new Promise<void>((resolve) => waiters.push(resolve));
+    trigger(true);
+    return idle;
+  };
   return stop;
 }

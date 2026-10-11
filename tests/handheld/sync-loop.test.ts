@@ -599,6 +599,74 @@ describe('startSyncScheduler', () => {
     stop();
   });
 
+  it('runNow during an in-flight run never overlaps and resolves after the rerun', async () => {
+    const env = new FakeEnv();
+    let active = 0;
+    let maxActive = 0;
+    const gates: ReturnType<typeof deferred>[] = [];
+    const run = vi.fn(async () => {
+      active++;
+      maxActive = Math.max(maxActive, active);
+      const g = deferred();
+      gates.push(g);
+      await g.promise;
+      active--;
+    });
+    const stop = startSyncScheduler(run, env, () => null);
+    env.dispatchEvent(new Event('online'));
+    let resolved = false;
+    const p = stop.runNow().then(() => {
+      resolved = true;
+    });
+    expect(run).toHaveBeenCalledTimes(1);
+    gates[0].resolve();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(run).toHaveBeenCalledTimes(2);
+    expect(resolved).toBe(false);
+    gates[1].resolve();
+    await vi.advanceTimersByTimeAsync(0);
+    await p;
+    expect(resolved).toBe(true);
+    expect(maxActive).toBe(1);
+    stop();
+  });
+
+  it('fires a retry at nextRetryAt without waiting for the interval', async () => {
+    const env = new FakeEnv();
+    let retryAt: string | null = null;
+    const run = vi.fn(async () => {
+      if (run.mock.calls.length === 1) {
+        retryAt = new Date(Date.now() + 1000).toISOString();
+      } else {
+        retryAt = null;
+      }
+    });
+    const stop = startSyncScheduler(run, env, () => retryAt);
+    stop.triggerNow();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(run).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(999);
+    expect(run).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(2);
+    expect(run).toHaveBeenCalledTimes(2);
+    stop();
+  });
+
+  it('stop clears the retry timer', async () => {
+    const env = new FakeEnv();
+    const run = vi.fn(async () => {});
+    const retryAt = new Date(NOW.getTime() + 1000).toISOString();
+    const stop = startSyncScheduler(run, env, () => retryAt);
+    stop.triggerNow();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(2); // interval + retry
+    stop();
+    expect(vi.getTimerCount()).toBe(0);
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
   it('runs every 30000 ms and on visible; stop removes everything', async () => {
     const env = new FakeEnv();
     const run = vi.fn(async () => {});
@@ -635,7 +703,8 @@ describe('startSyncScheduler', () => {
     expect(run).toHaveBeenCalledTimes(2);
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(90000); // past retryAt
-    expect(run).toHaveBeenCalledTimes(3); // only the 120000 ms tick is due
+    // the retry timer fires at retryAt (100000 ms), plus the 120000 ms tick
+    expect(run).toHaveBeenCalledTimes(4);
     stop();
   });
 

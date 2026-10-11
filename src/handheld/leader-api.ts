@@ -25,7 +25,8 @@ export interface LeaderApiDeps {
   outbox: Sql;
   replicas: Map<string, Replica>;
   deviceId: string;
-  runSync(): Promise<SyncState>;
+  /** Single-flight run through the scheduler; resolves when it is idle. */
+  runNow(): Promise<void>;
   getSyncState(): SyncState;
   closeAll(): Promise<void>;
   now(): Date;
@@ -89,7 +90,8 @@ export function createLeaderApi(deps: LeaderApiDeps) {
       return exportOutbox(deps.outbox);
     },
     async syncNow() {
-      return deps.runSync();
+      await deps.runNow();
+      return deps.getSyncState();
     },
     async syncState() {
       // Counts are recomputed from the outbox so they stay live between syncs.
