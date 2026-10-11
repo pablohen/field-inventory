@@ -82,3 +82,34 @@ test('navigations never write the shell cache; only the install does', async ({
   expect(names[0]).toMatch(/^fi-shell-[0-9a-f]{8}$/);
   expect(shell[names[0]]).toEqual(['/h']);
 });
+
+test('the sync engine worker script loads offline from the precache', async ({
+  page,
+  context,
+}) => {
+  await page.goto('/h/login');
+  await waitForServiceWorkerControl(page);
+  const workerUrl = await page.evaluate(async () => {
+    for (const name of await caches.keys()) {
+      for (const req of await (await caches.open(name)).keys()) {
+        if (new URL(req.url).pathname.startsWith('/assets/worker-')) {
+          return req.url;
+        }
+      }
+    }
+    return null;
+  });
+  expect(workerUrl).not.toBeNull();
+
+  await context.setOffline(true);
+  const outcome = await page.evaluate(
+    (url) =>
+      new Promise<string>((resolve) => {
+        const w = new Worker(url as string, { type: 'module' });
+        w.addEventListener('error', () => resolve('error'));
+        setTimeout(() => resolve('ok'), 3000);
+      }),
+    workerUrl,
+  );
+  expect(outcome).toBe('ok');
+});

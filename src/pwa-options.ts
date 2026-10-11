@@ -1,8 +1,14 @@
 import type { VitePWAOptions } from 'vite-plugin-pwa';
 
-/** The SW script is served from the root but registered with a narrower scope. */
-// No trailing slash: `/h` (the start_url) and `/h/...` are both in scope.
-export const SW_SCOPE = '/h';
+/**
+ * The SW is registered at `/` so it also controls dedicated workers whose
+ * script lives outside `/h` (the sync engine's `/assets/worker-*.js`); Chromium
+ * matches worker script URLs against SW scopes. Routing in src/sw.ts still only
+ * handles `/h` navigations.
+ */
+export const SW_SCOPE = '/';
+/** The installed app's scope (manifest). No trailing slash: `/h` and `/h/...`. */
+export const APP_SCOPE = '/h';
 export const SW_URL = '/sw.js';
 
 export const MAX_PRECACHE_FILE_BYTES = 16 * 1024 * 1024;
@@ -31,7 +37,7 @@ export const pwaOptions: Partial<VitePWAOptions> = {
     name: 'Field Inventory',
     short_name: 'Inventory',
     start_url: '/h',
-    scope: SW_SCOPE,
+    scope: APP_SCOPE,
     display: 'standalone',
     background_color: '#ffffff',
     theme_color: '#1c7ed6',

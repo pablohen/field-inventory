@@ -10,6 +10,7 @@ import {
   withIsolationHeaders,
 } from '#/pwa/sw-routes';
 import {
+  APP_SCOPE,
   MAX_PRECACHE_FILE_BYTES,
   pwaOptions,
   SW_SCOPE,
@@ -18,10 +19,11 @@ import {
 import { SECURITY_HEADERS } from '#/server/http/security-headers';
 
 describe('pwa options', () => {
-  it('scopes the app to /h (start_url included) and serves the SW from the root', () => {
-    expect(SW_SCOPE).toBe('/h');
+  it('registers the SW at / but keeps the installed app scoped to /h', () => {
+    expect(SW_SCOPE).toBe('/');
+    expect(APP_SCOPE).toBe('/h');
     expect(SW_URL).toBe('/sw.js');
-    expect(pwaOptions.scope).toBe('/h');
+    expect(pwaOptions.scope).toBe('/');
     expect(pwaOptions.manifest).toMatchObject({
       name: 'Field Inventory',
       short_name: 'Inventory',
@@ -53,6 +55,7 @@ describe('sw routing helpers', () => {
     expect(isShellNavigation(nav, new URL('https://x/hx'))).toBe(false);
     expect(isShellNavigation(nav, new URL('https://x/hx/y'))).toBe(false);
     expect(isShellNavigation(nav, new URL('https://x/'))).toBe(false);
+    expect(isShellNavigation(nav, new URL('https://x/admin'))).toBe(false);
     expect(
       isShellNavigation({ mode: 'cors' }, new URL('https://x/h/login')),
     ).toBe(false);

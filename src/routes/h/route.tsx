@@ -24,7 +24,17 @@ export const Route = createFileRoute('/h')({
   component: HandheldLayout,
 });
 
-/** Production only; the SW is served from the root with a narrower scope. */
+/** Drops registrations left by the old `/h`-scoped SW (they would shadow `/`). */
+async function unregisterLegacyScopes(): Promise<void> {
+  const regs = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(
+    regs
+      .filter((r) => /\/h\/?$/.test(new URL(r.scope).pathname))
+      .map((r) => r.unregister()),
+  );
+}
+
+/** Production only; registered at `/` so engine workers are controlled too. */
 function registerServiceWorker(): void {
   if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
   // A new SW claims open pages; reload once so they drop stale chunk refs.
@@ -37,6 +47,7 @@ function registerServiceWorker(): void {
   });
   navigator.serviceWorker
     .register(SW_URL, { scope: SW_SCOPE })
+    .then(unregisterLegacyScopes)
     .catch((err) => console.error('service worker registration failed', err));
 }
 
