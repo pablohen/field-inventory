@@ -1,7 +1,4 @@
-import {
-  balanceKeyString,
-  movementDeltas,
-} from '#/domain/balance';
+import { balanceKeyString, movementDeltas } from '#/domain/balance';
 import {
   correctForLateMovement,
   findAffectedCount,
