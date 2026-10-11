@@ -96,6 +96,8 @@ describe('parseDbDate', () => {
   it('throws on garbage', () => {
     expect(() => parseDbDate('nope')).toThrow();
     expect(() => parseDbDate(null)).toThrow();
+    expect(() => parseDbDate(new Date(Number.NaN))).toThrow();
+    expect(() => parseDbDate(Number.NaN)).toThrow();
   });
   it('reads what Prisma actually stored in a DATETIME column', async () => {
     const env = await createTestEnv();
@@ -154,6 +156,24 @@ describe('displayedStock', () => {
     );
     expect(await displayedStock(replica, outbox, 'w1')).toEqual([
       { skuId: 's1', locationId: 'l1', qty: 7, pendingDelta: -3 },
+    ]);
+  });
+
+  it('a pending TRANSFER_OUT lowers source stock', async () => {
+    await setBalance(replica, 's1', 'l1', 10);
+    await addToOutbox(
+      outbox,
+      base({
+        type: 'TRANSFER_OUT',
+        fromLocationId: 'l1',
+        qty: 4,
+        transferId: uuid(),
+        counterpartWarehouseId: 'w2',
+      }),
+      NOW,
+    );
+    expect(await displayedStock(replica, outbox, 'w1')).toEqual([
+      { skuId: 's1', locationId: 'l1', qty: 6, pendingDelta: -4 },
     ]);
   });
 
@@ -411,7 +431,9 @@ describe('inTransitTo', () => {
       }),
       NOW,
     );
+    const catalog = await replicaSql('catalog');
     const replicas = new Map([
+      ['catalog', catalog],
       ['w1', w1],
       ['w2', w2],
       ['w3', w3],

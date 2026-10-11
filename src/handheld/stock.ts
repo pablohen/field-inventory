@@ -10,12 +10,22 @@ import type { Sql } from './sql';
  * other writers may store epoch milliseconds as a number. All are handled.
  */
 export function parseDbDate(v: unknown): Date {
-  if (v instanceof Date) return v;
-  if (typeof v === 'number' || typeof v === 'bigint')
-    return new Date(Number(v));
+  if (v instanceof Date) {
+    if (Number.isNaN(v.getTime())) throw new Error('Invalid Date');
+    return v;
+  }
+  if (typeof v === 'number' || typeof v === 'bigint') {
+    const d = new Date(Number(v));
+    if (!Number.isNaN(d.getTime())) return d;
+    throw new Error(`Unparseable database date: ${String(v)}`);
+  }
   if (typeof v === 'string') {
     const s = v.trim();
-    if (/^-?\d+$/.test(s)) return new Date(Number(s));
+    if (/^-?\d+$/.test(s)) {
+      const d = new Date(Number(s));
+      if (!Number.isNaN(d.getTime())) return d;
+      throw new Error(`Unparseable database date: ${String(v)}`);
+    }
     // SQLite CURRENT_TIMESTAMP form has no zone: it is UTC.
     const iso = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?$/.test(s)
       ? `${s.replace(' ', 'T')}Z`
@@ -353,7 +363,7 @@ export async function inTransitTo(
   }
   const out: InTransit[] = [];
   for (const [id, sql] of replicas) {
-    if (id === warehouseId) continue;
+    if (id === warehouseId || id === 'catalog') continue;
     const rows = await sql.all<{
       id: string;
       skuId: string;
