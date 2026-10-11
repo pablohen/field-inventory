@@ -43,6 +43,12 @@ describe('security headers', () => {
 });
 
 describe('assertServerEnv', () => {
+  it('rejects the .env.example placeholder secret', () => {
+    expect(() =>
+      assertServerEnv({ SESSION_SECRET: 'change-me-to-a-long-random-string' }),
+    ).toThrow('not the example placeholder');
+  });
+
   it('throws when SESSION_SECRET is missing or short', () => {
     expect(() => assertServerEnv({})).toThrow(
       'SESSION_SECRET must be at least 32 characters',

@@ -82,6 +82,13 @@ describe('session', () => {
     expect(await verifySession(forged, t0)).toBe(null);
   });
 
+  it('throws when the secret is the example placeholder', async () => {
+    vi.stubEnv('SESSION_SECRET', 'change-me-to-a-long-random-string');
+    await expect(signSession(claims, t0)).rejects.toThrow(
+      'not the example placeholder',
+    );
+  });
+
   it('throws when the secret is missing or short', async () => {
     vi.stubEnv('SESSION_SECRET', 'short');
     await expect(signSession(claims, t0)).rejects.toThrow(
@@ -186,5 +193,91 @@ describe('loginCore', () => {
     expect(
       await loginCore(deps(), { username: 'ana', pin: '1234', deviceId: 'zz' }),
     ).toEqual({ ok: false, reason: 'DEVICE_UNKNOWN' });
+  });
+
+  describe('throttling', () => {
+    const MIN = 60 * 1000;
+    let clock = now;
+    const tdeps = () => ({ global: env.global, now: () => clock });
+    const attempt = (pin: string, username = 'ana', deviceId = 'd1') =>
+      loginCore(tdeps(), { username, pin, deviceId });
+    const failN = async (n: number, username = 'ana', deviceId = 'd1') => {
+      for (let i = 0; i < n; i++) {
+        expect(await attempt('0000', username, deviceId)).toEqual({
+          ok: false,
+          reason: 'BAD_CREDENTIALS',
+        });
+      }
+    };
+
+    beforeEach(async () => {
+      clock = now;
+      await env.seedDevice({ id: 'd2', warehouses: [] });
+    });
+
+    it('locks after 5 wrong pins even for the right pin', async () => {
+      await failN(5);
+      expect(await attempt('1234')).toEqual({ ok: false, reason: 'LOCKED' });
+    });
+
+    it('does not verify the pin while locked but still spends scrypt', async () => {
+      await failN(5);
+      vi.mocked(verifyPin).mockClear();
+      await attempt('1234');
+      expect(verifyPin).toHaveBeenCalledTimes(1);
+      const hash = vi.mocked(verifyPin).mock.calls[0]?.[1];
+      const user = await env.global.user.findUnique({
+        where: { username: 'ana' },
+      });
+      expect(hash).not.toBe(user?.pinHash);
+    });
+
+    it('unlocks after 15 minutes and resets the counter', async () => {
+      await failN(5);
+      clock = new Date(now.getTime() + 15 * MIN + 1);
+      expect((await attempt('1234')).ok).toBe(true);
+      const row = await env.global.loginAttempt.findUnique({
+        where: { deviceId_username: { deviceId: 'd1', username: 'ana' } },
+      });
+      expect(row?.failures ?? 0).toBe(0);
+      expect(row?.lockedUntil ?? null).toBe(null);
+    });
+
+    it('stays locked just before 15 minutes', async () => {
+      await failN(5);
+      clock = new Date(now.getTime() + 15 * MIN - 1);
+      expect(await attempt('1234')).toEqual({ ok: false, reason: 'LOCKED' });
+    });
+
+    it('a success resets the failure count', async () => {
+      await failN(4);
+      expect((await attempt('1234')).ok).toBe(true);
+      await failN(4);
+      expect((await attempt('1234')).ok).toBe(true);
+    });
+
+    it('locks unknown usernames too, keyed by the trimmed name', async () => {
+      await failN(5, 'ghost');
+      expect(await attempt('1234', ' ghost ')).toEqual({
+        ok: false,
+        reason: 'LOCKED',
+      });
+    });
+
+    it('a lock on one device does not affect another', async () => {
+      await failN(5, 'ana', 'd1');
+      expect(await attempt('1234', 'ana', 'd2')).toMatchObject({ ok: true });
+    });
+
+    it('a lock on one username does not affect another', async () => {
+      await env.seedUser({
+        id: 'u2',
+        username: 'bob',
+        pin: '5678',
+        role: 'worker',
+      });
+      await failN(5, 'ana');
+      expect(await attempt('5678', 'bob')).toMatchObject({ ok: true });
+    });
   });
 });

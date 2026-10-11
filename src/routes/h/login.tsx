@@ -15,6 +15,7 @@ const REASONS = {
   BAD_CREDENTIALS: 'Wrong username or PIN',
   DEVICE_REVOKED: "This device isn't enrolled",
   DEVICE_UNKNOWN: "This device isn't enrolled",
+  LOCKED: 'Too many attempts. Try again in 15 minutes.',
 } as const;
 
 const OFFLINE = 'Sign-in needs a connection';

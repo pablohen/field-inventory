@@ -39,3 +39,13 @@ model DeviceWarehouse {
 
   @@id([deviceId, warehouseId])
 }
+
+model LoginAttempt {
+  deviceId    String
+  username    String
+  failures    Int       @default(0)
+  lockedUntil DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  @@id([deviceId, username])
+}

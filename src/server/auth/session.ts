@@ -1,5 +1,6 @@
 import { getCookie } from '@tanstack/react-start/server';
 import { jwtVerify, SignJWT } from 'jose';
+import { requireSessionSecret } from '#/server/http/server-env';
 
 export type Role = 'worker' | 'supervisor' | 'admin';
 
@@ -14,11 +15,9 @@ export const SESSION_COOKIE = 'fi_session';
 export const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 function secretKey(): Uint8Array {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret || secret.length < 32) {
-    throw new Error('SESSION_SECRET must be at least 32 characters');
-  }
-  return new TextEncoder().encode(secret);
+  return new TextEncoder().encode(
+    requireSessionSecret(process.env.SESSION_SECRET),
+  );
 }
 
 export async function signSession(
