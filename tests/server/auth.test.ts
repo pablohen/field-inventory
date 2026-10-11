@@ -269,6 +269,21 @@ describe('loginCore', () => {
       expect(await attempt('1234', 'ana', 'd2')).toMatchObject({ ok: true });
     });
 
+    it('concurrent wrong pins cannot exceed the attempt budget', async () => {
+      const results = await Promise.all(
+        Array.from({ length: 10 }, () => attempt('0000')),
+      );
+      const bad = results.filter(
+        (r) => !r.ok && r.reason === 'BAD_CREDENTIALS',
+      ).length;
+      const locked = results.filter(
+        (r) => !r.ok && r.reason === 'LOCKED',
+      ).length;
+      expect(bad).toBeLessThanOrEqual(5);
+      expect(bad + locked).toBe(10);
+      expect(await attempt('1234')).toEqual({ ok: false, reason: 'LOCKED' });
+    });
+
     it('a lock on one username does not affect another', async () => {
       await env.seedUser({
         id: 'u2',

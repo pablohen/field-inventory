@@ -45,10 +45,14 @@ export async function loginCore(
 
   const now = deps.now();
   const username = input.username.trim();
-  const key = { deviceId_username: { deviceId: device.id, username } };
 
-  const attempt = await deps.global.loginAttempt.findUnique({ where: key });
-  if (attempt?.lockedUntil && attempt.lockedUntil > now) {
+  // Reserve the attempt atomically before verifying, so parallel requests
+  // each consume budget instead of all reading "not locked yet".
+  const reserved = await reserveAttempt(deps.global, device.id, username, now);
+  if (
+    reserved.failures > MAX_FAILURES ||
+    (reserved.lockedUntil && reserved.lockedUntil > now)
+  ) {
     // Equivalent scrypt cost, so a locked response is not distinguishable by timing.
     await verifyPin(input.pin, await getDummyHash());
     return { ok: false, reason: 'LOCKED' };
@@ -63,7 +67,9 @@ export async function loginCore(
     await verifyPin(input.pin, await getDummyHash());
   }
   if (!user || !valid) {
-    await recordFailure(deps.global, key, device.id, username, now);
+    if (reserved.failures >= MAX_FAILURES) {
+      await lockAttempt(deps.global, device.id, username, now);
+    }
     return { ok: false, reason: 'BAD_CREDENTIALS' };
   }
 
@@ -85,25 +91,46 @@ export async function loginCore(
   };
 }
 
-async function recordFailure(
+type Reservation = { failures: number; lockedUntil: Date | null };
+
+/**
+ * One atomic statement: count this attempt and return the new state. An
+ * expired lock restarts the counter at 1.
+ */
+async function reserveAttempt(
   global: GlobalClient,
-  key: { deviceId_username: { deviceId: string; username: string } },
+  deviceId: string,
+  username: string,
+  now: Date,
+): Promise<Reservation> {
+  const iso = now.toISOString();
+  const rows = await global.$queryRaw<
+    { failures: number | bigint; lockedUntil: Date | string | null }[]
+  >`INSERT INTO "LoginAttempt" ("deviceId", "username", "failures", "lockedUntil", "updatedAt")
+    VALUES (${deviceId}, ${username}, 1, NULL, ${iso})
+    ON CONFLICT ("deviceId", "username") DO UPDATE SET
+      "failures" = CASE WHEN "lockedUntil" IS NOT NULL AND "lockedUntil" <= ${iso}
+        THEN 1 ELSE "failures" + 1 END,
+      "lockedUntil" = CASE WHEN "lockedUntil" IS NOT NULL AND "lockedUntil" <= ${iso}
+        THEN NULL ELSE "lockedUntil" END,
+      "updatedAt" = ${iso}
+    RETURNING "failures", "lockedUntil"`;
+  const row = rows[0];
+  if (!row) throw new Error('login attempt reservation returned no row');
+  return {
+    failures: Number(row.failures),
+    lockedUntil: row.lockedUntil ? new Date(row.lockedUntil) : null,
+  };
+}
+
+async function lockAttempt(
+  global: GlobalClient,
   deviceId: string,
   username: string,
   now: Date,
 ): Promise<void> {
-  const row = await global.loginAttempt.upsert({
-    where: key,
-    create: { deviceId, username, failures: 1 },
-    update: { failures: { increment: 1 } },
+  await global.loginAttempt.updateMany({
+    where: { deviceId, username },
+    data: { failures: 0, lockedUntil: new Date(now.getTime() + LOCKOUT_MS) },
   });
-  if (row.failures >= MAX_FAILURES) {
-    await global.loginAttempt.update({
-      where: key,
-      data: {
-        failures: 0,
-        lockedUntil: new Date(now.getTime() + LOCKOUT_MS),
-      },
-    });
-  }
 }
