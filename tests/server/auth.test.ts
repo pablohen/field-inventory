@@ -1,8 +1,14 @@
+import { SignJWT } from 'jose';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loginCore } from '#/server/auth/auth.fn';
 import { hashPin, verifyPin } from '#/server/auth/password';
 import { signSession, verifySession } from '#/server/auth/session';
 import { createTestEnv, type TestEnv } from '../support/test-env';
+
+vi.mock('#/server/auth/password', async (orig) => {
+  const m = await orig<typeof import('#/server/auth/password')>();
+  return { ...m, verifyPin: vi.fn(m.verifyPin) };
+});
 
 const SECRET = 'a'.repeat(32);
 const DAY = 24 * 60 * 60 * 1000;
@@ -49,6 +55,31 @@ describe('session', () => {
     const token = await signSession(claims, t0);
     vi.stubEnv('SESSION_SECRET', 'b'.repeat(32));
     expect(await verifySession(token, t0)).toBe(null);
+  });
+
+  it('rejects HS512, alg none and tampered tokens', async () => {
+    const key = new TextEncoder().encode(SECRET);
+    const hs512 = await new SignJWT({ deviceId: 'd1', role: 'worker' })
+      .setProtectedHeader({ alg: 'HS512' })
+      .setSubject('u1')
+      .setExpirationTime(Math.floor(t0.getTime() / 1000) + 3600)
+      .sign(key);
+    expect(await verifySession(hs512, t0)).toBe(null);
+
+    const b64 = (o: object) =>
+      Buffer.from(JSON.stringify(o)).toString('base64url');
+    const none = `${b64({ alg: 'none', typ: 'JWT' })}.${b64({
+      sub: 'u1',
+      deviceId: 'd1',
+      role: 'admin',
+      exp: Math.floor(t0.getTime() / 1000) + 3600,
+    })}.`;
+    expect(await verifySession(none, t0)).toBe(null);
+
+    const good = await signSession(claims, t0);
+    const [h, , sig] = good.split('.');
+    const forged = `${h}.${b64({ sub: 'u1', deviceId: 'd1', role: 'admin', exp: Math.floor(t0.getTime() / 1000) + 3600 })}.${sig}`;
+    expect(await verifySession(forged, t0)).toBe(null);
   });
 
   it('throws when the secret is missing or short', async () => {
@@ -113,6 +144,36 @@ describe('loginCore', () => {
         deviceId: 'd1',
       }),
     ).toEqual({ ok: false, reason: 'BAD_CREDENTIALS' });
+  });
+
+  it('runs scrypt verification for an unknown user', async () => {
+    vi.mocked(verifyPin).mockClear();
+    await loginCore(deps(), {
+      username: 'nobody',
+      pin: '1234',
+      deviceId: 'd1',
+    });
+    expect(verifyPin).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects an unknown role', async () => {
+    await env.global.user.update({
+      where: { id: 'u1' },
+      data: { role: 'boss' },
+    });
+    expect(
+      await loginCore(deps(), { username: 'ana', pin: '1234', deviceId: 'd1' }),
+    ).toEqual({ ok: false, reason: 'BAD_CREDENTIALS' });
+  });
+
+  it('checks the device before credentials', async () => {
+    expect(
+      await loginCore(deps(), {
+        username: 'nobody',
+        pin: '0000',
+        deviceId: 'dr',
+      }),
+    ).toEqual({ ok: false, reason: 'DEVICE_REVOKED' });
   });
 
   it('rejects a revoked device', async () => {
