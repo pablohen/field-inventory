@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { waitForServiceWorkerControl } from './helpers';
 
 test('the handheld shell reloads offline and stays cross-origin isolated', async ({
   page,
@@ -27,13 +28,7 @@ test('offline opens of /h and a never-visited /h/... URL render from the shell',
   context,
 }) => {
   await page.goto('/h/login');
-  await page.evaluate(async () => {
-    await navigator.serviceWorker.ready;
-  });
-  await page.reload();
-  await expect
-    .poll(() => page.evaluate(() => !!navigator.serviceWorker.controller))
-    .toBe(true);
+  await waitForServiceWorkerControl(page);
   // A cached session, so /h and /h/attention don't redirect to the login.
   await page.evaluate(() => {
     localStorage.setItem(
