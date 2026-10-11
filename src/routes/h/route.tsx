@@ -5,11 +5,13 @@ import {
   Outlet,
   redirect,
 } from '@tanstack/react-router';
+import { useEffect } from 'react';
 import { StatusPill } from '#/handheld/components/StatusPill';
 import { useHandheld } from '#/handheld/context';
 import { HandheldProvider } from '#/handheld/HandheldProvider';
 import { getCachedSession } from '#/handheld/session-store';
 import { signOut } from '#/handheld/sign-out';
+import { SW_SCOPE, SW_URL } from '#/pwa-options';
 
 export const Route = createFileRoute('/h')({
   ssr: false,
@@ -21,6 +23,14 @@ export const Route = createFileRoute('/h')({
   },
   component: HandheldLayout,
 });
+
+/** Production only; the SW is served from the root with a narrower scope. */
+function registerServiceWorker(): void {
+  if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
+  navigator.serviceWorker
+    .register(SW_URL, { scope: SW_SCOPE })
+    .catch((err) => console.error('service worker registration failed', err));
+}
 
 function Header() {
   const { session } = useHandheld();
@@ -44,6 +54,7 @@ function Header() {
 }
 
 function HandheldLayout() {
+  useEffect(registerServiceWorker, []);
   return (
     <HandheldProvider>
       <Container size="sm" py="md">
