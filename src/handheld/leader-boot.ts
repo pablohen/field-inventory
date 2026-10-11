@@ -66,7 +66,8 @@ export async function startLeader(deviceId: string): Promise<LeaderApi> {
           deviceId,
           schemaVersion: SCHEMA_VERSIONS.warehouse,
           now: () => new Date(),
-          hasValidSession: () => hasValidSession(),
+          hasValidSession: () =>
+            hasValidSession() && manager.blocked !== 'needs_sign_in',
         },
         prev,
       ),

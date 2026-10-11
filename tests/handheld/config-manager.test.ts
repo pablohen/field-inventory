@@ -163,6 +163,40 @@ describe('sync runner', () => {
     expect(s2.phase).toBe('idle');
   });
 
+  it('after a 401 still pulls but does not push; a later config success pushes again', async () => {
+    let unauthorized = true;
+    const { manager } = setup(
+      async () => {
+        if (unauthorized) throw new HttpError(401, 'Unauthorized');
+        return cfg('ok', 200);
+      },
+      cfg('old', 1),
+    );
+    await manager.load();
+    const calls = { push: 0, pull: 0 };
+    // Mirrors leader-boot: push is gated on the block, the pull always runs.
+    const runOnce = vi.fn(async (p: SyncState): Promise<SyncState> => {
+      if (manager.blocked !== 'needs_sign_in') calls.push++;
+      calls.pull++;
+      return { ...p, phase: 'idle' };
+    });
+    const runner = createSyncRunner({
+      manager,
+      runOnce,
+      initial: idle,
+      countOutbox: async () => ({ pendingCount: 0, attentionCount: 0 }),
+    });
+    const s = await runner.runSync();
+    expect(calls).toEqual({ push: 0, pull: 1 });
+    expect(s.phase).toBe('needs_sign_in');
+    expect(runner.getState().phase).toBe('needs_sign_in');
+
+    unauthorized = false;
+    const s2 = await runner.runSync();
+    expect(calls).toEqual({ push: 1, pull: 2 });
+    expect(s2.phase).toBe('idle');
+  });
+
   it('overrides the phase when a block is found during the run', async () => {
     const { manager } = setup(
       async () => {

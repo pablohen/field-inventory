@@ -38,7 +38,10 @@ export function createSyncRunner(deps: SyncRunnerDeps) {
   const run = async (): Promise<SyncState> => {
     // Retry the config once per run; a success clears the block.
     if (deps.manager.blocked) await deps.manager.load();
-    if (deps.manager.blocked) return blockedState();
+    const b = deps.manager.blocked;
+    // Revoked/unknown: no push, no pull. A 401 still pulls with cached tokens
+    // (push is suppressed by the caller's hasValidSession).
+    if (b === 'device_revoked' || b === 'device_unknown') return blockedState();
     const next = await deps.runOnce({ ...state, phase: 'syncing' });
     // A token renewal during the pull may have just discovered the block.
     return deps.manager.blocked
