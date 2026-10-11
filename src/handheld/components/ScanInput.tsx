@@ -1,7 +1,8 @@
 import { TextInput } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
+import { useHandheld } from '../context';
 
-/** Autofocused scan field: Enter submits the trimmed value, clears and refocuses. Empty values are ignored. */
+/** Autofocused scan field (disabled with "Starting…" until the backend is ready): Enter submits the trimmed value, clears and refocuses. Empty values are ignored. */
 export function ScanInput({
   onScan,
   label = 'Scan',
@@ -13,20 +14,24 @@ export function ScanInput({
 }) {
   const [value, setValue] = useState('');
   const ref = useRef<HTMLInputElement>(null);
+  // Lookups need the backend; scanning before it is ready would be rejected.
+  const { backend } = useHandheld();
+  const starting = backend === null;
   useEffect(() => {
-    ref.current?.focus();
-  }, []);
+    if (!starting) ref.current?.focus();
+  }, [starting]);
   return (
     <TextInput
       ref={ref}
       label={label}
-      placeholder={placeholder}
+      placeholder={starting ? 'Starting…' : placeholder}
+      disabled={starting}
       value={value}
       autoComplete="off"
       autoCapitalize="off"
       onChange={(e) => setValue(e.currentTarget.value)}
       onKeyDown={(e) => {
-        if (e.key !== 'Enter') return;
+        if (e.key !== 'Enter' || starting) return;
         e.preventDefault();
         const v = value.trim();
         if (v === '') return;

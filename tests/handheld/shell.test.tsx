@@ -87,7 +87,9 @@ describe('ScanInput', () => {
     const onScan = vi.fn();
     render(
       <MantineProvider>
-        <ScanInput onScan={onScan} label="Scan" />
+        <HandheldContext.Provider value={fakeValue().value}>
+          <ScanInput onScan={onScan} label="Scan" />
+        </HandheldContext.Provider>
       </MantineProvider>,
     );
     const input = screen.getByLabelText('Scan') as HTMLInputElement;
@@ -104,11 +106,36 @@ describe('ScanInput', () => {
     expect(document.activeElement).toBe(input);
   });
 
+  it('is disabled until the backend is ready, then enabled and focused', () => {
+    const onScan = vi.fn();
+    const ui = (value: HandheldValue) => (
+      <MantineProvider>
+        <HandheldContext.Provider value={value}>
+          <ScanInput onScan={onScan} label="Scan" />
+        </HandheldContext.Provider>
+      </MantineProvider>
+    );
+    const { rerender } = render(ui(fakeValue({ backend: null }).value));
+    const input = screen.getByLabelText('Scan') as HTMLInputElement;
+    expect((input as HTMLInputElement).disabled).toBe(true);
+    expect(input.placeholder).toBe('Starting…');
+    fireEvent.change(input, { target: { value: 'ABC' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onScan).not.toHaveBeenCalled();
+
+    rerender(ui(fakeValue().value));
+    const ready = screen.getByLabelText('Scan') as HTMLInputElement;
+    expect(ready.disabled).toBe(false);
+    expect(document.activeElement).toBe(ready);
+  });
+
   it('ignores empty and whitespace-only values', () => {
     const onScan = vi.fn();
     render(
       <MantineProvider>
-        <ScanInput onScan={onScan} label="Scan" />
+        <HandheldContext.Provider value={fakeValue().value}>
+          <ScanInput onScan={onScan} label="Scan" />
+        </HandheldContext.Provider>
       </MantineProvider>,
     );
     const input = screen.getByLabelText('Scan');

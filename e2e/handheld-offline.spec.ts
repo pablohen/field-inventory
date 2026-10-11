@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import { DEV_PIN, LOCATION_CODES, PRODUCTS } from '../scripts/seed-data';
-import { waitForServiceWorkerControl } from './helpers';
+import { waitForHandheldReady, waitForServiceWorkerControl } from './helpers';
 
 test.skip(
   process.env.E2E_TURSO !== '1',
@@ -19,6 +19,7 @@ async function scan(page: Page, label: string, value: string) {
 
 async function displayedQty(page: Page): Promise<string> {
   await page.goto('/h/wh-1/stock');
+  await waitForHandheldReady(page);
   const row = page
     .getByRole('row')
     .filter({ hasText: PRODUCT.id })
@@ -48,12 +49,14 @@ test('count and adjust offline, then sync back to zero pending', async ({
 
   // The first replica pull must finish before any scan (lookups read local replicas).
   await page.goto('/h');
+  await waitForHandheldReady(page);
   await expect(page.getByText(/^Synced /)).toBeVisible({ timeout: 30_000 });
 
   // 2. Go offline BEFORE recording, so the scheduled sync cannot push the COUNT early.
   //    Scans only need the local replicas; the page loads from the service worker.
   await context.setOffline(true);
   await page.goto('/h/wh-1/count');
+  await waitForHandheldReady(page);
   await scan(page, 'Scan location', LOCATION);
   await scan(page, 'Scan product', PRODUCT.barcodes[0]);
   await page.getByLabel('Counted quantity').fill('7');
@@ -67,11 +70,13 @@ test('count and adjust offline, then sync back to zero pending', async ({
   // 3. Offline reload: the app loads from the SW, still 1 pending, same stock.
   await page.goto('/h/wh-1/count');
   await page.reload();
+  await waitForHandheldReady(page);
   await expect(page.getByText('1 pending')).toBeVisible();
   expect(await displayedQty(page)).toBe(before);
 
   // 4. Record an ADJUST offline.
   await page.goto('/h/wh-1/adjust');
+  await waitForHandheldReady(page);
   await scan(page, 'Scan location', LOCATION);
   await scan(page, 'Scan product', PRODUCT.barcodes[0]);
   await page.getByLabel('Adjustment (negative removes)').fill('1');
