@@ -150,6 +150,7 @@ export function MoveFlow({ wh }: { wh: string }) {
                 label="Scan destination location"
                 onScan={async (v) => {
                   const r = await lookups.location(v);
+                  setTo(null);
                   if (!r.ok) return r.error;
                   if (r.value.id === from.id) return SAME;
                   setTo(r.value);

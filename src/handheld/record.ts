@@ -26,7 +26,8 @@ export type MovementContext = {
 
 /**
  * Builds a schema-valid input. The id and `occurredAt` are created here, once
- * per call: call it once per confirm and reuse the result across retries.
+ * per call. Screens call it once per accepted confirm, so a confirm retried
+ * after an error builds a new id and timestamp.
  * Throws ZodError when the fields are invalid for `kind`.
  */
 export function buildMovementInput(

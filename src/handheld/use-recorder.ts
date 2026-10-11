@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
+import { ZodError } from 'zod';
 import type { MovementInput } from '#/domain/schemas';
 import { buildMovementInput, useRecordMovement } from './record';
 import { getCachedSession, getDeviceId } from './session-store';
@@ -42,7 +43,14 @@ export function useRecorder(wh: string) {
       });
     } catch (err) {
       submitting.current = false;
-      setError(err instanceof Error ? err.message : 'Invalid movement');
+      const issue = err instanceof ZodError ? err.issues[0] : undefined;
+      setError(
+        issue
+          ? `Invalid ${issue.path.join('.') || 'movement'}: ${issue.message}`
+          : err instanceof Error
+            ? err.message
+            : 'Invalid movement',
+      );
       return;
     }
     mutation.mutate(input, {

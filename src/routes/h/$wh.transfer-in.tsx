@@ -29,7 +29,7 @@ export function TransferInFlow({ wh }: { wh: string }) {
   const { backend } = useHandheld();
   const lookups = useLookups(wh);
   const rec = useRecorder(wh);
-  const [chosenRef, setChosenRef] = useState<string | null>(null);
+  const [chosenId, setChosenId] = useState<string | null>(null);
   const [loc, setLoc] = useState<FoundLocation | null>(null);
 
   const { data, error } = useQuery({
@@ -40,10 +40,10 @@ export function TransferInFlow({ wh }: { wh: string }) {
   });
   // A transfer without a reference cannot be matched to its receipt.
   const transfers = (data ?? []).filter((t) => t.ref !== null);
-  const chosen = transfers.find((t) => t.ref === chosenRef) ?? null;
+  const chosen = transfers.find((t) => t.movementId === chosenId) ?? null;
 
   const reset = () => {
-    setChosenRef(null);
+    setChosenId(null);
     setLoc(null);
   };
 
@@ -79,7 +79,7 @@ export function TransferInFlow({ wh }: { wh: string }) {
                 size="compact-md"
                 onClick={() => {
                   rec.clearRecorded();
-                  setChosenRef(t.ref);
+                  setChosenId(t.movementId);
                 }}
               >
                 Receive

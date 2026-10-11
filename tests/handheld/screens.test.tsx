@@ -80,7 +80,7 @@ type Data = {
     pendingDelta: number;
   }[];
   countTasks?: { id: string; scope: unknown; status: string }[];
-  pickLists?: unknown[];
+  pickLists?: unknown[] | (() => unknown[]);
   inTransit?: unknown[];
   reasons?: { code: string; label: string }[];
   record?: (input: MovementInput) => Promise<void>;
@@ -101,7 +101,9 @@ function setup(data: Data = {}) {
       case 'assignedCountTasks':
         return data.countTasks ?? [];
       case 'assignedPickLists':
-        return data.pickLists ?? [];
+        return typeof data.pickLists === 'function'
+          ? data.pickLists()
+          : (data.pickLists ?? []);
       case 'inTransitTo':
         return data.inTransit ?? [];
       case 'reasonCodes':
@@ -434,6 +436,18 @@ describe('Move', () => {
     });
   });
 
+  it('a rejected rescan clears the previous destination so confirm records nothing', async () => {
+    const t = setup();
+    await toQty(t);
+    await scan('Scan destination location', 'BIN-B');
+    await screen.findByText('To: BIN-B');
+    await scan('Scan destination location', 'NOPE');
+    await screen.findByText('Not found: NOPE');
+    await click('Confirm move');
+    await screen.findByText('Scan the destination location');
+    expect(t.records).toHaveLength(0);
+  });
+
   it('rejects the same destination inline', async () => {
     const t = setup();
     await toQty(t);
@@ -578,6 +592,46 @@ describe('Pick', () => {
       qty: 2,
       ref: 'ln2',
     });
+  });
+
+  it('shows real progress after a pick without double counting', async () => {
+    const picked: Record<string, number> = {};
+    const t = setup({
+      pickLists: () => [
+        {
+          id: 'pl1',
+          status: 'OPEN',
+          createdAt: new Date(),
+          lines: [
+            {
+              id: 'ln1',
+              skuId: 'sku1',
+              locationId: 'locA',
+              qtyRequested: 10,
+              pickedQty: picked.ln1 ?? 0,
+            },
+          ],
+        },
+      ],
+      record: async (i) => {
+        const x = i as { ref: string; qty: number };
+        picked[x.ref] = (picked[x.ref] ?? 0) + x.qty;
+      },
+    });
+    await mount(<PickFlow wh="w1" />, t.value);
+    await click('Start');
+    await scan('Scan location', 'BIN-A');
+    await scan('Scan product', 'WIDGET');
+    await setQty('Quantity', 6);
+    await click('Confirm pick');
+    await screen.findByText('Recorded');
+    await screen.findByText(/sku1 at locA: 6\/10/);
+    // the line is still open, defaulting to the 4 remaining
+    await scan('Scan location', 'BIN-A');
+    await scan('Scan product', 'WIDGET');
+    expect(
+      ((await screen.findByLabelText('Quantity')) as HTMLInputElement).value,
+    ).toBe('4');
   });
 
   it('warns on over-pick but allows it, and Show completed lists finished lines', async () => {

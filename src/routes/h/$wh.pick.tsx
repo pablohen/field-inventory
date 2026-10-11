@@ -1,5 +1,5 @@
 import { Alert, Button, Card, Stack, Switch, Text } from '@mantine/core';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import {
@@ -11,7 +11,6 @@ import { ScanStep } from '#/handheld/components/ScanStep';
 import { ScreenFrame } from '#/handheld/components/ScreenFrame';
 import { useHandheld } from '#/handheld/context';
 import { getCachedSession } from '#/handheld/session-store';
-import type { AssignedPickList } from '#/handheld/stock';
 import { useLookups } from '#/handheld/use-lookups';
 import { useRecorder } from '#/handheld/use-recorder';
 
@@ -28,7 +27,6 @@ function PickPage() {
 
 export function PickFlow({ wh }: { wh: string }) {
   const { backend } = useHandheld();
-  const queryClient = useQueryClient();
   const lookups = useLookups(wh);
   const rec = useRecorder(wh);
   const userId = getCachedSession()?.userId;
@@ -84,17 +82,6 @@ export function PickFlow({ wh }: { wh: string }) {
         ref: line.id,
       },
       () => {
-        // Show progress at once; the invalidation refetch replaces it with the real figure.
-        queryClient.setQueryData<AssignedPickList[]>(listsKey, (old) =>
-          old?.map((l) => ({
-            ...l,
-            lines: l.lines.map((ln) =>
-              ln.id === line.id
-                ? { ...ln, pickedQty: ln.pickedQty + picked }
-                : ln,
-            ),
-          })),
-        );
         resetLine();
       },
     );
