@@ -2,13 +2,9 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Client } from '@libsql/client';
+import { SCHEMA_VERSIONS } from '#/domain/schema-versions';
 
-/** Hand-maintained; tests/server/migrate.test.ts checks it against the files on disk. */
-export const SCHEMA_VERSIONS = {
-  global: 2,
-  catalog: 1,
-  warehouse: 1,
-} as const;
+export { SCHEMA_VERSIONS };
 
 export type DbName = keyof typeof SCHEMA_VERSIONS;
 

@@ -61,9 +61,16 @@ export async function openReplica(
 }
 
 /** Opens the local-only read-write outbox database. */
-export async function openOutboxDb(): Promise<Sql> {
+export async function openOutboxDb(): Promise<
+  Sql & { close(): Promise<void> }
+> {
   const db = await connect({ path: OUTBOX_PATH });
   const sql = toSql(db);
-  await ensureOutboxSchema(sql);
-  return sql;
+  try {
+    await ensureOutboxSchema(sql);
+  } catch (err) {
+    await db.close().catch(() => {});
+    throw err;
+  }
+  return { ...sql, close: () => db.close() };
 }
