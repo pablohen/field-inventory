@@ -80,7 +80,7 @@ const errMessage = (err: unknown): string =>
   err instanceof Error ? err.message : String(err);
 
 type PushOutcome =
-  | { kind: 'none' } // no network was needed or allowed
+  | { kind: 'none' } // nothing to push
   | { kind: 'ok' }
   | { kind: 'blocked'; phase: SyncPhase; error: string }
   | { kind: 'auth'; error: string }
@@ -136,6 +136,8 @@ async function reconcile(deps: SyncDeps): Promise<void> {
     ids.push(r.id);
     byWarehouse.set(r.warehouseId, ids);
   }
+  let firstError: unknown;
+  let failed = false;
   for (const [warehouseId, ids] of byWarehouse) {
     const replica = deps.replicas.get(warehouseId);
     if (!replica) continue;
@@ -151,11 +153,17 @@ async function reconcile(deps: SyncDeps): Promise<void> {
           found.map((f) => f.id),
         );
       }
-    } catch {
-      // A replica read failure leaves rows pending; they are retried next run.
+    } catch (err) {
+      // Rows stay pending and are retried next run; other warehouses go on.
+      if (!failed) firstError = err;
+      failed = true;
     }
   }
+  if (failed) throw firstError;
 }
+
+const describeError = (err: unknown): string =>
+  err instanceof Error ? `${err.name}: ${err.message}` : String(err);
 
 export async function runSyncOnce(
   deps: SyncDeps,
@@ -166,48 +174,49 @@ export async function runSyncOnce(
   let nextRetryAt: string | null = null;
   let lastError: string | null = null;
   let pushPhase: SyncPhase = 'idle';
-  let networkPushed = false;
 
-  // 1-2. push
+  // 1-2. push. Storage errors (e.g. StorageFullError) must not stop the pulls.
   if (!deps.hasValidSession()) {
     pushPhase = 'needs_sign_in';
   } else {
-    const out = await pushPending(deps);
-    switch (out.kind) {
-      case 'none':
-        break;
-      case 'ok':
-        networkPushed = true;
-        failures = 0;
-        break;
-      case 'blocked':
-        pushPhase = out.phase;
-        lastError = out.error;
-        break;
-      case 'auth':
-        pushPhase = 'needs_sign_in';
-        lastError = out.error;
-        break;
-      case 'offline':
-        pushPhase = 'offline';
-        lastError = out.error;
-        failures += 1;
-        nextRetryAt = new Date(
-          now.getTime() + backoffDelayMs(failures),
-        ).toISOString();
-        break;
+    try {
+      const out = await pushPending(deps);
+      switch (out.kind) {
+        case 'none':
+        case 'ok':
+          failures = 0;
+          break;
+        case 'blocked':
+          pushPhase = out.phase;
+          lastError = out.error;
+          break;
+        case 'auth':
+          pushPhase = 'needs_sign_in';
+          lastError = out.error;
+          break;
+        case 'offline':
+          pushPhase = 'offline';
+          lastError = out.error;
+          failures += 1;
+          nextRetryAt = new Date(
+            now.getTime() + backoffDelayMs(failures),
+          ).toISOString();
+          break;
+      }
+    } catch (err) {
+      lastError = describeError(err);
     }
   }
 
   // 3. pull every replica independently
   const pullCounts = { ...prev.pullCounts };
   let pulled = 0;
-  let pullError: string | null = null;
+  let firstPullError: string | null = null;
   for (const [name, replica] of deps.replicas) {
     try {
       await replica.pull();
     } catch (err) {
-      pullError = errMessage(err);
+      firstPullError ??= errMessage(err);
       continue;
     }
     pulled += 1;
@@ -222,24 +231,29 @@ export async function runSyncOnce(
   }
   const allPulled = pulled === deps.replicas.size;
 
-  // 4. reconcile
-  await reconcile(deps);
+  // 4. reconcile (deletes only rows present in their own warehouse replica)
+  try {
+    await reconcile(deps);
+  } catch (err) {
+    lastError ??= describeError(err);
+  }
 
   // 5. counts and phase
-  const rows = await listOutbox(deps.outbox);
-  const pendingCount = rows.filter((r) => r.status === 'pending').length;
-  const attentionCount = rows.length - pendingCount;
+  let pendingCount = prev.pendingCount;
+  let attentionCount = prev.attentionCount;
+  try {
+    const rows = await listOutbox(deps.outbox);
+    pendingCount = rows.filter((r) => r.status === 'pending').length;
+    attentionCount = rows.length - pendingCount;
+  } catch (err) {
+    lastError ??= describeError(err);
+  }
 
   let phase = pushPhase;
-  if (
-    phase === 'idle' &&
-    !networkPushed &&
-    deps.replicas.size > 0 &&
-    pulled === 0
-  ) {
+  if (phase === 'idle' && deps.replicas.size > 0 && pulled === 0) {
     phase = 'offline';
-    lastError = pullError;
   }
+  if (firstPullError !== null) lastError ??= firstPullError;
 
   return {
     phase,
@@ -270,7 +284,7 @@ export type SyncSchedulerStop = (() => void) & {
 export function startSyncScheduler(
   run: () => Promise<void>,
   env: SchedulerEnv = window as unknown as SchedulerEnv,
-  getNextRetryAt: () => string | null = () => null,
+  getNextRetryAt: () => string | null,
 ): SyncSchedulerStop {
   let running = false;
   let rerun: { force: boolean } | null = null;
@@ -278,7 +292,10 @@ export function startSyncScheduler(
 
   const due = () => {
     const at = getNextRetryAt();
-    return at === null || Date.now() >= new Date(at).getTime();
+    if (at === null) return true;
+    const t = new Date(at).getTime();
+    // Unparseable: treat as no backoff rather than blocking forever.
+    return Number.isNaN(t) || Date.now() >= t;
   };
 
   const trigger = (force: boolean) => {

@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { movementDeltas } from '#/domain/balance';
 import { type MovementInput, toMovement } from '#/domain/schemas';
-import { addToOutbox, ensureOutboxSchema, listOutbox } from '#/handheld/outbox';
+import {
+  addToOutbox,
+  ensureOutboxSchema,
+  listOutbox,
+  StorageFullError,
+} from '#/handheld/outbox';
 import type { Replica } from '#/handheld/replicas';
 import type { Sql } from '#/handheld/sql';
 import { displayedStock } from '#/handheld/stock';
@@ -43,7 +48,9 @@ type Harness = {
   replica: Sql;
   replicaObj: Replica;
   pushCalls: MovementInput[][];
+  answers: string[];
   control: {
+    failPushCall: number | null;
     pushError: unknown;
     pushThrowsAfterStore: boolean;
     pullFails: boolean;
@@ -74,6 +81,7 @@ async function harness(): Promise<Harness> {
   const server = await replicaSql('warehouse');
   const replica = await replicaSql('warehouse');
   const control: Harness['control'] = {
+    failPushCall: null,
     pushError: null,
     pushThrowsAfterStore: false,
     pullFails: false,
@@ -81,6 +89,7 @@ async function harness(): Promise<Harness> {
     session: true,
   };
   const pushCalls: MovementInput[][] = [];
+  const answers: string[] = [];
   const store = async (m: MovementInput) => {
     const exists = await server.all('SELECT 1 FROM Movement WHERE id = ?', [
       m.id,
@@ -138,10 +147,15 @@ async function harness(): Promise<Harness> {
     push: async (batch) => {
       pushCalls.push(batch.movements);
       if (control.pushError) throw control.pushError;
+      if (control.failPushCall === pushCalls.length) {
+        throw new TypeError('Failed to fetch');
+      }
       if (control.response) return control.response;
       const results = [];
       for (const m of batch.movements) {
-        results.push({ id: m.id, status: await store(m) });
+        const status = await store(m);
+        answers.push(status);
+        results.push({ id: m.id, status });
       }
       if (control.pushThrowsAfterStore) {
         throw new TypeError('Failed to fetch');
@@ -161,6 +175,7 @@ async function harness(): Promise<Harness> {
     replica,
     replicaObj,
     pushCalls,
+    answers,
     control,
     pull,
     checkpoint,
@@ -224,9 +239,16 @@ describe('runSyncOnce', () => {
       ['s1', 'B', 2],
     ]);
 
+    expect(h.answers).toEqual(['accepted']);
+    const id = (await listOutbox(h.outbox))[0].id;
+
     h.control.pushThrowsAfterStore = false;
     h.control.pullFails = false;
     const s2 = await runSyncOnce(h.deps, s1);
+    expect(h.answers).toEqual(['accepted', 'duplicate']);
+    expect(
+      await h.server.all('SELECT id FROM Movement WHERE id = ?', [id]),
+    ).toHaveLength(1);
     expect(s2.phase).toBe('idle');
     expect(s2.failures).toBe(0);
     expect(s2.nextRetryAt).toBeNull();
@@ -242,7 +264,9 @@ describe('runSyncOnce', () => {
     await addToOutbox(h.outbox, move(), NOW);
     h.control.pullFails = true;
     const s1 = await runSyncOnce(h.deps, initialSyncState);
-    expect(s1.phase).toBe('idle');
+    expect(s1.phase).toBe('offline');
+    expect(s1.lastError).toBe('Failed to fetch');
+    expect(s1.failures).toBe(0);
     expect(s1.pendingCount).toBe(1);
     expect(s1.lastPullAt).toBeNull();
     expect(await stockOf(h)).toEqual([
@@ -418,6 +442,99 @@ describe('runSyncOnce', () => {
     expect(st.pendingCount).toBe(1);
   });
 
+  it('lost response plus a successful pull in the same run reconciles once', async () => {
+    const h = await harness();
+    const m = move();
+    await addToOutbox(h.outbox, m, NOW);
+    h.control.pushThrowsAfterStore = true;
+    const st = await runSyncOnce(h.deps, initialSyncState);
+    expect(st.phase).toBe('offline');
+    expect(st.failures).toBe(1);
+    expect(st.pendingCount).toBe(0);
+    expect(await listOutbox(h.outbox)).toEqual([]);
+    expect(
+      await h.server.all('SELECT id FROM Movement WHERE id = ?', [m.id]),
+    ).toHaveLength(1);
+    expect(await stockOf(h)).toEqual([
+      ['s1', 'A', -2],
+      ['s1', 'B', 2],
+    ]);
+  });
+
+  it('batch 2 failing after batch 1 succeeded loses nothing', async () => {
+    const h = await harness();
+    for (let i = 0; i < 501; i++) await addToOutbox(h.outbox, move(), NOW);
+    h.control.failPushCall = 2;
+    h.control.pullFails = true;
+    const s1 = await runSyncOnce(h.deps, initialSyncState);
+    expect(s1.phase).toBe('offline');
+    expect(s1.pendingCount).toBe(501);
+    h.control.pullFails = false;
+    h.control.failPushCall = h.pushCalls.length + 2; // batch 2 fails again
+    const s2 = await runSyncOnce(h.deps, s1);
+    expect(s2.phase).toBe('offline');
+    // batch 1 reconciled after the pull, batch 2 (row 501) still pending
+    expect(s2.pendingCount).toBe(1);
+    expect(h.pushCalls.map((c) => c.length)).toEqual([500, 1, 500, 1]);
+    const [left] = await listOutbox(h.outbox);
+    expect(h.pushCalls[3][0].id).toBe(left.id);
+    h.control.failPushCall = null;
+    const s3 = await runSyncOnce(h.deps, s2);
+    expect(s3.pendingCount).toBe(0);
+    expect(s3.failures).toBe(0);
+    expect(s3.nextRetryAt).toBeNull();
+    expect(await h.server.all('SELECT id FROM Movement')).toHaveLength(501);
+  });
+
+  it('an outbox storage error does not stop the pulls and is reported', async () => {
+    const h = await harness();
+    const a = move();
+    await addToOutbox(h.outbox, a, NOW);
+    h.control.response = {
+      status: 'ok',
+      results: [{ id: a.id, status: 'invalid', reason: 'bad' }],
+      exceptions: [],
+      serverTime: NOW.toISOString(),
+    };
+    const real = h.outbox;
+    h.deps.outbox = {
+      all: real.all.bind(real),
+      run: async (sql, params) => {
+        if (sql.startsWith('UPDATE')) throw new StorageFullError('full');
+        await real.run(sql, params);
+      },
+    };
+    const st = await runSyncOnce(h.deps, initialSyncState);
+    expect(h.pull).toHaveBeenCalledTimes(1);
+    expect(st.lastError).toMatch(/^StorageFullError/);
+    expect(st.pendingCount).toBe(1);
+    expect(st.lastPullAt).toBe(NOW.toISOString());
+  });
+
+  it('an outbox read error is reported and the pulls still run', async () => {
+    const h = await harness();
+    h.deps.outbox = {
+      all: async () => {
+        throw new Error('disk gone');
+      },
+      run: async () => {},
+    };
+    const st = await runSyncOnce(h.deps, initialSyncState);
+    expect(h.pull).toHaveBeenCalledTimes(1);
+    expect(st.lastError).toBe('Error: disk gone');
+  });
+
+  it('resets failures and nextRetryAt when there is nothing to push', async () => {
+    const h = await harness();
+    const st = await runSyncOnce(h.deps, {
+      ...initialSyncState,
+      failures: 5,
+      nextRetryAt: NOW.toISOString(),
+    });
+    expect(st.failures).toBe(0);
+    expect(st.nextRetryAt).toBeNull();
+  });
+
   it('lastPullAt only advances when all replicas pulled', async () => {
     const h = await harness();
     const bad: Replica = {
@@ -431,6 +548,7 @@ describe('runSyncOnce', () => {
     const st = await runSyncOnce(h.deps, initialSyncState);
     expect(st.lastPullAt).toBeNull();
     expect(st.phase).toBe('idle');
+    expect(st.lastError).toBe('down');
     expect(h.pull).toHaveBeenCalledTimes(1);
   });
 });
@@ -466,7 +584,7 @@ describe('startSyncScheduler', () => {
       await g.promise;
       active--;
     });
-    const stop = startSyncScheduler(run, env);
+    const stop = startSyncScheduler(run, env, () => null);
     env.dispatchEvent(new Event('online'));
     env.dispatchEvent(new Event('online'));
     env.dispatchEvent(new Event('online'));
@@ -484,7 +602,7 @@ describe('startSyncScheduler', () => {
   it('runs every 30000 ms and on visible; stop removes everything', async () => {
     const env = new FakeEnv();
     const run = vi.fn(async () => {});
-    const stop = startSyncScheduler(run, env);
+    const stop = startSyncScheduler(run, env, () => null);
     await vi.advanceTimersByTimeAsync(29999);
     expect(run).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
@@ -517,7 +635,16 @@ describe('startSyncScheduler', () => {
     expect(run).toHaveBeenCalledTimes(2);
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(90000); // past retryAt
-    expect(run.mock.calls.length).toBeGreaterThan(2);
+    expect(run).toHaveBeenCalledTimes(3); // only the 120000 ms tick is due
+    stop();
+  });
+
+  it('treats an unparseable nextRetryAt as no backoff', async () => {
+    const env = new FakeEnv();
+    const run = vi.fn(async () => {});
+    const stop = startSyncScheduler(run, env, () => 'garbage');
+    await vi.advanceTimersByTimeAsync(30000);
+    expect(run).toHaveBeenCalledTimes(1);
     stop();
   });
 
@@ -527,7 +654,7 @@ describe('startSyncScheduler', () => {
       .fn<() => Promise<void>>()
       .mockRejectedValueOnce(new Error('boom'))
       .mockResolvedValue(undefined);
-    const stop = startSyncScheduler(run, env);
+    const stop = startSyncScheduler(run, env, () => null);
     env.dispatchEvent(new Event('online'));
     await vi.advanceTimersByTimeAsync(0);
     env.dispatchEvent(new Event('online'));
