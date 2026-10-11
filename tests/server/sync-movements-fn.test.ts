@@ -1,0 +1,61 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { SyncDeps } from '#/server/sync/sync-movements';
+import { defaultDeps, handleSync } from '#/server/sync/sync-movements.fn';
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+describe('defaultDeps', () => {
+  it('uses the defaults when the env vars are unset', () => {
+    vi.stubEnv('CLOCK_SKEW_THRESHOLD_MS', '');
+    vi.stubEnv('TRANSFER_STUCK_HOURS', '');
+    const deps = defaultDeps();
+    expect(deps.clockSkewThresholdMs).toBe(120000);
+    expect(deps.transferStuckHours).toBe(24);
+  });
+
+  it('honours env overrides', () => {
+    vi.stubEnv('CLOCK_SKEW_THRESHOLD_MS', '5000');
+    vi.stubEnv('TRANSFER_STUCK_HOURS', '48');
+    const deps = defaultDeps();
+    expect(deps.clockSkewThresholdMs).toBe(5000);
+    expect(deps.transferStuckHours).toBe(48);
+  });
+
+  it('falls back to defaults for non-numeric values', () => {
+    vi.stubEnv('CLOCK_SKEW_THRESHOLD_MS', 'abc');
+    vi.stubEnv('TRANSFER_STUCK_HOURS', 'Infinity');
+    const deps = defaultDeps();
+    expect(deps.clockSkewThresholdMs).toBe(120000);
+    expect(deps.transferStuckHours).toBe(24);
+  });
+});
+
+describe('handleSync', () => {
+  const deps = {} as SyncDeps;
+
+  it('maps an invalid envelope to a 400 Response', async () => {
+    const thrown = await handleSync(deps, { nope: true }).catch((e) => e);
+    expect(thrown).toBeInstanceOf(Response);
+    expect((thrown as Response).status).toBe(400);
+    const body = await (thrown as Response).json();
+    expect(body.error).toBe('Invalid sync envelope');
+  });
+
+  it('propagates other errors unchanged', async () => {
+    const boom = new Error('boom');
+    const failing = {
+      get now(): never {
+        throw boom;
+      },
+    } as unknown as SyncDeps;
+    const valid = {
+      deviceId: 'd',
+      schemaVersion: 1,
+      sentAt: '2026-03-01T12:00:00Z',
+      movements: [],
+    };
+    await expect(handleSync(failing, valid)).rejects.toBe(boom);
+  });
+});
