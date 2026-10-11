@@ -110,6 +110,15 @@ describe('syncMovementsCore', () => {
     return (await env.warehouse(wh)).movement.count();
   }
 
+  it('marks a row with null occurredAt invalid and does not touch the balance', async () => {
+    const a = adjust();
+    const bad = pick({ occurredAt: null });
+    const res = await ok(syncMovementsCore(deps, batch([a, bad])));
+    expect(res.results[1]).toMatchObject({ id: bad.id, status: 'invalid' });
+    expect(await balance()).toBe(10);
+    expect(await movementCount()).toBe(1);
+  });
+
   it('accepts ADJUST then PICK and updates the balance', async () => {
     const a = adjust();
     const p = pick();

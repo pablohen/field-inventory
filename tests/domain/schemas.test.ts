@@ -153,6 +153,46 @@ describe('toMovement', () => {
   });
 });
 
+describe('date strictness', () => {
+  const parseWith = (occurredAt: unknown) =>
+    movementInputSchema.safeParse({ ...fixtures.PICK, occurredAt });
+
+  it.each([
+    ['null', null],
+    ['0', 0],
+    ['false', false],
+    ['seconds number', 1760000000],
+    ['garbage string', 'not a date'],
+  ])('rejects %s for occurredAt', (_n, v) => {
+    expect(parseWith(v).success).toBe(false);
+  });
+
+  it('accepts an ISO string with Z or an offset, and a Date', () => {
+    for (const v of [
+      '2026-10-11T10:00:00Z',
+      '2026-10-11T10:00:00+02:00',
+      new Date('2026-10-11T10:00:00Z'),
+    ]) {
+      const r = parseWith(v);
+      expect(r.success).toBe(true);
+      if (r.success) expect(r.data.occurredAt).toBeInstanceOf(Date);
+    }
+  });
+
+  it('rejects null and 0 for sentAt', () => {
+    for (const v of [null, 0]) {
+      expect(
+        syncBatchSchema.safeParse({
+          deviceId: 'd',
+          schemaVersion: 1,
+          sentAt: v,
+          movements: [],
+        }).success,
+      ).toBe(false);
+    }
+  });
+});
+
 describe('syncBatchSchema', () => {
   const batch = {
     deviceId: 'd',

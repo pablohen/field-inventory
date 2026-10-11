@@ -3,13 +3,18 @@ import type { Movement, MovementSource } from './types';
 
 const id = z.string().min(1);
 
+/** A Date, or an ISO 8601 datetime with Z/offset. Never null, numbers or booleans. */
+const strictDate = z
+  .union([z.date(), z.iso.datetime({ offset: true })])
+  .pipe(z.coerce.date());
+
 const common = {
   id: z.uuid(),
   warehouseId: id,
   skuId: id,
   userId: id,
   deviceId: id,
-  occurredAt: z.coerce.date(),
+  occurredAt: strictDate,
 };
 
 const positiveInt = z.number().int().positive();
@@ -87,7 +92,7 @@ export type MovementInput = z.infer<typeof movementInputSchema>;
 export const syncBatchSchema = z.object({
   deviceId: z.string().min(1),
   schemaVersion: z.number().int(),
-  sentAt: z.coerce.date(),
+  sentAt: strictDate,
   movements: z.array(z.unknown()).max(500),
 });
 
