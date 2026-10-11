@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:generate": "prisma generate --config prisma.global.config.ts && prisma generate --config prisma.catalog.config.ts && prisma generate --config prisma.warehouse.config.ts",
-    "db:migrate": "tsx scripts/migrate-warehouses.ts"
+    "db:migrate": "tsx scripts/migrate-warehouses.ts",
+    "db:seed": "tsx scripts/seed-dev.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
