@@ -7,9 +7,12 @@ export type CountOutcome =
   | { kind: 'exception'; exception: ExceptionDraft };
 
 function countKey(count: Movement): string {
+  if (count.toLocationId === null) {
+    throw new Error(`COUNT ${count.id} has no toLocationId`);
+  }
   return balanceKeyString({
     skuId: count.skuId,
-    locationId: count.toLocationId ?? '',
+    locationId: count.toLocationId,
   });
 }
 
@@ -17,17 +20,48 @@ function isOwnAdjust(m: Movement, countId: string): boolean {
   return m.type === 'ADJUST' && m.source === 'system' && m.ref === countId;
 }
 
+export type OrderKey = [number, number, string];
+
 /**
- * Expected balance at the count's (sku, toLocationId) as of count.occurredAt.
- * Ties on occurredAt count as before the count. The count's own auto-adjusts
- * are excluded; other counts' auto-adjusts are included.
+ * Total order over a bin's ledger: (occurredAt, rank, id). Non-count movements
+ * rank 0 (so ties sort before a count), COUNTs rank 1 ordered by id, and a
+ * count's auto-adjusts take their count's key.
+ */
+export function orderKey(m: Movement, ledger: Movement[]): OrderKey {
+  if (m.type === 'COUNT') return [m.occurredAt.getTime(), 1, m.id];
+  if (m.type === 'ADJUST' && m.source === 'system' && m.ref !== null) {
+    const owner = ledger.find((x) => x.type === 'COUNT' && x.id === m.ref);
+    if (owner) return [owner.occurredAt.getTime(), 1, owner.id];
+  }
+  return [m.occurredAt.getTime(), 0, ''];
+}
+
+function compareKeys(a: OrderKey, b: OrderKey): number {
+  if (a[0] !== b[0]) return a[0] - b[0];
+  if (a[1] !== b[1]) return a[1] - b[1];
+  return a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : 0;
+}
+
+export function isBefore(
+  a: Movement,
+  b: Movement,
+  ledger: Movement[],
+): boolean {
+  return compareKeys(orderKey(a, ledger), orderKey(b, ledger)) < 0;
+}
+
+/**
+ * Expected balance at the count's (sku, toLocationId): the sum of deltas of
+ * every movement strictly before the count by orderKey. Equal-time non-count
+ * movements are before the count. The count's own auto-adjusts are excluded;
+ * earlier counts' auto-adjusts are included.
  */
 export function expectedAt(binLedger: Movement[], count: Movement): number {
   const key = countKey(count);
-  const t = count.occurredAt.getTime();
   let sum = 0;
   for (const m of binLedger) {
-    if (m.occurredAt.getTime() > t || isOwnAdjust(m, count.id)) continue;
+    if (m.id === count.id || isOwnAdjust(m, count.id)) continue;
+    if (!isBefore(m, count, binLedger)) continue;
     for (const d of movementDeltas(m)) {
       if (balanceKeyString(d) === key) sum += d.delta;
     }
@@ -35,7 +69,11 @@ export function expectedAt(binLedger: Movement[], count: Movement): number {
   return sum;
 }
 
-function autoAdjust(count: Movement, qty: number, newId: () => string): Movement {
+function autoAdjust(
+  count: Movement,
+  qty: number,
+  newId: () => string,
+): Movement {
   return {
     id: newId(),
     type: 'ADJUST',
@@ -78,24 +116,22 @@ export function reconcileCount(
   };
 }
 
-/** Earliest COUNT (ties by id) strictly after `late` on a key `late` touches. */
+/**
+ * Earliest COUNT (by orderKey) on a key `late` touches that `late` is strictly
+ * before. `ledger` is the bin ledger; `late` may be a count's own auto-adjust
+ * (ordered with its count, which must be in `ledger`). A non-count movement
+ * tied in time with a count is before it.
+ */
 export function findAffectedCount(
   late: Movement,
-  binCounts: Movement[],
+  ledger: Movement[],
 ): Movement | null {
   const keys = new Set(movementDeltas(late).map(balanceKeyString));
-  const t = late.occurredAt.getTime();
   let best: Movement | null = null;
-  for (const c of binCounts) {
-    if (c.type !== 'COUNT' || c.occurredAt.getTime() <= t) continue;
-    if (!keys.has(countKey(c))) continue;
-    if (
-      best === null ||
-      c.occurredAt.getTime() < best.occurredAt.getTime() ||
-      (c.occurredAt.getTime() === best.occurredAt.getTime() && c.id < best.id)
-    ) {
-      best = c;
-    }
+  for (const c of ledger) {
+    if (c.type !== 'COUNT' || !keys.has(countKey(c))) continue;
+    if (!isBefore(late, c, ledger)) continue;
+    if (best === null || isBefore(c, best, ledger)) best = c;
   }
   return best;
 }

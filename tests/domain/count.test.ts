@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { movementDeltas } from '#/domain/balance';
 import {
   correctForLateMovement,
   expectedAt,
@@ -116,8 +117,18 @@ describe('expectedAt', () => {
   });
 
   it('ignores other keys and later movements, counts MOVE sides', () => {
-    const otherKey = mv({ id: 'x', type: 'TRANSFER_IN', toLocationId: 'B', qty: 99 });
-    const later = mv({ id: 'y', type: 'TRANSFER_IN', qty: 99, occurredAt: at('10:01') });
+    const otherKey = mv({
+      id: 'x',
+      type: 'TRANSFER_IN',
+      toLocationId: 'B',
+      qty: 99,
+    });
+    const later = mv({
+      id: 'y',
+      type: 'TRANSFER_IN',
+      qty: 99,
+      occurredAt: at('10:01'),
+    });
     const moveOut = mv({
       id: 'mo',
       type: 'MOVE',
@@ -174,7 +185,13 @@ describe('correctForLateMovement', () => {
   it('returns none when already consistent', () => {
     const adj2 = { ...adj, qty: 1 };
     expect(
-      correctForLateMovement(count8, [receipt, latePick, adj2], 5, ids(), 'late1'),
+      correctForLateMovement(
+        count8,
+        [receipt, latePick, adj2],
+        5,
+        ids(),
+        'late1',
+      ),
     ).toEqual({ kind: 'none' });
   });
 });
@@ -193,15 +210,121 @@ describe('findAffectedCount', () => {
     const c1 = mv({ id: 'c1', type: 'COUNT', occurredAt: at('10:00') });
     expect(findAffectedCount(late, [before, c2, c1])?.id).toBe('c1');
   });
-  it('returns null when none apply (other key, equal time, non-COUNT)', () => {
-    const otherKey = mv({ id: 'c3', type: 'COUNT', toLocationId: 'B', occurredAt: at('11:00') });
-    const tie = mv({ id: 'c4', type: 'COUNT', occurredAt: at('09:30') });
+  it('returns null when none apply (other key, non-COUNT)', () => {
+    const otherKey = mv({
+      id: 'c3',
+      type: 'COUNT',
+      toLocationId: 'B',
+      occurredAt: at('11:00'),
+    });
     const notCount = mv({ id: 'm9', occurredAt: at('12:00') });
-    expect(findAffectedCount(late, [otherKey, tie, notCount])).toBeNull();
+    expect(findAffectedCount(late, [otherKey, notCount])).toBeNull();
+  });
+  it('corrects an equal-time late PICK (tie is before the count)', () => {
+    const tiePick = { ...late, id: 'tp', occurredAt: at('10:00') };
+    const c = mv({ id: 'c1', type: 'COUNT', occurredAt: at('10:00') });
+    expect(findAffectedCount(tiePick, [receipt, c])?.id).toBe('c1');
   });
   it('breaks ties by id', () => {
     const b = mv({ id: 'b', type: 'COUNT', occurredAt: at('10:00') });
     const a = mv({ id: 'a', type: 'COUNT', occurredAt: at('10:00') });
     expect(findAffectedCount(late, [b, a])?.id).toBe('a');
+  });
+});
+
+// Minimal processor mirroring the orchestrator: reconcile counts, correct
+// affected counts, cascading from each new auto-adjust.
+function processAll(arrival: Movement[], tolerance: number): Movement[] {
+  const newId = ids();
+  const ledger: Movement[] = [];
+  const cascade = (late: Movement) => {
+    const affected = findAffectedCount(late, ledger);
+    if (!affected) return;
+    const out = correctForLateMovement(
+      affected,
+      ledger,
+      tolerance,
+      newId,
+      late.id,
+    );
+    if (out.kind === 'auto_adjust') {
+      ledger.push(out.adjust);
+      cascade(out.adjust);
+    }
+  };
+  for (const m of arrival) {
+    ledger.push(m);
+    if (m.type === 'COUNT') {
+      const out = reconcileCount(m, ledger, tolerance, newId);
+      if (out.kind === 'auto_adjust') {
+        ledger.push(out.adjust);
+        cascade(out.adjust);
+      }
+    } else {
+      cascade(m);
+    }
+  }
+  return ledger;
+}
+
+const balanceA = (ledger: Movement[]) =>
+  ledger
+    .flatMap(movementDeltas)
+    .filter((d) => d.locationId === 'A')
+    .reduce((s, d) => s + d.delta, 0);
+
+describe('convergence with unlimited tolerance', () => {
+  it('equal-time late PICK is corrected regardless of arrival order', () => {
+    const pick = mv({
+      id: 'p1',
+      type: 'PICK',
+      fromLocationId: 'A',
+      toLocationId: null,
+      qty: 3,
+      occurredAt: at('10:00'),
+    });
+    const a = balanceA(processAll([receipt, pick, count8], Infinity));
+    const b = balanceA(processAll([receipt, count8, pick], Infinity));
+    expect(a).toBe(8);
+    expect(b).toBe(8);
+  });
+
+  it('two same-time counts converge in both orders', () => {
+    const c1 = mv({ id: 'c1', type: 'COUNT', qty: 8, occurredAt: at('10:00') });
+    const c2 = mv({ id: 'c2', type: 'COUNT', qty: 5, occurredAt: at('10:00') });
+    expect(balanceA(processAll([receipt, c1, c2], Infinity))).toBe(5);
+    expect(balanceA(processAll([receipt, c2, c1], Infinity))).toBe(5);
+  });
+
+  it('a late-arriving earlier COUNT restores the later count observed qty', () => {
+    const early = mv({
+      id: 'ce',
+      type: 'COUNT',
+      qty: 8,
+      occurredAt: at('09:00'),
+    });
+    const lateCount = mv({
+      id: 'cl',
+      type: 'COUNT',
+      qty: 5,
+      occurredAt: at('10:00'),
+    });
+    const r = { ...receipt, occurredAt: at('08:00') };
+    expect(balanceA(processAll([r, lateCount, early], Infinity))).toBe(5);
+    expect(balanceA(processAll([r, early, lateCount], Infinity))).toBe(5);
+  });
+});
+
+describe('tolerance boundary', () => {
+  it('|variance| === tolerance is an auto_adjust', () => {
+    const out = reconcileCount(count8, [receipt, count8], 2, ids());
+    expect(out.kind).toBe('auto_adjust');
+  });
+});
+
+describe('invariants', () => {
+  it('throws for a COUNT without toLocationId', () => {
+    const bad = { ...count8, toLocationId: null };
+    expect(() => expectedAt([receipt], bad)).toThrow();
   });
 });
