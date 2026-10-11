@@ -21,10 +21,22 @@ export interface ReplicaConfigDeps {
   catalogDbName: string;
 }
 
+function forbidden(error: 'DEVICE_UNKNOWN' | 'DEVICE_REVOKED'): Response {
+  return new Response(JSON.stringify({ error }), {
+    status: 403,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 export async function replicaConfigCore(
   deps: ReplicaConfigDeps,
   session: SessionClaims,
 ): Promise<ReplicaConfig> {
+  const device = await deps.global.device.findUnique({
+    where: { id: session.deviceId },
+  });
+  if (!device) throw forbidden('DEVICE_UNKNOWN');
+  if (device.revokedAt !== null) throw forbidden('DEVICE_REVOKED');
   const links = await deps.global.deviceWarehouse.findMany({
     where: { deviceId: session.deviceId },
     include: { warehouse: true },

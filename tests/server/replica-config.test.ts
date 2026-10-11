@@ -47,6 +47,7 @@ describe('replicaConfigCore', () => {
     env = await createTestEnv();
     await env.seedDevice({ id: 'd1', warehouses: ['w1', 'w2'] });
     await env.seedDevice({ id: 'd2', warehouses: ['w3'] });
+    await env.seedDevice({ id: 'dr', warehouses: ['w1'], revoked: true });
   });
 
   afterEach(async () => {
@@ -80,4 +81,30 @@ describe('replicaConfigCore', () => {
     }
     expect(cfg.replicas[0].dbName).toBe('cat');
   });
+
+  it.each([
+    ['dr', 'DEVICE_REVOKED'],
+    ['ghost', 'DEVICE_UNKNOWN'],
+  ])(
+    'rejects device %s with 403 %s and mints nothing',
+    async (deviceId, code) => {
+      const mint = vi.fn();
+      const thrown = await replicaConfigCore(
+        {
+          global: env.global,
+          minter: { mint },
+          urlFor: (n) => `libsql://${n}`,
+          catalogDbName: 'cat',
+        },
+        { userId: 'u', deviceId, role: 'worker', exp: 0 },
+      ).catch((e) => e);
+      expect(thrown).toBeInstanceOf(Response);
+      expect((thrown as Response).status).toBe(403);
+      expect((thrown as Response).headers.get('Content-Type')).toBe(
+        'application/json',
+      );
+      expect(await (thrown as Response).json()).toEqual({ error: code });
+      expect(mint).not.toHaveBeenCalled();
+    },
+  );
 });

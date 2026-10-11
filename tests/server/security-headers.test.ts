@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { securityHeadersMiddleware } from '#/server/http/middleware';
 import {
   SECURITY_HEADERS,
   withSecurityHeaders,
@@ -54,5 +55,25 @@ describe('assertServerEnv', () => {
     expect(() =>
       assertServerEnv({ SESSION_SECRET: 'a'.repeat(32) }),
     ).not.toThrow();
+  });
+});
+
+describe('securityHeadersMiddleware', () => {
+  it('adds the headers to the downstream response', async () => {
+    const server = (
+      securityHeadersMiddleware as unknown as {
+        options: { server: (ctx: unknown) => Promise<{ response: Response }> };
+      }
+    ).options.server;
+    const out = await server({
+      next: async () => ({ response: new Response('ok', { status: 201 }) }),
+    });
+    expect(out.response.status).toBe(201);
+    expect(out.response.headers.get('Cross-Origin-Opener-Policy')).toBe(
+      'same-origin',
+    );
+    expect(out.response.headers.get('Cross-Origin-Embedder-Policy')).toBe(
+      'require-corp',
+    );
   });
 });
