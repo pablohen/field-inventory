@@ -17,16 +17,17 @@ import {
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { exceptionFiltersSchema } from '#/desk/exception-filters';
+import { parseExceptionSearch } from '#/desk/exception-filters';
 import type {
   ExceptionRow,
   TimelineMovement,
 } from '#/server/desk/exceptions.server';
 
 const listExceptions = vi.hoisted(() => vi.fn());
+const getExceptionDetail = vi.hoisted(() => vi.fn());
 vi.mock('#/server/desk/exceptions.fn', () => ({
   listExceptions,
-  getExceptionDetail: vi.fn(),
+  getExceptionDetail,
   resolveException: vi.fn(),
 }));
 vi.mock('#/server/desk/count-tasks.fn', () => ({
@@ -38,6 +39,7 @@ vi.mock('#/server/desk/stock.fn', () => ({
 
 import { type ResolveFn, ResolvePanel } from '#/desk/components/ResolvePanel';
 import { Timeline } from '#/desk/components/Timeline';
+import { ExceptionDetailPage } from '#/routes/w/$warehouseId/exceptions.$id';
 import { ExceptionsListPage } from '#/routes/w/$warehouseId/exceptions.index';
 
 beforeAll(() => {
@@ -218,7 +220,7 @@ describe('exceptions list page', () => {
     ...over,
   });
 
-  function setup() {
+  function setup(url = `/w/${WH}/exceptions/`, qc = new QueryClient()) {
     listExceptions.mockResolvedValue({
       ok: true,
       rows: [
@@ -242,7 +244,7 @@ describe('exceptions list page', () => {
     const index = createRoute({
       getParentRoute: () => root,
       path: '/w/$warehouseId/exceptions/',
-      validateSearch: (s) => exceptionFiltersSchema.parse(s),
+      validateSearch: parseExceptionSearch,
       component: () => <ExceptionsListPage warehouseId={WH} />,
     });
     const detail = createRoute({
@@ -252,11 +254,11 @@ describe('exceptions list page', () => {
     const router = createRouter({
       routeTree: root.addChildren([index, detail]),
       history: createMemoryHistory({
-        initialEntries: [`/w/${WH}/exceptions/`],
+        initialEntries: [url],
       }),
     });
     render(
-      <QueryClientProvider client={new QueryClient()}>
+      <QueryClientProvider client={qc}>
         <MantineProvider>
           <RouterProvider router={router} />
         </MantineProvider>
@@ -319,5 +321,88 @@ describe('exceptions list page', () => {
       </QueryClientProvider>,
     );
     expect(await screen.findByText('Warehouse is not ready')).toBeTruthy();
+  });
+
+  it('keeps rows and notes a failed refresh when a poll errors', async () => {
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    setup(`/w/${WH}/exceptions/`, qc);
+    expect(await screen.findByText('observed 3, expected 5 (−2)')).toBeTruthy();
+    listExceptions.mockRejectedValue(new Error('network down'));
+    await qc.invalidateQueries({ queryKey: ['desk', WH, 'exceptions'] });
+    expect(
+      await screen.findByText('Refresh failed — showing the last loaded data.'),
+    ).toBeTruthy();
+    expect(screen.getByText('observed 3, expected 5 (−2)')).toBeTruthy();
+    expect(screen.queryByText('network down')).toBeNull();
+  });
+
+  it('renders unfiltered on a bad shared URL (?type=BOGUS)', async () => {
+    setup(`/w/${WH}/exceptions/?type=BOGUS`);
+    expect(await screen.findByText('observed 3, expected 5 (−2)')).toBeTruthy();
+    expect(listExceptions).toHaveBeenCalledWith({
+      data: { warehouseId: WH, filters: {} },
+    });
+  });
+});
+
+describe('exception detail page', () => {
+  it('keeps a typed dismiss note across a failed poll', async () => {
+    const ex = {
+      id: 'e1',
+      type: 'COUNT_VARIANCE',
+      status: 'OPEN',
+      skuId: 'S1',
+      locationId: 'L1',
+      deviceId: 'dev1',
+      userIds: ['w1'],
+      createdAt: '2026-03-01T10:00:00.000Z',
+      ageHours: 2,
+      version: 0,
+      summary: 'observed 3, expected 5 (−2)',
+      malformed: [],
+      details: {},
+      resolution: null,
+      note: null,
+      resolvedBy: null,
+      resolvedAt: null,
+    };
+    getExceptionDetail.mockResolvedValue({
+      ok: true,
+      exception: ex,
+      byOccurredAt: [],
+      bySeq: [],
+      missingMovementIds: [],
+    });
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const root = createRootRoute({
+      component: () => <ExceptionDetailPage warehouseId={WH} id="e1" />,
+    });
+    const router = createRouter({
+      routeTree: root,
+      history: createMemoryHistory({ initialEntries: ['/'] }),
+    });
+    render(
+      <QueryClientProvider client={qc}>
+        <MantineProvider>
+          <RouterProvider router={router} />
+        </MantineProvider>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(await screen.findByLabelText('Dismiss'));
+    fireEvent.change(screen.getByLabelText(/Note/), {
+      target: { value: 'duplicate' },
+    });
+    getExceptionDetail.mockRejectedValue(new Error('network down'));
+    await qc.invalidateQueries({ queryKey: ['desk', WH, 'exception', 'e1'] });
+    expect(
+      await screen.findByText('Refresh failed — showing the last loaded data.'),
+    ).toBeTruthy();
+    expect((screen.getByLabelText(/Note/) as HTMLTextAreaElement).value).toBe(
+      'duplicate',
+    );
   });
 });

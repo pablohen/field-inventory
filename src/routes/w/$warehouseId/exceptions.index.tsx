@@ -11,15 +11,16 @@ import {
   TypeStrip,
 } from '#/desk/components/ExceptionFilters';
 import { ExceptionTable } from '#/desk/components/ExceptionTable';
+import { errorMessage, RefreshNote } from '#/desk/components/RefreshNote';
 import {
   type ExceptionFilters,
-  exceptionFiltersSchema,
+  parseExceptionSearch,
 } from '#/desk/exception-filters';
 import { listWorkers } from '#/server/desk/count-tasks.fn';
 import { listExceptions } from '#/server/desk/exceptions.fn';
 
 export const Route = createFileRoute('/w/$warehouseId/exceptions/')({
-  validateSearch: (search) => exceptionFiltersSchema.parse(search),
+  validateSearch: parseExceptionSearch,
   component: ExceptionsRoute,
 });
 
@@ -29,7 +30,8 @@ function ExceptionsRoute() {
 }
 
 export function ExceptionsListPage({ warehouseId }: { warehouseId: string }) {
-  const filters = useSearch({ strict: false }) as ExceptionFilters;
+  // strict:false may expose the raw URL search, so re-validate defensively.
+  const filters = parseExceptionSearch(useSearch({ strict: false }));
   const navigate = useNavigate();
   const setSearch = (patch: (prev: ExceptionFilters) => ExceptionFilters) =>
     void navigate({
@@ -64,18 +66,15 @@ export function ExceptionsListPage({ warehouseId }: { warehouseId: string }) {
         workers={workerList}
         onChange={(next) => setSearch(() => next)}
       />
-      {list.isError ? (
-        <DeskErrorAlert
-          error={{
-            code: 'INVALID',
-            message:
-              list.error instanceof Error
-                ? list.error.message
-                : 'Request failed',
-          }}
-        />
-      ) : !data ? (
-        <Loader size="sm" />
+      {list.isError && data && <RefreshNote />}
+      {!data ? (
+        list.isError ? (
+          <DeskErrorAlert
+            error={{ code: 'INVALID', message: errorMessage(list.error) }}
+          />
+        ) : (
+          <Loader size="sm" />
+        )
       ) : data.ok ? (
         <ExceptionTable
           warehouseId={warehouseId}

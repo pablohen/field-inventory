@@ -43,7 +43,7 @@ export function TypeStrip({
   );
 }
 
-function TextFilter({
+export function TextFilter({
   label,
   value,
   onCommit,

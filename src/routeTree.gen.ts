@@ -25,9 +25,10 @@ import { Route as HWhTransferInRouteImport } from './routes/h/$wh.transfer-in'
 import { Route as WWarehouseIdIndexRouteImport } from './routes/w/$warehouseId/index'
 import { Route as WWarehouseIdCountsRouteImport } from './routes/w/$warehouseId/counts'
 import { Route as WWarehouseIdPickListsRouteImport } from './routes/w/$warehouseId/pick-lists'
-import { Route as WWarehouseIdStockRouteImport } from './routes/w/$warehouseId/stock'
 import { Route as WWarehouseIdExceptionsIndexRouteImport } from './routes/w/$warehouseId/exceptions.index'
 import { Route as WWarehouseIdExceptionsIdRouteImport } from './routes/w/$warehouseId/exceptions.$id'
+import { Route as WWarehouseIdStockIndexRouteImport } from './routes/w/$warehouseId/stock.index'
+import { Route as WWarehouseIdStockLedgerRouteImport } from './routes/w/$warehouseId/stock.ledger'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -109,11 +110,6 @@ const WWarehouseIdPickListsRoute = WWarehouseIdPickListsRouteImport.update({
   path: '/pick-lists',
   getParentRoute: () => WWarehouseIdRouteRoute,
 } as any)
-const WWarehouseIdStockRoute = WWarehouseIdStockRouteImport.update({
-  id: '/stock',
-  path: '/stock',
-  getParentRoute: () => WWarehouseIdRouteRoute,
-} as any)
 const WWarehouseIdExceptionsIndexRoute =
   WWarehouseIdExceptionsIndexRouteImport.update({
     id: '/exceptions/',
@@ -126,6 +122,16 @@ const WWarehouseIdExceptionsIdRoute =
     path: '/exceptions/$id',
     getParentRoute: () => WWarehouseIdRouteRoute,
   } as any)
+const WWarehouseIdStockIndexRoute = WWarehouseIdStockIndexRouteImport.update({
+  id: '/stock/',
+  path: '/stock/',
+  getParentRoute: () => WWarehouseIdRouteRoute,
+} as any)
+const WWarehouseIdStockLedgerRoute = WWarehouseIdStockLedgerRouteImport.update({
+  id: '/stock/ledger',
+  path: '/stock/ledger',
+  getParentRoute: () => WWarehouseIdRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -143,10 +149,11 @@ export interface FileRoutesByFullPath {
   '/h/$wh/transfer-in': typeof HWhTransferInRoute
   '/w/$warehouseId/counts': typeof WWarehouseIdCountsRoute
   '/w/$warehouseId/pick-lists': typeof WWarehouseIdPickListsRoute
-  '/w/$warehouseId/stock': typeof WWarehouseIdStockRoute
   '/w/$warehouseId/': typeof WWarehouseIdIndexRoute
   '/w/$warehouseId/exceptions/$id': typeof WWarehouseIdExceptionsIdRoute
+  '/w/$warehouseId/stock/ledger': typeof WWarehouseIdStockLedgerRoute
   '/w/$warehouseId/exceptions/': typeof WWarehouseIdExceptionsIndexRoute
+  '/w/$warehouseId/stock/': typeof WWarehouseIdStockIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -162,10 +169,11 @@ export interface FileRoutesByTo {
   '/h/$wh/transfer-in': typeof HWhTransferInRoute
   '/w/$warehouseId/counts': typeof WWarehouseIdCountsRoute
   '/w/$warehouseId/pick-lists': typeof WWarehouseIdPickListsRoute
-  '/w/$warehouseId/stock': typeof WWarehouseIdStockRoute
   '/w/$warehouseId': typeof WWarehouseIdIndexRoute
   '/w/$warehouseId/exceptions/$id': typeof WWarehouseIdExceptionsIdRoute
+  '/w/$warehouseId/stock/ledger': typeof WWarehouseIdStockLedgerRoute
   '/w/$warehouseId/exceptions': typeof WWarehouseIdExceptionsIndexRoute
+  '/w/$warehouseId/stock': typeof WWarehouseIdStockIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -184,10 +192,11 @@ export interface FileRoutesById {
   '/h/$wh/transfer-in': typeof HWhTransferInRoute
   '/w/$warehouseId/counts': typeof WWarehouseIdCountsRoute
   '/w/$warehouseId/pick-lists': typeof WWarehouseIdPickListsRoute
-  '/w/$warehouseId/stock': typeof WWarehouseIdStockRoute
   '/w/$warehouseId/': typeof WWarehouseIdIndexRoute
   '/w/$warehouseId/exceptions/$id': typeof WWarehouseIdExceptionsIdRoute
+  '/w/$warehouseId/stock/ledger': typeof WWarehouseIdStockLedgerRoute
   '/w/$warehouseId/exceptions/': typeof WWarehouseIdExceptionsIndexRoute
+  '/w/$warehouseId/stock/': typeof WWarehouseIdStockIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -207,10 +216,11 @@ export interface FileRouteTypes {
     | '/h/$wh/transfer-in'
     | '/w/$warehouseId/counts'
     | '/w/$warehouseId/pick-lists'
-    | '/w/$warehouseId/stock'
     | '/w/$warehouseId/'
     | '/w/$warehouseId/exceptions/$id'
+    | '/w/$warehouseId/stock/ledger'
     | '/w/$warehouseId/exceptions/'
+    | '/w/$warehouseId/stock/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -226,10 +236,11 @@ export interface FileRouteTypes {
     | '/h/$wh/transfer-in'
     | '/w/$warehouseId/counts'
     | '/w/$warehouseId/pick-lists'
-    | '/w/$warehouseId/stock'
     | '/w/$warehouseId'
     | '/w/$warehouseId/exceptions/$id'
+    | '/w/$warehouseId/stock/ledger'
     | '/w/$warehouseId/exceptions'
+    | '/w/$warehouseId/stock'
   id:
     | '__root__'
     | '/'
@@ -247,10 +258,11 @@ export interface FileRouteTypes {
     | '/h/$wh/transfer-in'
     | '/w/$warehouseId/counts'
     | '/w/$warehouseId/pick-lists'
-    | '/w/$warehouseId/stock'
     | '/w/$warehouseId/'
     | '/w/$warehouseId/exceptions/$id'
+    | '/w/$warehouseId/stock/ledger'
     | '/w/$warehouseId/exceptions/'
+    | '/w/$warehouseId/stock/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -374,13 +386,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWarehouseIdPickListsRouteImport
       parentRoute: typeof WWarehouseIdRouteRoute
     }
-    '/w/$warehouseId/stock': {
-      id: '/w/$warehouseId/stock'
-      path: '/stock'
-      fullPath: '/w/$warehouseId/stock'
-      preLoaderRoute: typeof WWarehouseIdStockRouteImport
-      parentRoute: typeof WWarehouseIdRouteRoute
-    }
     '/w/$warehouseId/exceptions/': {
       id: '/w/$warehouseId/exceptions/'
       path: '/exceptions'
@@ -393,6 +398,20 @@ declare module '@tanstack/react-router' {
       path: '/exceptions/$id'
       fullPath: '/w/$warehouseId/exceptions/$id'
       preLoaderRoute: typeof WWarehouseIdExceptionsIdRouteImport
+      parentRoute: typeof WWarehouseIdRouteRoute
+    }
+    '/w/$warehouseId/stock/': {
+      id: '/w/$warehouseId/stock/'
+      path: '/stock'
+      fullPath: '/w/$warehouseId/stock/'
+      preLoaderRoute: typeof WWarehouseIdStockIndexRouteImport
+      parentRoute: typeof WWarehouseIdRouteRoute
+    }
+    '/w/$warehouseId/stock/ledger': {
+      id: '/w/$warehouseId/stock/ledger'
+      path: '/stock/ledger'
+      fullPath: '/w/$warehouseId/stock/ledger'
+      preLoaderRoute: typeof WWarehouseIdStockLedgerRouteImport
       parentRoute: typeof WWarehouseIdRouteRoute
     }
   }
@@ -428,19 +447,21 @@ const HRouteRouteWithChildren =
 interface WWarehouseIdRouteRouteChildren {
   WWarehouseIdCountsRoute: typeof WWarehouseIdCountsRoute
   WWarehouseIdPickListsRoute: typeof WWarehouseIdPickListsRoute
-  WWarehouseIdStockRoute: typeof WWarehouseIdStockRoute
   WWarehouseIdIndexRoute: typeof WWarehouseIdIndexRoute
   WWarehouseIdExceptionsIdRoute: typeof WWarehouseIdExceptionsIdRoute
+  WWarehouseIdStockLedgerRoute: typeof WWarehouseIdStockLedgerRoute
   WWarehouseIdExceptionsIndexRoute: typeof WWarehouseIdExceptionsIndexRoute
+  WWarehouseIdStockIndexRoute: typeof WWarehouseIdStockIndexRoute
 }
 
 const WWarehouseIdRouteRouteChildren: WWarehouseIdRouteRouteChildren = {
   WWarehouseIdCountsRoute: WWarehouseIdCountsRoute,
   WWarehouseIdPickListsRoute: WWarehouseIdPickListsRoute,
-  WWarehouseIdStockRoute: WWarehouseIdStockRoute,
   WWarehouseIdIndexRoute: WWarehouseIdIndexRoute,
   WWarehouseIdExceptionsIdRoute: WWarehouseIdExceptionsIdRoute,
+  WWarehouseIdStockLedgerRoute: WWarehouseIdStockLedgerRoute,
   WWarehouseIdExceptionsIndexRoute: WWarehouseIdExceptionsIndexRoute,
+  WWarehouseIdStockIndexRoute: WWarehouseIdStockIndexRoute,
 }
 
 const WWarehouseIdRouteRouteWithChildren =

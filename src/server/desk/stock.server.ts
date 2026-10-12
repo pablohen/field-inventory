@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import type { StockFilters } from '#/desk/stock-filters';
 import { movementDeltas } from '#/domain/balance';
 import type { Movement, MovementSource, MovementType } from '#/domain/types';
 import type { SessionClaims } from '#/server/auth/session';
@@ -11,20 +11,10 @@ import type { TimelineMovement } from './exceptions.server';
 import { authorizeDesk } from './session';
 import { type DeskError, warehouseClientFor } from './warehouses.server';
 
-/** `nonZero` may arrive from the URL as the strings "true" / "false". */
-const nonZeroSchema = z
-  .union([
-    z.boolean(),
-    z.enum(['true', 'false']).transform((v) => v === 'true'),
-  ])
-  .optional();
-
-export const stockFiltersSchema = z.object({
-  skuId: z.string().optional(),
-  locationId: z.string().optional(),
-  nonZero: nonZeroSchema,
-});
-export type StockFilters = z.infer<typeof stockFiltersSchema>;
+export {
+  type StockFilters,
+  stockFiltersSchema,
+} from '#/desk/stock-filters';
 
 export type StockDeps = {
   global: GlobalClient;

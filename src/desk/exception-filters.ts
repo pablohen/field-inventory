@@ -19,3 +19,9 @@ export const exceptionFiltersSchema = z.object({
   minAgeHours: z.coerce.number().nonnegative().optional(),
 });
 export type ExceptionFilters = z.infer<typeof exceptionFiltersSchema>;
+
+/** URL search validation: a bad shared link falls back to no filters. */
+export function parseExceptionSearch(search: unknown): ExceptionFilters {
+  const parsed = exceptionFiltersSchema.safeParse(search);
+  return parsed.success ? parsed.data : {};
+}

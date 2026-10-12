@@ -2,6 +2,7 @@ import { Badge, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
+import { errorMessage, RefreshNote } from '#/desk/components/RefreshNote';
 import { ResolvePanel } from '#/desk/components/ResolvePanel';
 import { fmtTime, Timeline } from '#/desk/components/Timeline';
 import { listWorkers } from '#/server/desk/count-tasks.fn';
@@ -52,27 +53,17 @@ export function ExceptionDetailPage({
     </Link>
   );
 
-  if (detail.isError) {
-    return (
-      <Stack>
-        {back}
-        <DeskErrorAlert
-          error={{
-            code: 'INVALID',
-            message:
-              detail.error instanceof Error
-                ? detail.error.message
-                : 'Request failed',
-          }}
-        />
-      </Stack>
-    );
-  }
   if (!data) {
     return (
       <Stack>
         {back}
-        <Loader size="sm" />
+        {detail.isError ? (
+          <DeskErrorAlert
+            error={{ code: 'INVALID', message: errorMessage(detail.error) }}
+          />
+        ) : (
+          <Loader size="sm" />
+        )}
       </Stack>
     );
   }
@@ -95,6 +86,7 @@ export function ExceptionDetailPage({
   return (
     <Stack>
       {back}
+      {detail.isError && <RefreshNote />}
       <Group gap="sm">
         <Badge variant="light">{ex.type}</Badge>
         <Title order={3}>{ex.summary}</Title>
