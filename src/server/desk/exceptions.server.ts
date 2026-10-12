@@ -410,6 +410,8 @@ export type ResolveDeps = {
   warehouseDb(name: string): WarehouseClient;
   now(): Date;
   newId(): string;
+  /** Test seam: runs after pre-transaction validation, before the transaction. */
+  afterValidate?: () => Promise<void>;
 };
 
 export type ResolveResult =
@@ -500,6 +502,8 @@ export async function resolveExceptionCore(
     }
   }
 
+  await deps.afterValidate?.();
+
   const now = deps.now();
   const run = () =>
     withMovementTx(db, async (tx) => {
@@ -533,6 +537,22 @@ export async function resolveExceptionCore(
                 message: 'Exception not found',
               },
         );
+      }
+      // Re-check the target location inside the transaction, after the
+      // version guard so an already-resolved exception still reports CONFLICT.
+      if (
+        (input.action === 'adjust' || input.action === 'recount') &&
+        locationId
+      ) {
+        const loc = await tx.location.findUnique({
+          where: { id: locationId },
+          select: { code: true, active: true },
+        });
+        if (!loc?.active) {
+          throw new ResolveAbort(
+            invalid(`Location ${loc?.code ?? locationId} is inactive`),
+          );
+        }
       }
       const out = {
         ok: true as const,

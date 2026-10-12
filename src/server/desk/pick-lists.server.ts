@@ -14,7 +14,16 @@ export type PickListDeps = {
   catalog: CatalogClient;
   warehouseDb(name: string): WarehouseClient;
   newId(): string;
+  /** Test seam: runs after pre-transaction validation, before the transaction. */
+  afterValidate?: () => Promise<void>;
 };
+
+/** Thrown inside the create transaction to roll it back with a typed result. */
+class PickListAbort extends Error {
+  constructor(readonly error: DeskError) {
+    super(error.message);
+  }
+}
 
 type Balance = { skuId: string; locationId: string; qty: number };
 type Suggestion = { skuId: string; locationId: string | null; qty: number };
@@ -167,28 +176,50 @@ export async function createPickListCore(
     if (err) return err;
   }
 
+  await deps.afterValidate?.();
+
   const id = deps.newId();
-  await wh.db.$transaction(async (tx) => {
-    await tx.pickList.create({
-      data: {
-        id,
-        status: 'OPEN',
-        createdBy: session.userId,
-        assignedUserId: input.assignedUserId ?? null,
-      },
-    });
-    for (const line of input.lines) {
-      await tx.pickLine.create({
+  try {
+    await wh.db.$transaction(async (tx) => {
+      // Re-check inside the transaction: a location may have been
+      // deactivated since the pre-transaction validation.
+      const current = await tx.location.findMany({
+        where: { id: { in: locationIds } },
+        select: { id: true, code: true, active: true },
+      });
+      const inactive = current.find((l) => !l.active);
+      if (inactive || current.length !== locationIds.length) {
+        const bad = inactive?.code ?? 'unknown';
+        throw new PickListAbort({
+          ok: false,
+          code: 'INVALID',
+          message: `Location ${bad} is inactive`,
+        });
+      }
+      await tx.pickList.create({
         data: {
-          id: deps.newId(),
-          pickListId: id,
-          skuId: line.skuId,
-          locationId: line.locationId,
-          qtyRequested: line.qty,
+          id,
+          status: 'OPEN',
+          createdBy: session.userId,
+          assignedUserId: input.assignedUserId ?? null,
         },
       });
-    }
-  });
+      for (const line of input.lines) {
+        await tx.pickLine.create({
+          data: {
+            id: deps.newId(),
+            pickListId: id,
+            skuId: line.skuId,
+            locationId: line.locationId,
+            qtyRequested: line.qty,
+          },
+        });
+      }
+    });
+  } catch (err) {
+    if (err instanceof PickListAbort) return err.error;
+    throw err;
+  }
   return { ok: true, id };
 }
 
