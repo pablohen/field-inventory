@@ -2,9 +2,11 @@ import { Alert, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, useSearch } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
+import { asList } from '#/desk/as-list';
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
 import { LedgerTable } from '#/desk/components/LedgerTable';
 import { errorMessage, RefreshNote } from '#/desk/components/RefreshNote';
+import { deskCall } from '#/desk/desk-call';
 import {
   type LedgerKey,
   ledgerKeySchema,
@@ -55,15 +57,18 @@ function LedgerContent({
 }) {
   const ledger = useQuery({
     queryKey: ['desk', warehouseId, 'ledger', keyOf],
-    queryFn: () => getLedger({ data: { warehouseId, key: keyOf } }),
+    queryFn: () => deskCall(getLedger, { warehouseId, key: keyOf }),
   });
   const workers = useQuery({
     queryKey: ['desk', 'workers'],
-    queryFn: () => listWorkers(),
+    queryFn: () => deskCall(listWorkers),
     refetchInterval: false,
   });
   const names = Object.fromEntries(
-    (workers.data ?? []).map((w) => [w.id, w.name]),
+    asList<{ id: string; name: string }>(workers.data).map((w) => [
+      w.id,
+      w.name,
+    ]),
   );
   const data = ledger.data;
 

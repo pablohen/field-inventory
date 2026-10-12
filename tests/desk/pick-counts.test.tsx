@@ -15,6 +15,8 @@ import type { CountTaskRow } from '#/server/desk/count-tasks.server';
 import type { LocationRow } from '#/server/desk/locations.server';
 import type { PickListRow } from '#/server/desk/pick-lists.server';
 
+import { deskFetch } from '#/shared/checked-fetch';
+
 const fns = vi.hoisted(() => ({
   suggestPickList: vi.fn(),
   createPickList: vi.fn(),
@@ -182,6 +184,7 @@ describe('PickListForm', () => {
     await suggestFlow();
 
     expect(fns.suggestPickList).toHaveBeenCalledWith({
+      fetch: deskFetch,
       data: { warehouseId: WH, requests: [{ skuId: 'P1', qty: 10 }] },
     });
     expect(screen.getByText('Short by 6 for P1')).toBeTruthy();
@@ -200,6 +203,7 @@ describe('PickListForm', () => {
     fireEvent.click(create);
     await waitFor(() => expect(onCreated).toHaveBeenCalled());
     expect(fns.createPickList).toHaveBeenCalledWith({
+      fetch: deskFetch,
       data: {
         warehouseId: WH,
         lines: [
@@ -354,6 +358,7 @@ describe('CountTaskForm', () => {
     fireEvent.click(create);
     await waitFor(() => expect(onCreated).toHaveBeenCalled());
     expect(fns.createCountTask).toHaveBeenCalledWith({
+      fetch: deskFetch,
       data: { warehouseId: WH, scope: { zone: 'A' } },
     });
   });
@@ -381,6 +386,7 @@ describe('CountTaskForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create count task' }));
     await waitFor(() =>
       expect(fns.createCountTask).toHaveBeenCalledWith({
+        fetch: deskFetch,
         data: { warehouseId: WH, scope: { locations: ['L1', 'L3'] } },
       }),
     );
@@ -432,6 +438,7 @@ describe('PickListTable', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() =>
       expect(fns.closePickList).toHaveBeenCalledWith({
+        fetch: deskFetch,
         data: { warehouseId: WH, pickListId: 'pl-12345678' },
       }),
     );
@@ -481,6 +488,7 @@ describe('PickListTable', () => {
     await choose(/Assignee for/, 'Wendy');
     await waitFor(() =>
       expect(fns.assignPickList).toHaveBeenCalledWith({
+        fetch: deskFetch,
         data: {
           warehouseId: WH,
           pickListId: 'pl-12345678',
@@ -534,6 +542,7 @@ describe('CountTaskTable', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() =>
       expect(fns.closeCountTask).toHaveBeenCalledWith({
+        fetch: deskFetch,
         data: { warehouseId: WH, taskId: 'ct-1' },
       }),
     );

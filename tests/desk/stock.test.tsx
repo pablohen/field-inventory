@@ -14,6 +14,8 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { parseLedgerSearch, parseStockSearch } from '#/desk/stock-filters';
 import type { LedgerRow, StockRow } from '#/server/desk/stock.server';
 
+import { deskFetch } from '#/shared/checked-fetch';
+
 const getStock = vi.hoisted(() => vi.fn());
 const getLedger = vi.hoisted(() => vi.fn());
 vi.mock('#/server/desk/stock.fn', () => ({
@@ -137,6 +139,7 @@ describe('stock page', () => {
     stockPage(`/w/${WH}/stock?nonZero=maybe`);
     expect(await screen.findByText('SKU-1')).toBeTruthy();
     expect(getStock).toHaveBeenCalledWith({
+      fetch: deskFetch,
       data: { warehouseId: WH, filters: {} },
     });
   });
@@ -187,6 +190,7 @@ describe('ledger page', () => {
     expect(balances.at(-1)).toBe(header.textContent);
     expect(screen.getByText('supervisor')).toBeTruthy();
     expect(getLedger).toHaveBeenCalledWith({
+      fetch: deskFetch,
       data: { warehouseId: WH, key: { skuId: 'S1', locationId: 'L1' } },
     });
   });

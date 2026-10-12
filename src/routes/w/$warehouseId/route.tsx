@@ -11,11 +11,12 @@ import { useEffect, useState } from 'react';
 import { watchDeskAuth } from '#/desk/auth-error';
 import { DeskNav } from '#/desk/components/DeskNav';
 import { SignOutButton } from '#/desk/components/SignOutButton';
+import { deskCall } from '#/desk/desk-call';
 import { getDeskSession, getWarehouses } from '#/server/desk/desk-auth.fn';
 
 export const Route = createFileRoute('/w/$warehouseId')({
   beforeLoad: async () => {
-    const session = await getDeskSession();
+    const session = await deskCall(getDeskSession);
     if (!session) throw redirect({ to: '/desk/login' });
     return { session };
   },
@@ -25,6 +26,20 @@ export const Route = createFileRoute('/w/$warehouseId')({
 function DeskLayout() {
   const { warehouseId } = Route.useParams();
   const { session } = Route.useRouteContext();
+  return <DeskLayoutView warehouseId={warehouseId} session={session} />;
+}
+
+const assignUrl = (url: string) => window.location.assign(url);
+
+export function DeskLayoutView({
+  warehouseId,
+  session,
+  navigate = assignUrl,
+}: {
+  warehouseId: string;
+  session: { name: string };
+  navigate?: (url: string) => void;
+}) {
   const { queryClient } = useRouter().options.context;
   // Every desk query polls; set once, before children mount.
   useState(() =>
@@ -33,15 +48,17 @@ function DeskLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const whs = useQuery({
     queryKey: ['desk', 'warehouses'],
-    queryFn: () => getWarehouses(),
+    queryFn: () => deskCall(getWarehouses),
   });
-  const known = whs.data?.some((w) => w.id === warehouseId);
+  const warehouses = Array.isArray(whs.data) ? whs.data : [];
+  const known = Array.isArray(whs.data)
+    ? whs.data.some((w) => w.id === warehouseId)
+    : undefined;
 
   // An expired session surfaces as an auth error on a polling query.
   useEffect(
-    () =>
-      watchDeskAuth(queryClient, () => window.location.assign('/desk/login')),
-    [queryClient],
+    () => watchDeskAuth(queryClient, () => navigate('/desk/login')),
+    [queryClient, navigate],
   );
 
   return (
@@ -50,7 +67,7 @@ function DeskLayout() {
         <Group justify="space-between" align="flex-end">
           <DeskNav
             warehouseId={warehouseId}
-            warehouses={whs.data ?? []}
+            warehouses={warehouses}
             pathname={pathname}
           />
           <Group gap="sm">
@@ -58,7 +75,7 @@ function DeskLayout() {
             <SignOutButton />
           </Group>
         </Group>
-        {whs.data && !known ? (
+        {known === false ? (
           <Alert color="red">Warehouse not found</Alert>
         ) : (
           <Outlet />

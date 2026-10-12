@@ -1,10 +1,12 @@
 import { Badge, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { asList } from '#/desk/as-list';
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
 import { errorMessage, RefreshNote } from '#/desk/components/RefreshNote';
 import { ResolvePanel } from '#/desk/components/ResolvePanel';
 import { fmtTime, Timeline } from '#/desk/components/Timeline';
+import { deskCall } from '#/desk/desk-call';
 import { listWorkers } from '#/server/desk/count-tasks.fn';
 import {
   getExceptionDetail,
@@ -31,19 +33,19 @@ export function ExceptionDetailPage({
   const detail = useQuery({
     queryKey: ['desk', warehouseId, 'exception', id],
     queryFn: () =>
-      getExceptionDetail({ data: { warehouseId, exceptionId: id } }),
+      deskCall(getExceptionDetail, { warehouseId, exceptionId: id }),
   });
   const workers = useQuery({
     queryKey: ['desk', 'workers'],
-    queryFn: () => listWorkers(),
+    queryFn: () => deskCall(listWorkers),
     refetchInterval: false,
   });
   const reasons = useQuery({
     queryKey: ['desk', 'reason-codes', 'ADJUST'],
-    queryFn: () => listReasonCodes({ data: { type: 'ADJUST' } }),
+    queryFn: () => deskCall(listReasonCodes, { type: 'ADJUST' }),
     refetchInterval: false,
   });
-  const workerList = workers.data ?? [];
+  const workerList = asList<{ id: string; name: string }>(workers.data);
   const names = Object.fromEntries(workerList.map((w) => [w.id, w.name]));
   const data = detail.data;
 
@@ -124,8 +126,8 @@ export function ExceptionDetailPage({
           version={ex.version}
           defaults={{ skuId: ex.skuId, locationId: ex.locationId }}
           workers={workerList}
-          reasonCodes={reasons.data ?? []}
-          resolve={resolveException}
+          reasonCodes={asList<{ code: string; label: string }>(reasons.data)}
+          resolve={(args) => deskCall(resolveException, args.data)}
         />
       ) : (
         <Stack gap={2} data-testid="resolution">

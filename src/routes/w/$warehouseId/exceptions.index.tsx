@@ -5,6 +5,7 @@ import {
   useNavigate,
   useSearch,
 } from '@tanstack/react-router';
+import { asList } from '#/desk/as-list';
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
 import {
   ExceptionFilterBar,
@@ -12,6 +13,7 @@ import {
 } from '#/desk/components/ExceptionFilters';
 import { ExceptionTable } from '#/desk/components/ExceptionTable';
 import { errorMessage, RefreshNote } from '#/desk/components/RefreshNote';
+import { deskCall } from '#/desk/desk-call';
 import {
   type ExceptionFilters,
   parseExceptionSearch,
@@ -41,15 +43,15 @@ export function ExceptionsListPage({ warehouseId }: { warehouseId: string }) {
 
   const list = useQuery({
     queryKey: ['desk', warehouseId, 'exceptions', filters],
-    queryFn: () => listExceptions({ data: { warehouseId, filters } }),
+    queryFn: () => deskCall(listExceptions, { warehouseId, filters }),
     placeholderData: keepPreviousData,
   });
   const workers = useQuery({
     queryKey: ['desk', 'workers'],
-    queryFn: () => listWorkers(),
+    queryFn: () => deskCall(listWorkers),
     refetchInterval: false,
   });
-  const workerList = workers.data ?? [];
+  const workerList = asList<{ id: string; name: string }>(workers.data);
   const names = Object.fromEntries(workerList.map((w) => [w.id, w.name]));
   const data = list.data;
 

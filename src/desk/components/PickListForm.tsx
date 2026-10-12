@@ -11,6 +11,7 @@ import {
 } from '@mantine/core';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
+import { deskCall } from '#/desk/desk-call';
 import type { LocationRow } from '#/server/desk/locations.server';
 import { createPickList, suggestPickList } from '#/server/desk/pick-lists.fn';
 import { getStock } from '#/server/desk/stock.fn';
@@ -66,7 +67,10 @@ export function PickListForm({
     queries: skuIds.map((skuId) => ({
       queryKey: ['desk', warehouseId, 'stock', { skuId, nonZero: true }],
       queryFn: () =>
-        getStock({ data: { warehouseId, filters: { skuId, nonZero: true } } }),
+        deskCall(getStock, {
+          warehouseId,
+          filters: { skuId, nonZero: true },
+        }),
       refetchInterval: false as const,
       retry: false,
     })),
@@ -151,14 +155,12 @@ export function PickListForm({
     setPending(true);
     setError(null);
     try {
-      const res = await suggestPickList({
-        data: {
-          warehouseId,
-          requests: requests.map((r) => ({
-            skuId: r.skuId.trim(),
-            qty: r.qty as number,
-          })),
-        },
+      const res = await deskCall(suggestPickList, {
+        warehouseId,
+        requests: requests.map((r) => ({
+          skuId: r.skuId.trim(),
+          qty: r.qty as number,
+        })),
       });
       if (res.ok) {
         setSuggestion({ lines: res.lines, shortfalls: res.shortfalls });
@@ -189,16 +191,14 @@ export function PickListForm({
     setPending(true);
     setError(null);
     try {
-      const res = await createPickList({
-        data: {
-          warehouseId,
-          lines: suggestion.lines.map((l, i) => ({
-            skuId: l.skuId,
-            locationId: bins[i] as string,
-            qty: l.qty,
-          })),
-          ...(assignee ? { assignedUserId: assignee } : {}),
-        },
+      const res = await deskCall(createPickList, {
+        warehouseId,
+        lines: suggestion.lines.map((l, i) => ({
+          skuId: l.skuId,
+          locationId: bins[i] as string,
+          qty: l.qty,
+        })),
+        ...(assignee ? { assignedUserId: assignee } : {}),
       });
       if (res.ok) {
         await qc.invalidateQueries({

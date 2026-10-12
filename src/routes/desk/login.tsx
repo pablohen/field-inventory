@@ -10,8 +10,8 @@ import {
 } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { checkedFetch } from '#/handheld/push';
 import { deskLogin } from '#/server/desk/desk-auth.fn';
+import { checkedFetch } from '#/shared/checked-fetch';
 
 export const Route = createFileRoute('/desk/login')({ component: DeskLogin });
 

@@ -1,13 +1,13 @@
 import { Alert, Button, PinInput, Stack, Text, TextInput } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { checkedFetch } from '#/handheld/push';
 import {
   getDeviceId,
   setCachedSession,
   setDeviceId,
 } from '#/handheld/session-store';
 import { login } from '#/server/auth/auth.fn';
+import { checkedFetch } from '#/shared/checked-fetch';
 
 export const Route = createFileRoute('/h/login')({ component: LoginPage });
 

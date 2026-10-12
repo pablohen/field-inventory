@@ -11,10 +11,12 @@ import {
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
+import { asList } from '#/desk/as-list';
 import { CountTaskForm } from '#/desk/components/CountTaskForm';
 import { CountTaskTable } from '#/desk/components/CountTaskTable';
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
 import { errorMessage, RefreshNote } from '#/desk/components/RefreshNote';
+import { deskCall } from '#/desk/desk-call';
 import { listCountTasks, listWorkers } from '#/server/desk/count-tasks.fn';
 import { listLocations } from '#/server/desk/locations.fn';
 
@@ -34,21 +36,23 @@ export function CountsPage({ warehouseId }: { warehouseId: string }) {
   const [drawer, setDrawer] = useState(false);
   const list = useQuery({
     queryKey: ['desk', warehouseId, 'counts', status],
-    queryFn: () => listCountTasks({ data: { warehouseId, status } }),
+    queryFn: () => deskCall(listCountTasks, { warehouseId, status }),
     placeholderData: keepPreviousData,
   });
   const workers = useQuery({
     queryKey: ['desk', 'workers'],
-    queryFn: () => listWorkers(),
+    queryFn: () => deskCall(listWorkers),
     refetchInterval: false,
   });
   const locations = useQuery({
     queryKey: ['desk', warehouseId, 'locations'],
-    queryFn: () => listLocations({ data: { warehouseId } }),
+    queryFn: () => deskCall(listLocations, { warehouseId }),
     refetchInterval: false,
   });
-  const workerList = workers.data ?? [];
-  const locationList = locations.data?.ok ? locations.data.locations : [];
+  const workerList = asList<{ id: string; name: string }>(workers.data);
+  const locationList = locations.data?.ok
+    ? asList(locations.data.locations)
+    : [];
   const locationsFailed = locations.isError || locations.data?.ok === false;
   const workersFailed = workers.isError;
   const data = list.data;

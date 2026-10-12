@@ -1,6 +1,7 @@
 import { Badge, Button, Group, Select, Table, Text } from '@mantine/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
+import { deskCall } from '#/desk/desk-call';
 import { assignPickList, closePickList } from '#/server/desk/pick-lists.fn';
 import type { PickListRow } from '#/server/desk/pick-lists.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
@@ -120,12 +121,10 @@ function PickListRowView({
             disabled={pending || done}
             onChange={(v) =>
               void run(() =>
-                assignPickList({
-                  data: {
-                    warehouseId,
-                    pickListId: row.id,
-                    assignedUserId: v,
-                  },
+                deskCall(assignPickList, {
+                  warehouseId,
+                  pickListId: row.id,
+                  assignedUserId: v,
                 }),
               )
             }
@@ -148,8 +147,9 @@ function PickListRowView({
                 loading={pending}
                 onClick={() =>
                   void run(() =>
-                    closePickList({
-                      data: { warehouseId, pickListId: row.id },
+                    deskCall(closePickList, {
+                      warehouseId,
+                      pickListId: row.id,
                     }),
                   )
                 }

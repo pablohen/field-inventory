@@ -1,5 +1,6 @@
 import { Button, Text } from '@mantine/core';
 import { useState } from 'react';
+import { deskCall } from '#/desk/desk-call';
 import { deskLogout } from '#/server/desk/desk-auth.fn';
 
 /** Signs out via the server (the cookie is httpOnly); navigates only on success. */
@@ -12,7 +13,7 @@ export function SignOutButton({
   const signOut = async () => {
     setError('');
     try {
-      await deskLogout();
+      await deskCall(deskLogout);
     } catch {
       setError('Sign-out needs a connection');
       return;

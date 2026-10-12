@@ -8,6 +8,7 @@ import {
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
 import { errorMessage, RefreshNote } from '#/desk/components/RefreshNote';
 import { StockFilterBar, StockTable } from '#/desk/components/StockTable';
+import { deskCall } from '#/desk/desk-call';
 import { parseStockSearch } from '#/desk/stock-filters';
 import { getStock } from '#/server/desk/stock.fn';
 
@@ -27,7 +28,7 @@ export function StockPage({ warehouseId }: { warehouseId: string }) {
   const navigate = useNavigate();
   const stock = useQuery({
     queryKey: ['desk', warehouseId, 'stock', filters],
-    queryFn: () => getStock({ data: { warehouseId, filters } }),
+    queryFn: () => deskCall(getStock, { warehouseId, filters }),
     placeholderData: keepPreviousData,
   });
   const data = stock.data;

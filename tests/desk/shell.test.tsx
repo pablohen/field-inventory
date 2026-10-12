@@ -25,7 +25,7 @@ vi.mock('#/server/desk/desk-auth.fn', () => ({
   getDeskSession: vi.fn(),
   getWarehouses: vi.fn(),
 }));
-vi.mock('#/handheld/push', () => ({ checkedFetch: () => fetch }));
+vi.mock('#/shared/checked-fetch', () => ({ checkedFetch: () => fetch }));
 
 import { DeskLogin } from '#/routes/desk/login';
 

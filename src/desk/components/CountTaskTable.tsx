@@ -2,6 +2,7 @@ import { Badge, Button, Group, Select, Table, Text } from '@mantine/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { scopeSummary } from '#/desk/count-scope';
+import { deskCall } from '#/desk/desk-call';
 import { assignCountTask, closeCountTask } from '#/server/desk/count-tasks.fn';
 import type { CountTaskRow } from '#/server/desk/count-tasks.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
@@ -119,8 +120,10 @@ function CountTaskRowView({
             disabled={pending || done}
             onChange={(v) =>
               void run(() =>
-                assignCountTask({
-                  data: { warehouseId, taskId: row.id, assignedUserId: v },
+                deskCall(assignCountTask, {
+                  warehouseId,
+                  taskId: row.id,
+                  assignedUserId: v,
                 }),
               )
             }
@@ -142,7 +145,7 @@ function CountTaskRowView({
                 loading={pending}
                 onClick={() =>
                   void run(() =>
-                    closeCountTask({ data: { warehouseId, taskId: row.id } }),
+                    deskCall(closeCountTask, { warehouseId, taskId: row.id }),
                   )
                 }
               >

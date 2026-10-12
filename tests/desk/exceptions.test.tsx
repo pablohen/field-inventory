@@ -23,6 +23,8 @@ import type {
   TimelineMovement,
 } from '#/server/desk/exceptions.server';
 
+import { deskFetch } from '#/shared/checked-fetch';
+
 const listExceptions = vi.hoisted(() => vi.fn());
 const getExceptionDetail = vi.hoisted(() => vi.fn());
 vi.mock('#/server/desk/exceptions.fn', () => ({
@@ -280,6 +282,7 @@ describe('exceptions list page', () => {
     );
     await waitFor(() =>
       expect(listExceptions).toHaveBeenLastCalledWith({
+        fetch: deskFetch,
         data: { warehouseId: WH, filters: { type: 'COUNT_VARIANCE' } },
       }),
     );
@@ -342,6 +345,7 @@ describe('exceptions list page', () => {
     setup(`/w/${WH}/exceptions/?type=BOGUS`);
     expect(await screen.findByText('observed 3, expected 5 (−2)')).toBeTruthy();
     expect(listExceptions).toHaveBeenCalledWith({
+      fetch: deskFetch,
       data: { warehouseId: WH, filters: {} },
     });
   });
