@@ -1,4 +1,4 @@
-import { detectClockSkew, findStuckTransfers } from '#/domain/detectors';
+import { detectClockSkew } from '#/domain/detectors';
 import { processMovement } from '#/domain/process';
 import {
   type MovementInput,
@@ -13,11 +13,11 @@ import type {
   WarehouseClient,
 } from '#/server/db/clients';
 import { SCHEMA_VERSIONS } from '#/server/db/migrate';
+import { checkStuckTransfers } from './stuck-transfers';
 import {
   loadContext,
   persistEffects,
   persistExceptions,
-  toDomain,
   type WarehouseTx,
   withMovementTx,
 } from './warehouse-repo';
@@ -135,12 +135,11 @@ async function applyRow(
 }
 
 async function detectForWarehouse(
-  deps: SyncDeps,
   db: WarehouseClient,
   deviceId: string,
   sentAt: Date,
   now: Date,
-  tursoNames: Map<string, string>,
+  clockSkewThresholdMs: number,
 ): Promise<ExceptionDraft[]> {
   const openSkew = await db.exception.findFirst({
     where: { type: 'CLOCK_SKEW', status: 'OPEN', deviceId },
@@ -159,65 +158,10 @@ async function detectForWarehouse(
     deviceId,
     sentAt,
     now,
-    deps.clockSkewThresholdMs,
+    clockSkewThresholdMs,
     openSkew !== null,
   );
   if (skew) drafts.push(skew);
-
-  const outs = (
-    await db.movement.findMany({
-      where: { type: 'TRANSFER_OUT' },
-      orderBy: { seq: 'asc' },
-    })
-  ).map(toDomain);
-
-  const inRefs = new Set<string>();
-  const byCounterpart = new Map<string, string[]>();
-  for (const o of outs) {
-    if (o.ref === null || o.counterpartWarehouseId === null) continue;
-    const refs = byCounterpart.get(o.counterpartWarehouseId) ?? [];
-    refs.push(o.ref);
-    byCounterpart.set(o.counterpartWarehouseId, refs);
-  }
-  for (const [counterpartId, refs] of byCounterpart) {
-    let name = tursoNames.get(counterpartId);
-    if (name === undefined) {
-      const wh = await deps.global.warehouse.findUnique({
-        where: { id: counterpartId },
-        select: { tursoDbName: true },
-      });
-      if (!wh) continue;
-      name = wh.tursoDbName;
-      tursoNames.set(counterpartId, name);
-    }
-    const ins = await deps.warehouseDb(name).movement.findMany({
-      where: { type: 'TRANSFER_IN', ref: { in: refs } },
-      select: { ref: true },
-    });
-    for (const r of ins) if (r.ref !== null) inRefs.add(r.ref);
-  }
-
-  const flagged = await db.exception.findMany({
-    where: { type: 'TRANSFER_STUCK' },
-    select: { details: true },
-  });
-  const alreadyFlagged = new Set<string>();
-  for (const f of flagged) {
-    const details = JSON.parse(f.details) as { transferId?: unknown };
-    if (typeof details.transferId === 'string') {
-      alreadyFlagged.add(details.transferId);
-    }
-  }
-
-  drafts.push(
-    ...findStuckTransfers(
-      outs,
-      inRefs,
-      alreadyFlagged,
-      now,
-      deps.transferStuckHours,
-    ),
-  );
   return drafts;
 }
 
@@ -309,40 +253,37 @@ export async function syncMovementsCore(
   });
 
   const exceptions: ExceptionDraft[] = [];
-  const touched = new Set<string>(); // tursoDbName
+  const touched = new Map<string, string>(); // tursoDbName -> warehouseId
   for (const row of valid) {
     const db = deps.warehouseDb(row.dbName);
     const outcome = await applyRow(deps, db, row.input);
     const id = row.input.id;
     if (outcome.kind === 'accepted') {
-      touched.add(row.dbName);
+      touched.set(row.dbName, row.input.warehouseId);
       exceptions.push(...outcome.exceptions);
       results[row.index] = { id, status: 'accepted' };
     } else if (outcome.kind === 'duplicate') {
-      touched.add(row.dbName);
+      touched.set(row.dbName, row.input.warehouseId);
       results[row.index] = { id, status: 'duplicate' };
     } else {
       results[row.index] = { id, status: 'invalid', reason: outcome.reason };
     }
   }
 
-  const tursoNames = new Map<string, string>();
-  for (const wh of assigned.values()) tursoNames.set(wh.id, wh.tursoDbName);
-
-  for (const dbName of touched) {
+  for (const [dbName, warehouseId] of touched) {
     const db = deps.warehouseDb(dbName);
     const drafts = await detectForWarehouse(
-      deps,
       db,
       batch.deviceId,
       batch.sentAt,
       now,
-      tursoNames,
+      deps.clockSkewThresholdMs,
     );
     if (drafts.length > 0) {
       await withMovementTx(db, (tx) => persistExceptions(tx, drafts));
       exceptions.push(...drafts);
     }
+    exceptions.push(...(await checkStuckTransfers(deps, warehouseId)));
   }
 
   return { status: 'ok', results, exceptions, serverTime };
