@@ -91,6 +91,67 @@ function parseJson<T>(s: string, fallback: T): T {
   }
 }
 
+type ExceptionRecord = {
+  id: string;
+  type: string;
+  movementIds: string;
+  skuId: string | null;
+  locationId: string | null;
+  deviceId: string | null;
+  details: string;
+  version: number;
+  createdAt: Date;
+};
+
+/** Shared by list and detail so both build rows identically. */
+async function buildExceptionRows(
+  db: WarehouseClient,
+  records: ExceptionRecord[],
+  nowMs: number,
+): Promise<{ row: ExceptionRow; movementIds: string[] }[]> {
+  const idsByException = new Map<string, string[]>(
+    records.map((e) => [e.id, parseJson<string[]>(e.movementIds, [])]),
+  );
+  const allIds = [...new Set([...idsByException.values()].flat())];
+  const movements =
+    allIds.length > 0
+      ? await db.movement.findMany({
+          where: { id: { in: allIds } },
+          select: { id: true, userId: true },
+        })
+      : [];
+  const userByMovement = new Map(movements.map((m) => [m.id, m.userId]));
+  return records.map((e) => {
+    const movementIds = idsByException.get(e.id) ?? [];
+    const userIds = [
+      ...new Set(
+        movementIds
+          .map((id) => userByMovement.get(id))
+          .filter((u): u is string => u !== undefined),
+      ),
+    ];
+    return {
+      movementIds,
+      row: {
+        id: e.id,
+        type: e.type as ExceptionType,
+        skuId: e.skuId,
+        locationId: e.locationId,
+        deviceId: e.deviceId,
+        userIds,
+        createdAt: e.createdAt.toISOString(),
+        ageHours:
+          Math.round(((nowMs - e.createdAt.getTime()) / 3_600_000) * 10) / 10,
+        version: e.version,
+        summary: exceptionSummary(
+          e.type as ExceptionType,
+          parseJson<Record<string, unknown>>(e.details, {}),
+        ),
+      },
+    };
+  });
+}
+
 export async function listExceptionsCore(
   deps: ListExceptionsDeps,
   warehouseId: string,
@@ -117,54 +178,20 @@ export async function listExceptionsCore(
     if (e.type in countsByType) countsByType[e.type as ExceptionType] += 1;
   }
 
-  const movementIds = new Map<string, string[]>(
-    open.map((e) => [e.id, parseJson<string[]>(e.movementIds, [])]),
-  );
-  const allIds = [...new Set([...movementIds.values()].flat())];
-  const movements =
-    allIds.length > 0
-      ? await wh.db.movement.findMany({
-          where: { id: { in: allIds } },
-          select: { id: true, userId: true },
-        })
-      : [];
-  const userByMovement = new Map(movements.map((m) => [m.id, m.userId]));
-
-  const nowMs = deps.now().getTime();
-  const rows: ExceptionRow[] = [];
-  for (const e of open) {
-    const userIds = [
-      ...new Set(
-        (movementIds.get(e.id) ?? [])
-          .map((id) => userByMovement.get(id))
-          .filter((u): u is string => u !== undefined),
-      ),
-    ];
-    const ageHours =
-      Math.round(((nowMs - e.createdAt.getTime()) / 3_600_000) * 10) / 10;
-    if (filters.type && e.type !== filters.type) continue;
-    if (filters.skuId && e.skuId !== filters.skuId) continue;
-    if (filters.locationId && e.locationId !== filters.locationId) continue;
-    if (filters.userId && !userIds.includes(filters.userId)) continue;
-    if (filters.minAgeHours !== undefined && ageHours < filters.minAgeHours) {
-      continue;
-    }
-    rows.push({
-      id: e.id,
-      type: e.type as ExceptionType,
-      skuId: e.skuId,
-      locationId: e.locationId,
-      deviceId: e.deviceId,
-      userIds,
-      createdAt: e.createdAt.toISOString(),
-      ageHours,
-      version: e.version,
-      summary: exceptionSummary(
-        e.type as ExceptionType,
-        parseJson<Record<string, unknown>>(e.details, {}),
-      ),
+  const built = await buildExceptionRows(wh.db, open, deps.now().getTime());
+  const rows = built
+    .map((b) => b.row)
+    .filter((row) => {
+      if (filters.type && row.type !== filters.type) return false;
+      if (filters.skuId && row.skuId !== filters.skuId) return false;
+      if (filters.locationId && row.locationId !== filters.locationId) {
+        return false;
+      }
+      if (filters.userId && !row.userIds.includes(filters.userId)) return false;
+      return !(
+        filters.minAgeHours !== undefined && row.ageHours < filters.minAgeHours
+      );
     });
-  }
   return { ok: true, rows, countsByType };
 }
 
@@ -176,4 +203,134 @@ export async function handleListExceptions(
 ): Promise<ListExceptionsResult> {
   authorizeDesk(claims);
   return listExceptionsCore(deps, input.warehouseId, input.filters);
+}
+
+export type TimelineMovement = {
+  id: string;
+  seq: number;
+  type: string;
+  skuId: string;
+  fromLocationId: string | null;
+  toLocationId: string | null;
+  qty: number;
+  reasonCode: string | null;
+  userId: string;
+  deviceId: string;
+  source: string;
+  occurredAt: string;
+  receivedAt: string;
+  involved: boolean;
+};
+
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+export type ExceptionDetail = ExceptionRow & {
+  status: string;
+  details: Record<string, JsonValue>;
+  resolution: string | null;
+  note: string | null;
+  resolvedBy: string | null;
+  resolvedAt: string | null;
+};
+
+export type ExceptionDetailResult =
+  | {
+      ok: true;
+      exception: ExceptionDetail;
+      byOccurredAt: TimelineMovement[];
+      bySeq: TimelineMovement[];
+      missingMovementIds: string[];
+    }
+  | DeskError;
+
+export async function exceptionDetailCore(
+  deps: ListExceptionsDeps,
+  warehouseId: string,
+  exceptionId: string,
+): Promise<ExceptionDetailResult> {
+  const wh = await warehouseClientFor(deps, warehouseId);
+  if (!wh.ok) return wh;
+  const e = await wh.db.exception.findUnique({ where: { id: exceptionId } });
+  if (!e)
+    return { ok: false, code: 'NOT_FOUND', message: 'Exception not found' };
+
+  const [built] = await buildExceptionRows(wh.db, [e], deps.now().getTime());
+  if (!built)
+    return { ok: false, code: 'NOT_FOUND', message: 'Exception not found' };
+
+  const hasKey = e.skuId !== null && e.locationId !== null;
+  const referenced = new Set(built.movementIds);
+  const where = hasKey
+    ? {
+        OR: [
+          {
+            skuId: e.skuId as string,
+            OR: [
+              { toLocationId: e.locationId as string },
+              { fromLocationId: e.locationId as string },
+            ],
+          },
+          { id: { in: built.movementIds } },
+        ],
+      }
+    : { id: { in: built.movementIds } };
+  const rows =
+    hasKey || built.movementIds.length > 0
+      ? await wh.db.movement.findMany({ where, orderBy: { seq: 'asc' } })
+      : [];
+  const bySeq: TimelineMovement[] = rows.map((m) => ({
+    id: m.id,
+    seq: m.seq,
+    type: m.type,
+    skuId: m.skuId,
+    fromLocationId: m.fromLocationId,
+    toLocationId: m.toLocationId,
+    qty: m.qty,
+    reasonCode: m.reasonCode,
+    userId: m.userId,
+    deviceId: m.deviceId,
+    source: m.source,
+    occurredAt: m.occurredAt.toISOString(),
+    receivedAt: m.receivedAt.toISOString(),
+    involved: referenced.has(m.id),
+  }));
+  const byOccurredAt = [...bySeq].sort((a, b) =>
+    a.occurredAt < b.occurredAt
+      ? -1
+      : a.occurredAt > b.occurredAt
+        ? 1
+        : a.seq - b.seq,
+  );
+  const found = new Set(rows.map((m) => m.id));
+  return {
+    ok: true,
+    exception: {
+      ...built.row,
+      status: e.status,
+      details: parseJson<Record<string, JsonValue>>(e.details, {}),
+      resolution: e.resolution,
+      note: e.note,
+      resolvedBy: e.resolvedBy,
+      resolvedAt: e.resolvedAt ? e.resolvedAt.toISOString() : null,
+    },
+    byOccurredAt,
+    bySeq,
+    missingMovementIds: built.movementIds.filter((id) => !found.has(id)),
+  };
+}
+
+/** Authorized entry point; throws 401/403 Responses for non-desk callers. */
+export async function handleGetExceptionDetail(
+  claims: SessionClaims | null,
+  input: { warehouseId: string; exceptionId: string },
+  deps: ListExceptionsDeps,
+): Promise<ExceptionDetailResult> {
+  authorizeDesk(claims);
+  return exceptionDetailCore(deps, input.warehouseId, input.exceptionId);
 }

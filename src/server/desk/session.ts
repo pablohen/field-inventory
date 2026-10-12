@@ -20,11 +20,15 @@ export function authorizeDesk(claims: SessionClaims | null): DeskSession {
   return { ...claims, role: claims.role };
 }
 
+/** Verified claims from the `fi_session` cookie, or null. */
+export async function readDeskClaims(): Promise<SessionClaims | null> {
+  const token = getCookie(SESSION_COOKIE);
+  return token ? verifySession(token) : null;
+}
+
 /** Reads the session cookie and authorizes it for the desk. */
 export async function requireDeskSession(): Promise<DeskSession> {
-  const token = getCookie(SESSION_COOKIE);
-  const claims = token ? await verifySession(token) : null;
-  return authorizeDesk(claims);
+  return authorizeDesk(await readDeskClaims());
 }
 
 /** Desk user for the route guard: null for no session, workers and unknown users. */
