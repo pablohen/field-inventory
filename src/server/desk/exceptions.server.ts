@@ -1,9 +1,20 @@
 import { z } from 'zod';
-import type { ExceptionType } from '#/domain/types';
+import { processMovement } from '#/domain/process';
+import type { ExceptionType, Movement } from '#/domain/types';
 import type { SessionClaims } from '#/server/auth/session';
-import type { GlobalClient, WarehouseClient } from '#/server/db/clients';
+import type {
+  CatalogClient,
+  GlobalClient,
+  WarehouseClient,
+} from '#/server/db/clients';
 import { checkStuckTransfers } from '#/server/sync/stuck-transfers';
-import { authorizeDesk } from './session';
+import {
+  loadContext,
+  persistEffects,
+  withMovementTx,
+} from '#/server/sync/warehouse-repo';
+import { authorizeDesk, DESK_DEVICE_ID, type DeskSession } from './session';
+import { assertWorker } from './users.server';
 import { type DeskError, warehouseClientFor } from './warehouses.server';
 
 export const EXCEPTION_TYPES = [
@@ -369,4 +380,240 @@ export async function handleGetExceptionDetail(
 ): Promise<ExceptionDetailResult> {
   authorizeDesk(claims);
   return exceptionDetailCore(deps, input.warehouseId, input.exceptionId);
+}
+
+const resolveBase = { version: z.number().int() };
+export const resolveInputSchema = z.discriminatedUnion('action', [
+  z.object({
+    ...resolveBase,
+    action: z.literal('accept'),
+    note: z.string().optional(),
+  }),
+  z.object({
+    ...resolveBase,
+    action: z.literal('adjust'),
+    qty: z
+      .number()
+      .int()
+      .refine((n) => n !== 0, 'qty must not be 0'),
+    reasonCode: z.string().min(1),
+    locationId: z.string().min(1).optional(),
+    skuId: z.string().min(1).optional(),
+    note: z.string().optional(),
+  }),
+  z.object({
+    ...resolveBase,
+    action: z.literal('recount'),
+    assignedUserId: z.string().min(1).optional(),
+    note: z.string().optional(),
+  }),
+  z.object({
+    ...resolveBase,
+    action: z.literal('dismiss'),
+    note: z.string().min(1),
+  }),
+]);
+export type ResolveInput = z.infer<typeof resolveInputSchema>;
+
+export type ResolveDeps = {
+  global: GlobalClient;
+  catalog: CatalogClient;
+  warehouseDb(name: string): WarehouseClient;
+  now(): Date;
+  newId(): string;
+};
+
+export type ResolveResult =
+  | {
+      ok: true;
+      exceptionId: string;
+      version: number;
+      adjustmentId?: string;
+      countTaskId?: string;
+    }
+  | DeskError;
+
+/** Thrown inside the transaction to roll it back with a typed result. */
+class ResolveAbort extends Error {
+  constructor(readonly error: DeskError) {
+    super(error.message);
+  }
+}
+
+const invalid = (message: string): DeskError => ({
+  ok: false,
+  code: 'INVALID',
+  message,
+});
+
+const RESOLUTION = {
+  accept: 'ACCEPTED',
+  adjust: 'ADJUSTED',
+  recount: 'RECOUNT_REQUESTED',
+  dismiss: 'DISMISSED',
+} as const;
+
+export async function resolveExceptionCore(
+  deps: ResolveDeps,
+  session: DeskSession,
+  warehouseId: string,
+  exceptionId: string,
+  input: ResolveInput,
+): Promise<ResolveResult> {
+  const wh = await warehouseClientFor(deps, warehouseId);
+  if (!wh.ok) return wh;
+  const db = wh.db;
+
+  // Validation that can fail happens before the transaction, so an INVALID
+  // never touches the exception. An exception's sku/location never change.
+  const existing = await db.exception.findUnique({
+    where: { id: exceptionId },
+    select: { skuId: true, locationId: true },
+  });
+  if (!existing) {
+    return { ok: false, code: 'NOT_FOUND', message: 'Exception not found' };
+  }
+
+  let skuId: string | null = null;
+  let locationId: string | null = null;
+  if (input.action === 'adjust') {
+    skuId = input.skuId ?? existing.skuId;
+    locationId = input.locationId ?? existing.locationId;
+    if (skuId === null || locationId === null) {
+      return invalid('Exception has no sku/location; provide them');
+    }
+    const reason = await deps.catalog.reasonCode.findUnique({
+      where: { code: input.reasonCode },
+    });
+    let applies: unknown = [];
+    try {
+      applies = JSON.parse(reason?.appliesTo ?? '[]');
+    } catch {
+      applies = [];
+    }
+    if (!reason || !Array.isArray(applies) || !applies.includes('ADJUST')) {
+      return invalid('Unknown reason code for ADJUST');
+    }
+    const sku = await deps.catalog.product.findUnique({
+      where: { id: skuId },
+      select: { id: true },
+    });
+    if (!sku) return invalid('Unknown sku');
+    const loc = await db.location.findUnique({ where: { id: locationId } });
+    if (!loc?.active) return invalid('Unknown or inactive location');
+  } else if (input.action === 'recount') {
+    skuId = existing.skuId;
+    locationId = existing.locationId;
+    if (locationId === null) return invalid('Exception has no location');
+    if (input.assignedUserId !== undefined) {
+      const err = await assertWorker(deps.global, input.assignedUserId);
+      if (err) return err;
+    }
+  }
+
+  const now = deps.now();
+  const run = () =>
+    withMovementTx(db, async (tx) => {
+      // The version guard is the first write in the transaction.
+      const guard = await tx.exception.updateMany({
+        where: { id: exceptionId, version: input.version, status: 'OPEN' },
+        data: {
+          status: 'RESOLVED',
+          version: { increment: 1 },
+          resolution: RESOLUTION[input.action],
+          resolvedBy: session.userId,
+          resolvedAt: now,
+          note: input.note ?? null,
+        },
+      });
+      if (guard.count === 0) {
+        const found = await tx.exception.findUnique({
+          where: { id: exceptionId },
+          select: { id: true },
+        });
+        throw new ResolveAbort(
+          found
+            ? {
+                ok: false,
+                code: 'CONFLICT',
+                message: 'Resolved by someone else',
+              }
+            : {
+                ok: false,
+                code: 'NOT_FOUND',
+                message: 'Exception not found',
+              },
+        );
+      }
+      const out = {
+        ok: true as const,
+        exceptionId,
+        version: input.version + 1,
+        adjustmentId: undefined as string | undefined,
+        countTaskId: undefined as string | undefined,
+      };
+      if (input.action === 'adjust' && skuId && locationId) {
+        const m: Movement = {
+          id: deps.newId(),
+          type: 'ADJUST',
+          skuId,
+          fromLocationId: null,
+          toLocationId: locationId,
+          qty: input.qty,
+          reasonCode: input.reasonCode,
+          ref: null,
+          counterpartWarehouseId: null,
+          userId: session.userId,
+          deviceId: DESK_DEVICE_ID,
+          occurredAt: now,
+          source: 'supervisor',
+        };
+        const ctx = await loadContext(tx, deps.catalog, m);
+        await persistEffects(tx, processMovement(m, ctx, deps.newId));
+        out.adjustmentId = m.id;
+      } else if (input.action === 'recount' && locationId) {
+        const id = deps.newId();
+        await tx.countTask.create({
+          data: {
+            id,
+            scope: JSON.stringify({
+              locations: [locationId],
+              skus: skuId ? [skuId] : [],
+            }),
+            assignedUserId: input.assignedUserId ?? null,
+            status: 'OPEN',
+          },
+        });
+        out.countTaskId = id;
+      }
+      const { adjustmentId, countTaskId, ...rest } = out;
+      return {
+        ...rest,
+        ...(adjustmentId ? { adjustmentId } : {}),
+        ...(countTaskId ? { countTaskId } : {}),
+      } as ResolveResult;
+    });
+
+  try {
+    return await run();
+  } catch (err) {
+    if (err instanceof ResolveAbort) return err.error;
+    throw err;
+  }
+}
+
+/** Authorized entry point; throws 401/403 Responses for non-desk callers. */
+export async function handleResolveException(
+  claims: SessionClaims | null,
+  input: { warehouseId: string; exceptionId: string; input: ResolveInput },
+  deps: ResolveDeps,
+): Promise<ResolveResult> {
+  const session = authorizeDesk(claims);
+  return resolveExceptionCore(
+    deps,
+    session,
+    input.warehouseId,
+    input.exceptionId,
+    input.input,
+  );
 }
