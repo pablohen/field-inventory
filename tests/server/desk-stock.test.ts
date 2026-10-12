@@ -4,7 +4,9 @@ import { SCHEMA_VERSIONS } from '#/server/db/migrate';
 import {
   handleGetLedger,
   handleGetStock,
+  handleListReasonCodes,
   ledgerCore,
+  listReasonCodesCore,
   type StockDeps,
   stockCore,
   stockFiltersSchema,
@@ -277,5 +279,47 @@ describe('stock and ledger', () => {
     expect(await handleGetLedger(sup, ledgerIn, deps)).toMatchObject({
       ok: true,
     });
+  });
+});
+
+describe('reason codes', () => {
+  let env: TestEnv;
+  beforeEach(async () => {
+    env = await createTestEnv();
+    const mk = (code: string, appliesTo: string) =>
+      env.catalog.reasonCode.create({
+        data: { code, label: `L-${code}`, appliesTo },
+      });
+    await mk('FOUND', '["ADJUST"]');
+    await mk('DAMAGED', '["ADJUST","PICK"]');
+    await mk('COUNT_AUTO', '["ADJUST"]');
+    await mk('INITIAL', '["ADJUST"]');
+    await mk('BROKEN', 'not json');
+  });
+  afterEach(() => env.cleanup());
+
+  it('filters by type, excludes system codes, orders by code', async () => {
+    expect(await listReasonCodesCore(env.catalog, 'ADJUST')).toEqual([
+      { code: 'DAMAGED', label: 'L-DAMAGED' },
+      { code: 'FOUND', label: 'L-FOUND' },
+    ]);
+    expect(await listReasonCodesCore(env.catalog, 'PICK')).toEqual([
+      { code: 'DAMAGED', label: 'L-DAMAGED' },
+    ]);
+  });
+
+  it('rejects workers with 403', async () => {
+    const worker: SessionClaims = {
+      userId: 'u1',
+      deviceId: 'd',
+      role: 'worker',
+      exp: 0,
+    };
+    const r = await handleListReasonCodes(
+      worker,
+      { type: 'ADJUST' },
+      { catalog: env.catalog },
+    ).catch((e) => e);
+    expect((r as Response).status).toBe(403);
   });
 });

@@ -5,8 +5,28 @@ import { readDeskClaims } from './session';
 import {
   handleGetLedger,
   handleGetStock,
+  handleListReasonCodes,
   stockFiltersSchema,
 } from './stock.server';
+
+const reasonCodesSchema = z.object({
+  type: z.enum([
+    'PICK',
+    'MOVE',
+    'COUNT',
+    'ADJUST',
+    'TRANSFER_OUT',
+    'TRANSFER_IN',
+  ]),
+});
+
+export const listReasonCodes = createServerFn({ method: 'GET' })
+  .validator((d: unknown) => reasonCodesSchema.parse(d))
+  .handler(async ({ data }) =>
+    handleListReasonCodes(await readDeskClaims(), data, {
+      catalog: catalogDb(),
+    }),
+  );
 
 const stockDeps = () => ({
   global: globalDb(),

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { ExceptionFilters } from '#/desk/exception-filters';
 import { processMovement } from '#/domain/process';
 import type { ExceptionType, Movement } from '#/domain/types';
 import type { SessionClaims } from '#/server/auth/session';
@@ -17,23 +18,11 @@ import { authorizeDesk, DESK_DEVICE_ID, type DeskSession } from './session';
 import { assertWorker } from './users.server';
 import { type DeskError, warehouseClientFor } from './warehouses.server';
 
-export const EXCEPTION_TYPES = [
-  'NEGATIVE_BALANCE',
-  'COUNT_VARIANCE',
-  'LATE_MOVEMENT',
-  'OVER_PICK',
-  'TRANSFER_STUCK',
-  'CLOCK_SKEW',
-] as const satisfies readonly ExceptionType[];
-
-export const exceptionFiltersSchema = z.object({
-  type: z.enum(EXCEPTION_TYPES).optional(),
-  skuId: z.string().optional(),
-  locationId: z.string().optional(),
-  userId: z.string().optional(),
-  minAgeHours: z.coerce.number().nonnegative().optional(),
-});
-export type ExceptionFilters = z.infer<typeof exceptionFiltersSchema>;
+export {
+  EXCEPTION_TYPES,
+  type ExceptionFilters,
+  exceptionFiltersSchema,
+} from '#/desk/exception-filters';
 
 export type ExceptionRow = {
   id: string;

@@ -189,3 +189,37 @@ export async function handleGetLedger(
   authorizeDesk(claims);
   return ledgerCore(deps, input.warehouseId, input.key);
 }
+
+/** System-generated codes are never offered to a person. */
+const SYSTEM_REASONS = new Set(['COUNT_AUTO', 'INITIAL']);
+
+/** Reason codes applicable to `type`, ordered by code, minus system codes. */
+export async function listReasonCodesCore(
+  catalog: CatalogClient,
+  type: MovementType,
+): Promise<{ code: string; label: string }[]> {
+  const rows = await catalog.reasonCode.findMany({
+    orderBy: { code: 'asc' },
+  });
+  return rows
+    .filter((r) => {
+      if (SYSTEM_REASONS.has(r.code)) return false;
+      try {
+        const applies: unknown = JSON.parse(r.appliesTo);
+        return Array.isArray(applies) && applies.includes(type);
+      } catch {
+        return false;
+      }
+    })
+    .map((r) => ({ code: r.code, label: r.label }));
+}
+
+/** Authorized entry point; throws 401/403 Responses for non-desk callers. */
+export async function handleListReasonCodes(
+  claims: SessionClaims | null,
+  input: { type: MovementType },
+  deps: { catalog: CatalogClient },
+): Promise<{ code: string; label: string }[]> {
+  authorizeDesk(claims);
+  return listReasonCodesCore(deps.catalog, input.type);
+}
