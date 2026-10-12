@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { countScopeSchema } from '#/desk/count-scope';
 import type { SessionClaims } from '#/server/auth/session';
 import type {
   CatalogClient,
@@ -16,14 +17,7 @@ export type CountTaskDeps = {
   newId(): string;
 };
 
-// Strict so that mixed input such as { locations, skus } is rejected on create
-// rather than silently stripped. Reading stored scopes stays lenient.
-export const countScopeSchema = z.union([
-  z.object({ locations: z.array(z.string().min(1)).min(1) }).strict(),
-  z.object({ zone: z.string().min(1) }).strict(),
-  z.object({ skus: z.array(z.string().min(1)).min(1) }).strict(),
-]);
-export type CountScope = z.infer<typeof countScopeSchema>;
+export { type CountScope, countScopeSchema } from '#/desk/count-scope';
 
 export const createCountTaskInputSchema = z.object({
   scope: countScopeSchema,
