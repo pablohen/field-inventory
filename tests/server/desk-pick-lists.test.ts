@@ -71,6 +71,39 @@ describe('suggestBins', () => {
     expect(r.shortfalls).toEqual([]);
   });
 
+  it('does not double-allocate when a SKU is requested twice', () => {
+    expect(
+      suggestBins(
+        [
+          { skuId: 'S', qty: 10 },
+          { skuId: 'S', qty: 10 },
+        ],
+        bins(['A', 10]),
+      ),
+    ).toEqual({
+      lines: [
+        { skuId: 'S', locationId: 'A', qty: 10 },
+        { skuId: 'S', locationId: null, qty: 10 },
+      ],
+      shortfalls: [{ skuId: 'S', missing: 10 }],
+    });
+    expect(
+      suggestBins(
+        [
+          { skuId: 'S', qty: 6 },
+          { skuId: 'S', qty: 6 },
+        ],
+        bins(['A', 10]),
+      ),
+    ).toEqual({
+      lines: [
+        { skuId: 'S', locationId: 'A', qty: 6 },
+        { skuId: 'S', locationId: 'A', qty: 4 },
+      ],
+      shortfalls: [{ skuId: 'S', missing: 2 }],
+    });
+  });
+
   it('breaks ties by locationId and never emits qty <= 0', () => {
     const r = suggestBins(
       [
@@ -162,6 +195,22 @@ describe('pick lists', () => {
       ok: true,
       lines: [{ skuId: 'P1', locationId: 'L1', qty: 4 }],
       shortfalls: [{ skuId: 'P1', missing: 2 }],
+    });
+  });
+
+  it('rejects suggestions for SKUs not in the catalog', async () => {
+    expect(
+      await suggestPickListCore(deps, WH, [{ skuId: 'NOPE', qty: 1 }]),
+    ).toMatchObject({ ok: false, code: 'INVALID' });
+  });
+
+  it('rejects assigning a closed list', async () => {
+    const id = await create();
+    await closePickListCore(deps, WH, id);
+    expect(await assignPickListCore(deps, WH, id, 'w1')).toMatchObject({
+      ok: false,
+      code: 'INVALID',
+      message: 'Pick list is closed',
     });
   });
 

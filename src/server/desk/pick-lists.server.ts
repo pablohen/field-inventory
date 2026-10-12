@@ -32,19 +32,25 @@ export function suggestBins(
 ): { lines: Suggestion[]; shortfalls: Shortfall[] } {
   const lines: Suggestion[] = [];
   const shortfalls: Shortfall[] = [];
+  // Remaining capacity per bin, shared across requests so a SKU requested
+  // twice never allocates the same stock twice.
+  const capacity = balances.filter((b) => b.qty > 0).map((b) => ({ ...b }));
   for (const req of requests) {
     if (req.qty <= 0) continue;
-    const bins = balances
+    const bins = capacity
       .filter((b) => b.skuId === req.skuId && b.qty > 0)
       .sort((a, b) => b.qty - a.qty || cmp(a.locationId, b.locationId));
     let remaining = req.qty;
+    let allocated = 0;
     for (const bin of bins) {
       if (remaining <= 0) break;
       const take = Math.min(bin.qty, remaining);
       lines.push({ skuId: req.skuId, locationId: bin.locationId, qty: take });
+      bin.qty -= take;
       remaining -= take;
+      allocated += take;
     }
-    if (bins.length === 0) {
+    if (allocated === 0) {
       lines.push({ skuId: req.skuId, locationId: null, qty: req.qty });
     }
     if (remaining > 0)
@@ -91,6 +97,15 @@ export async function suggestPickListCore(
   const wh = await warehouseClientFor(deps, warehouseId);
   if (!wh.ok) return wh;
   const skuIds = [...new Set(requests.map((r) => r.skuId))];
+  const known = await deps.catalog.product.findMany({
+    where: { id: { in: skuIds } },
+    select: { id: true },
+  });
+  const knownIds = new Set(known.map((p) => p.id));
+  const unknown = skuIds.find((id) => !knownIds.has(id));
+  if (unknown !== undefined) {
+    return { ok: false, code: 'INVALID', message: `Unknown SKU ${unknown}` };
+  }
   const balances = await wh.db.stockBalance.findMany({
     where: { skuId: { in: skuIds }, qty: { gt: 0 } },
   });
@@ -288,6 +303,9 @@ export async function assignPickListCore(
   if (!wh.ok) return wh;
   const list = await wh.db.pickList.findUnique({ where: { id: pickListId } });
   if (!list) return NO_LIST;
+  if (list.status === 'DONE') {
+    return { ok: false, code: 'INVALID', message: 'Pick list is closed' };
+  }
   if (assignedUserId !== null) {
     const err = await assertWorker(deps.global, assignedUserId);
     if (err) return err;
