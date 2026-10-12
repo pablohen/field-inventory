@@ -192,8 +192,10 @@ describe('PickListForm', () => {
 
     // The SKU's stocked bin is offered for the unbinned line.
     await waitFor(() => expect(fns.getStock).toHaveBeenCalled());
-    await choose('Bin for line 1', 'A-02');
+    await choose('Bin for line 1', 'A-02 (5 on hand)');
     await waitFor(() => expect(create.disabled).toBe(false));
+    // Qty 6 exceeds the 5 on hand: a warning, not a block.
+    expect(screen.getByText('Only 5 on hand in A-02')).toBeTruthy();
 
     fireEvent.click(create);
     await waitFor(() => expect(onCreated).toHaveBeenCalled());
@@ -235,6 +237,68 @@ describe('PickListForm', () => {
     expect(
       screen.queryByRole('option', { name: 'B-01', hidden: true }),
     ).toBeNull();
+  });
+
+  it('falls back to all active bins with a note when stock fails to load', async () => {
+    fns.getStock.mockRejectedValue(new Error('stock down'));
+    fns.suggestPickList.mockResolvedValue({
+      ok: true,
+      lines: [{ skuId: 'P1', locationId: null, qty: 10 }],
+      shortfalls: [{ skuId: 'P1', missing: 10 }],
+    });
+    fns.createPickList.mockResolvedValue({ ok: true, id: 'pl1' });
+    mount(
+      <PickListForm
+        warehouseId={WH}
+        workers={WORKERS}
+        locations={LOCATIONS}
+        onCreated={vi.fn()}
+      />,
+    );
+    await suggestFlow();
+    expect(
+      await screen.findByText("Couldn't load stock for P1; showing all bins."),
+    ).toBeTruthy();
+    await choose('Bin for line 1', 'A-01');
+    await waitFor(() =>
+      expect(
+        (
+          screen.getByRole('button', {
+            name: 'Create pick list',
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false),
+    );
+  });
+
+  it('falls back the same way when stock returns a DeskError', async () => {
+    fns.getStock.mockResolvedValue({
+      ok: false,
+      code: 'NOT_READY',
+      message: 'Warehouse database is not ready',
+    });
+    fns.suggestPickList.mockResolvedValue({
+      ok: true,
+      lines: [{ skuId: 'P1', locationId: null, qty: 1 }],
+      shortfalls: [],
+    });
+    mount(
+      <PickListForm
+        warehouseId={WH}
+        workers={WORKERS}
+        locations={LOCATIONS}
+        onCreated={vi.fn()}
+      />,
+    );
+    await suggestFlow();
+    expect(
+      await screen.findByText("Couldn't load stock for P1; showing all bins."),
+    ).toBeTruthy();
+    fireEvent.click(field('Bin for line 1'));
+    expect(
+      (await screen.findAllByRole('option', { name: 'A-02', hidden: true }))
+        .length,
+    ).toBeGreaterThan(0);
   });
 
   it('shows an INVALID create result in the form and keeps its state', async () => {
@@ -309,7 +373,10 @@ describe('CountTaskForm', () => {
       await screen.findByRole('option', { name: 'A-01', hidden: true }),
     );
     fireEvent.click(
-      await screen.findByRole('option', { name: 'B-01', hidden: true }),
+      await screen.findByRole('option', {
+        name: 'B-01 (inactive)',
+        hidden: true,
+      }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Create count task' }));
     await waitFor(() =>
@@ -473,6 +540,22 @@ describe('CountTaskTable', () => {
     await waitFor(() =>
       expect(spy).toHaveBeenCalledWith({ queryKey: ['desk', WH, 'counts'] }),
     );
+  });
+});
+
+describe('failed pickers', () => {
+  it('shows inline alerts when bins or workers fail to load', async () => {
+    fns.listWorkers.mockRejectedValue(new Error('x'));
+    fns.listLocations.mockRejectedValue(new Error('y'));
+    fns.listCountTasks.mockResolvedValue({ ok: true, tasks: [] });
+    mount(
+      <CountsPage warehouseId={WH} />,
+      new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+    );
+    expect(await screen.findByText("Couldn't load workers")).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'New count task' }));
+    expect(await screen.findByText("Couldn't load bins")).toBeTruthy();
+    expect(screen.getAllByText("Couldn't load workers").length).toBe(2);
   });
 });
 

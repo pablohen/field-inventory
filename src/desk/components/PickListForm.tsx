@@ -30,12 +30,16 @@ export function PickListForm({
   warehouseId,
   workers,
   locations,
+  locationsFailed = false,
+  workersFailed = false,
   onCreated,
 }: {
   warehouseId: string;
   workers: Worker[];
   /** Used for bin labels and as the fallback when a SKU has no stock. */
   locations: LocationRow[];
+  locationsFailed?: boolean;
+  workersFailed?: boolean;
   onCreated: () => void;
 }) {
   const qc = useQueryClient();
@@ -64,31 +68,73 @@ export function PickListForm({
       queryFn: () =>
         getStock({ data: { warehouseId, filters: { skuId, nonZero: true } } }),
       refetchInterval: false as const,
+      retry: false,
     })),
   });
   const stockBySku = new Map(
-    skuIds.map((skuId, i) => [skuId, stockQueries[i]?.data] as const),
+    skuIds.map((skuId, i) => [skuId, stockQueries[i]] as const),
   );
   const codeById = new Map(locations.map((l) => [l.id, l.code]));
 
+  /** Stock state for a SKU: loaded rows (qty > 0), or failed, or still loading. */
+  function stockFor(skuId: string) {
+    const q = stockBySku.get(skuId);
+    if (q?.data?.ok) {
+      const onHand = new Map<string, { code: string; qty: number }>();
+      for (const r of q.data.rows) {
+        if (r.qty > 0) {
+          onHand.set(r.locationId, { code: r.locationCode, qty: r.qty });
+        }
+      }
+      return { state: 'ok' as const, onHand };
+    }
+    if (q && (q.isError || (q.data && !q.data.ok))) {
+      return { state: 'failed' as const };
+    }
+    return { state: 'loading' as const };
+  }
+
   function binOptions(line: Line) {
     const opts = new Map<string, string>();
-    const stock = stockBySku.get(line.skuId);
-    if (stock?.ok) {
-      for (const r of stock.rows) {
-        if (r.qty > 0) opts.set(r.locationId, r.locationCode);
+    const stock = stockFor(line.skuId);
+    const allActive = () => {
+      for (const l of locations) if (l.active) opts.set(l.id, l.code);
+    };
+    if (stock.state === 'ok') {
+      for (const [id, b] of stock.onHand) {
+        opts.set(id, `${b.code} (${b.qty} on hand)`);
       }
-      if (opts.size === 0) {
-        for (const l of locations) if (l.active) opts.set(l.id, l.code);
-      }
+      if (opts.size === 0) allActive();
+    } else if (stock.state === 'failed') {
+      allActive();
     }
-    if (line.locationId) {
+    if (line.locationId && !opts.has(line.locationId)) {
       opts.set(
         line.locationId,
         codeById.get(line.locationId) ?? line.locationId,
       );
     }
     return [...opts].map(([value, label]) => ({ value, label }));
+  }
+
+  function lineNote(line: Line, binId: string | null) {
+    const stock = stockFor(line.skuId);
+    if (stock.state === 'failed') {
+      return {
+        color: 'orange',
+        text: `Couldn't load stock for ${line.skuId}; showing all bins.`,
+      };
+    }
+    if (stock.state === 'ok' && binId) {
+      const have = stock.onHand.get(binId)?.qty ?? 0;
+      if (line.qty > have) {
+        return {
+          color: 'yellow',
+          text: `Only ${have} on hand in ${codeById.get(binId) ?? binId}`,
+        };
+      }
+    }
+    return null;
   }
 
   function edit(next: Request[]) {
@@ -240,33 +286,49 @@ export function PickListForm({
               {`Short by ${s.missing} for ${s.skuId}`}
             </Alert>
           ))}
-          {suggestion.lines.map((l, i) => (
-            <Group
+          {suggestion.lines.map((l, i) => {
+            const note = lineNote(l, bins[i] ?? null);
+            return (
               // biome-ignore lint/suspicious/noArrayIndexKey: lines are positional
-              key={i}
-              align="flex-end"
-              wrap="nowrap"
-            >
-              <Text w={140} truncate>
-                {l.skuId}
-              </Text>
-              <Text w={50} ta="right">
-                {l.qty}
-              </Text>
-              <Select
-                aria-label={`Bin for line ${i + 1}`}
-                placeholder="Choose a bin"
-                searchable
-                data={binOptions(l)}
-                value={bins[i] ?? null}
-                disabled={pending}
-                error={bins[i] ? undefined : 'Choose a bin'}
-                onChange={(v) =>
-                  setBins((prev) => prev.map((b, j) => (j === i ? v : b)))
-                }
-              />
-            </Group>
-          ))}
+              <Stack key={i} gap={4}>
+                <Group align="flex-end" wrap="nowrap">
+                  <Text w={140} truncate>
+                    {l.skuId}
+                  </Text>
+                  <Text w={50} ta="right">
+                    {l.qty}
+                  </Text>
+                  <Select
+                    aria-label={`Bin for line ${i + 1}`}
+                    placeholder="Choose a bin"
+                    searchable
+                    data={binOptions(l)}
+                    value={bins[i] ?? null}
+                    disabled={pending}
+                    error={bins[i] ? undefined : 'Choose a bin'}
+                    onChange={(v) =>
+                      setBins((prev) => prev.map((b, j) => (j === i ? v : b)))
+                    }
+                  />
+                </Group>
+                {note && (
+                  <Alert color={note.color} py={4}>
+                    {note.text}
+                  </Alert>
+                )}
+              </Stack>
+            );
+          })}
+          {locationsFailed && (
+            <Alert color="red" role="alert">
+              Couldn't load bins
+            </Alert>
+          )}
+          {workersFailed && (
+            <Alert color="red" role="alert">
+              Couldn't load workers
+            </Alert>
+          )}
           <Select
             label="Assign to (optional)"
             clearable

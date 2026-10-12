@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   MultiSelect,
   SegmentedControl,
@@ -27,11 +28,15 @@ export function CountTaskForm({
   warehouseId,
   workers,
   locations,
+  locationsFailed = false,
+  workersFailed = false,
   onCreated,
 }: {
   warehouseId: string;
   workers: Worker[];
   locations: LocationRow[];
+  locationsFailed?: boolean;
+  workersFailed?: boolean;
   onCreated: () => void;
 }) {
   const qc = useQueryClient();
@@ -101,11 +106,19 @@ export function CountTaskForm({
         disabled={pending}
         onChange={(v) => setKind(v as Kind)}
       />
+      {locationsFailed && kind !== 'skus' && (
+        <Alert color="red" role="alert">
+          Couldn't load bins
+        </Alert>
+      )}
       {kind === 'locations' && (
         <MultiSelect
           label="Bins"
           searchable
-          data={locations.map((l) => ({ value: l.id, label: l.code }))}
+          data={locations.map((l) => ({
+            value: l.id,
+            label: l.active ? l.code : `${l.code} (inactive)`,
+          }))}
           value={binIds}
           disabled={pending}
           onChange={setBinIds}
@@ -129,6 +142,11 @@ export function CountTaskForm({
           disabled={pending}
           onChange={setSkus}
         />
+      )}
+      {workersFailed && (
+        <Alert color="red" role="alert">
+          Couldn't load workers
+        </Alert>
       )}
       <Select
         label="Assign to (optional)"

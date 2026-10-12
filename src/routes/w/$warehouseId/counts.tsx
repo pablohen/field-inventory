@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Drawer,
   Group,
@@ -48,6 +49,8 @@ export function CountsPage({ warehouseId }: { warehouseId: string }) {
   });
   const workerList = workers.data ?? [];
   const locationList = locations.data?.ok ? locations.data.locations : [];
+  const locationsFailed = locations.isError || locations.data?.ok === false;
+  const workersFailed = workers.isError;
   const data = list.data;
 
   return (
@@ -66,6 +69,11 @@ export function CountsPage({ warehouseId }: { warehouseId: string }) {
         value={status}
         onChange={(v) => setStatus(v as Status)}
       />
+      {workersFailed && (
+        <Alert color="red" role="alert">
+          Couldn't load workers
+        </Alert>
+      )}
       {list.isError && data && <RefreshNote />}
       {!data ? (
         list.isError ? (
@@ -95,6 +103,8 @@ export function CountsPage({ warehouseId }: { warehouseId: string }) {
           warehouseId={warehouseId}
           workers={workerList}
           locations={locationList}
+          locationsFailed={locationsFailed}
+          workersFailed={workersFailed}
           onCreated={() => setDrawer(false)}
         />
       </Drawer>
