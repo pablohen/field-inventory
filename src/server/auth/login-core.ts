@@ -119,6 +119,10 @@ export async function checkCredentialsWithLockout(
     await verifyPin(input.pin, await getDummyHash());
   }
   if (!user || !valid) return { ok: false, reason: 'BAD_CREDENTIALS' };
+  // Checked after the PIN (same scrypt cost as any login), and the attempt was
+  // already reserved above, so a disabled account is indistinguishable from a
+  // wrong PIN and still counts toward lockout.
+  if (user.disabledAt) return { ok: false, reason: 'BAD_CREDENTIALS' };
 
   await clearLoginAttempts(global, input.deviceKey, username);
   return { ok: true, user };

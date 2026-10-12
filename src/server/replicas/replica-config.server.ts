@@ -1,3 +1,4 @@
+import { assertSessionUserActive } from '#/server/auth/authorize';
 import type { SessionClaims } from '#/server/auth/session';
 import { type GlobalClient, globalDb, warehouseUrl } from '#/server/db/clients';
 import type { ReplicaConfig } from './replica-config.fn';
@@ -21,6 +22,7 @@ export async function replicaConfigCore(
   deps: ReplicaConfigDeps,
   session: SessionClaims,
 ): Promise<ReplicaConfig> {
+  await assertSessionUserActive(deps.global, session);
   const device = await deps.global.device.findUnique({
     where: { id: session.deviceId },
   });

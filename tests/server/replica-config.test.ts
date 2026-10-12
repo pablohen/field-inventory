@@ -45,6 +45,7 @@ describe('replicaConfigCore', () => {
   let env: TestEnv;
   beforeEach(async () => {
     env = await createTestEnv();
+    await env.seedUser({ id: 'u', username: 'u', pin: '1234' });
     await env.seedDevice({ id: 'd1', warehouses: ['w1', 'w2'] });
     await env.seedDevice({ id: 'd2', warehouses: ['w3'] });
     await env.seedDevice({ id: 'dr', warehouses: ['w1'], revoked: true });

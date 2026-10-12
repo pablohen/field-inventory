@@ -27,6 +27,12 @@ describe('exceptionDetailCore', () => {
     env = await createTestEnv();
     await env.seedDevice({ id: DEV, warehouses: [WH] });
     await env.seedUser({ id: 'u1', username: 'u1', pin: '1234' });
+    await env.seedUser({
+      id: 'sup',
+      username: 'sup',
+      pin: '1234',
+      role: 'supervisor',
+    });
     await env.seedProduct({ id: 'P1', sku: 'P1', countTolerance: 0 });
     await env.seedLocation(WH, { id: 'L1', code: 'L1' });
     const db = await env.warehouse(WH);
@@ -306,7 +312,7 @@ describe('exceptionDetailCore', () => {
     );
     expect((anon as Response).status).toBe(401);
     const sup = await handleGetExceptionDetail(
-      { ...worker, role: 'supervisor', deviceId: 'desk' },
+      { ...worker, userId: 'sup', role: 'supervisor', deviceId: 'desk' },
       input,
       deps(),
     );

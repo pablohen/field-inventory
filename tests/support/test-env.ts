@@ -36,6 +36,7 @@ export interface TestEnv {
     username: string;
     pin: string;
     role?: Role;
+    disabledAt?: Date;
   }): Promise<void>;
   seedProduct(opts: {
     id: string;
@@ -133,7 +134,7 @@ export async function createTestEnv(): Promise<TestEnv> {
       }
     },
 
-    async seedUser({ id, username, pin, role }) {
+    async seedUser({ id, username, pin, role, disabledAt }) {
       await global.user.create({
         data: {
           id,
@@ -141,6 +142,7 @@ export async function createTestEnv(): Promise<TestEnv> {
           username,
           pinHash: await hashPin(pin),
           role: role ?? 'worker',
+          disabledAt: disabledAt ?? null,
         },
       });
     },

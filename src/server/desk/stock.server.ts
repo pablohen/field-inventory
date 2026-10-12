@@ -91,7 +91,7 @@ export async function handleGetStock(
   input: { warehouseId: string; filters: StockFilters },
   deps: StockDeps,
 ): Promise<StockResult> {
-  authorizeDesk(claims);
+  await authorizeDesk(claims, deps.global);
   return stockCore(deps, input.warehouseId, input.filters);
 }
 
@@ -176,7 +176,7 @@ export async function handleGetLedger(
   input: { warehouseId: string; key: LedgerKey },
   deps: StockDeps,
 ): Promise<LedgerResult> {
-  authorizeDesk(claims);
+  await authorizeDesk(claims, deps.global);
   return ledgerCore(deps, input.warehouseId, input.key);
 }
 
@@ -208,8 +208,8 @@ export async function listReasonCodesCore(
 export async function handleListReasonCodes(
   claims: SessionClaims | null,
   input: { type: MovementType },
-  deps: { catalog: CatalogClient },
+  deps: { global: GlobalClient; catalog: CatalogClient },
 ): Promise<{ code: string; label: string }[]> {
-  authorizeDesk(claims);
+  await authorizeDesk(claims, deps.global);
   return listReasonCodesCore(deps.catalog, input.type);
 }

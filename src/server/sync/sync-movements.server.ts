@@ -1,6 +1,7 @@
 import { ZodError } from 'zod';
 import { syncBatchSchema } from '#/domain/schemas';
 import type { ExceptionDraft } from '#/domain/types';
+import { assertSessionUserActive } from '#/server/auth/authorize';
 import type { SessionClaims } from '#/server/auth/session';
 import { catalogDb, globalDb, warehouseDb } from '#/server/db/clients';
 import {
@@ -55,6 +56,7 @@ export async function handleSync(
       headers: { 'Content-Type': 'application/json' },
     });
   }
+  await assertSessionUserActive(deps.global, session);
   try {
     return await syncMovementsCore(deps, data);
   } catch (error) {

@@ -232,7 +232,7 @@ export async function handleListExceptions(
   input: { warehouseId: string; filters: ExceptionFilters },
   deps: ListExceptionsDeps,
 ): Promise<ListExceptionsResult> {
-  authorizeDesk(claims);
+  await authorizeDesk(claims, deps.global);
   return listExceptionsCore(deps, input.warehouseId, input.filters);
 }
 
@@ -367,7 +367,7 @@ export async function handleGetExceptionDetail(
   input: { warehouseId: string; exceptionId: string },
   deps: ListExceptionsDeps,
 ): Promise<ExceptionDetailResult> {
-  authorizeDesk(claims);
+  await authorizeDesk(claims, deps.global);
   return exceptionDetailCore(deps, input.warehouseId, input.exceptionId);
 }
 
@@ -597,7 +597,7 @@ export async function handleResolveException(
   input: { warehouseId: string; exceptionId: string; input: ResolveInput },
   deps: ResolveDeps,
 ): Promise<ResolveResult> {
-  const session = authorizeDesk(claims);
+  const session = await authorizeDesk(claims, deps.global);
   return resolveExceptionCore(
     deps,
     session,

@@ -33,6 +33,6 @@ export async function handleListWorkers(
   claims: SessionClaims | null,
   deps: { global: GlobalClient },
 ): Promise<{ id: string; name: string }[]> {
-  authorizeDesk(claims);
+  await authorizeDesk(claims, deps.global);
   return listWorkersCore(deps.global);
 }

@@ -4,7 +4,7 @@
  * bundle can import it.
  */
 export const SCHEMA_VERSIONS = {
-  global: 3,
+  global: 4,
   catalog: 1,
   warehouse: 1,
 } as const;

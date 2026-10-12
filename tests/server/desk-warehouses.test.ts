@@ -58,8 +58,11 @@ describe('handleGetWarehouses', () => {
     const env = await createTestEnv();
     try {
       await env.seedWarehouse('a-wh');
+      for (const role of ['worker', 'supervisor'] as const) {
+        await env.seedUser({ id: role, username: role, pin: '1', role });
+      }
       const claims = (role: 'worker' | 'supervisor') => ({
-        userId: 'u',
+        userId: role,
         deviceId: 'desk',
         role,
         exp: 0,

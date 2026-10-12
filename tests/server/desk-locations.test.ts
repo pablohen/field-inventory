@@ -5,7 +5,7 @@ import { createTestEnv, type TestEnv } from '../support/test-env';
 
 const WH = 'wh1';
 const claims = (role: SessionClaims['role']): SessionClaims => ({
-  userId: 'u',
+  userId: role,
   deviceId: 'desk',
   role,
   exp: 0,
@@ -18,6 +18,9 @@ describe('handleListLocations', () => {
   beforeEach(async () => {
     env = await createTestEnv();
     await env.seedDevice({ id: 'dev1', warehouses: [WH] });
+    for (const role of ['worker', 'supervisor', 'admin'] as const) {
+      await env.seedUser({ id: role, username: role, pin: '1', role });
+    }
     await env.seedLocation(WH, { id: 'L2', code: 'B-01', active: false });
     await env.seedLocation(WH, { id: 'L1', code: 'A-01' });
     const db = await env.warehouse(WH);

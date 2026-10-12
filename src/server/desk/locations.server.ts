@@ -28,7 +28,7 @@ export async function handleListLocations(
     warehouseDb(name: string): WarehouseClient;
   },
 ): Promise<ListLocationsResult> {
-  authorizeDesk(claims);
+  await authorizeDesk(claims, deps.global);
   const wh = await warehouseClientFor(deps, input.warehouseId);
   if (!wh.ok) return wh;
   const locations = await wh.db.location.findMany({

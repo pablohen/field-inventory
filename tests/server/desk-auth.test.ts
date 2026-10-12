@@ -3,7 +3,7 @@ import { LOCKOUT_MS, loginCore } from '#/server/auth/login-core';
 import type { SessionClaims } from '#/server/auth/session';
 import { verifySession } from '#/server/auth/session';
 import { deskLoginCore } from '#/server/desk/desk-login';
-import { authorizeDesk, deskSessionInfo } from '#/server/desk/session';
+import { deskSessionInfo } from '#/server/desk/session';
 import { createTestEnv, type TestEnv } from '../support/test-env';
 
 beforeEach(() => {
@@ -17,29 +17,6 @@ const claims = (
   role: SessionClaims['role'],
   deviceId = 'desk',
 ): SessionClaims => ({ userId: 'u1', deviceId, role, exp: 0 });
-
-describe('authorizeDesk', () => {
-  const status = (fn: () => unknown) => {
-    try {
-      fn();
-    } catch (e) {
-      return (e as Response).status;
-    }
-    return 200;
-  };
-
-  it('401 without a session', () => {
-    expect(status(() => authorizeDesk(null))).toBe(401);
-  });
-  it('403 for a worker', () => {
-    expect(status(() => authorizeDesk(claims('worker')))).toBe(403);
-  });
-  it('passes supervisor and admin, including from a handheld device', () => {
-    expect(authorizeDesk(claims('supervisor')).role).toBe('supervisor');
-    expect(authorizeDesk(claims('admin')).role).toBe('admin');
-    expect(authorizeDesk(claims('supervisor', 'dev-1')).deviceId).toBe('dev-1');
-  });
-});
 
 describe('deskLoginCore', () => {
   let env: TestEnv;

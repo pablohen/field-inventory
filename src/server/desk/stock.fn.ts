@@ -24,6 +24,7 @@ export const listReasonCodes = createServerFn({ method: 'GET' })
   .validator((d: unknown) => reasonCodesSchema.parse(d))
   .handler(async ({ data }) =>
     handleListReasonCodes(await readDeskClaims(), data, {
+      global: globalDb(),
       catalog: catalogDb(),
     }),
   );

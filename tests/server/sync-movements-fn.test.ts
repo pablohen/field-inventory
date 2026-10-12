@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SessionClaims } from '#/server/auth/session';
 import type { SyncDeps } from '#/server/sync/sync-movements';
 import { defaultDeps, handleSync } from '#/server/sync/sync-movements.server';
+import { createTestEnv, type TestEnv } from '../support/test-env';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -34,7 +35,16 @@ describe('defaultDeps', () => {
 });
 
 describe('handleSync', () => {
-  const deps = {} as SyncDeps;
+  let env: TestEnv;
+  let deps: SyncDeps;
+  beforeEach(async () => {
+    env = await createTestEnv();
+    await env.seedUser({ id: 'u1', username: 'u1', pin: '1234' });
+    deps = { global: env.global } as SyncDeps;
+  });
+  afterEach(async () => {
+    await env.cleanup();
+  });
   const session: SessionClaims = {
     userId: 'u1',
     deviceId: 'd',
@@ -55,6 +65,7 @@ describe('handleSync', () => {
   it('propagates other errors unchanged', async () => {
     const boom = new Error('boom');
     const failing = {
+      global: env.global,
       get now(): never {
         throw boom;
       },

@@ -1,24 +1,18 @@
 import { getCookie } from '@tanstack/react-start/server';
+import { authorizeDesk } from '#/server/auth/authorize';
 import {
   SESSION_COOKIE,
   type SessionClaims,
   verifySession,
 } from '#/server/auth/session';
-import type { GlobalClient } from '#/server/db/clients';
+import { type GlobalClient, globalDb } from '#/server/db/clients';
 
 /** Desk sessions reuse the `fi_session` cookie with this pseudo device id. */
 export const DESK_DEVICE_ID = 'desk';
 
 export type DeskSession = SessionClaims & { role: 'supervisor' | 'admin' };
 
-/** Pure guard: 401 without a session, 403 for workers. Role is what counts, not the device. */
-export function authorizeDesk(claims: SessionClaims | null): DeskSession {
-  if (!claims) throw new Response('Unauthorized', { status: 401 });
-  if (claims.role !== 'supervisor' && claims.role !== 'admin') {
-    throw new Response('Forbidden', { status: 403 });
-  }
-  return { ...claims, role: claims.role };
-}
+export { authorizeDesk } from '#/server/auth/authorize';
 
 /** Verified claims from the `fi_session` cookie, or null. */
 export async function readDeskClaims(): Promise<SessionClaims | null> {
@@ -28,16 +22,17 @@ export async function readDeskClaims(): Promise<SessionClaims | null> {
 
 /** Reads the session cookie and authorizes it for the desk. */
 export async function requireDeskSession(): Promise<DeskSession> {
-  return authorizeDesk(await readDeskClaims());
+  return authorizeDesk(await readDeskClaims(), globalDb());
 }
 
-/** Desk user for the route guard: null for no session, workers and unknown users. */
+/** Desk user for the route guard: null for no session, DB workers, disabled and unknown users. */
 export async function deskSessionInfo(
   global: GlobalClient,
   claims: SessionClaims | null,
 ): Promise<{ userId: string; name: string; role: DeskSession['role'] } | null> {
-  if (!claims || claims.role === 'worker') return null;
+  if (!claims) return null;
   const user = await global.user.findUnique({ where: { id: claims.userId } });
-  if (!user) return null;
-  return { userId: user.id, name: user.name, role: claims.role };
+  if (!user || user.disabledAt) return null;
+  if (user.role !== 'supervisor' && user.role !== 'admin') return null;
+  return { userId: user.id, name: user.name, role: user.role };
 }

@@ -23,7 +23,7 @@ export async function handleGetWarehouses(
   claims: SessionClaims | null,
   deps: { global: GlobalClient },
 ): Promise<{ id: string; name: string }[]> {
-  authorizeDesk(claims);
+  await authorizeDesk(claims, deps.global);
   return listWarehouses(deps.global);
 }
 

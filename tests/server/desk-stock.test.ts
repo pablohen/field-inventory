@@ -32,6 +32,12 @@ describe('stock and ledger', () => {
     env = await createTestEnv();
     await env.seedDevice({ id: DEV, warehouses: [WH] });
     await env.seedUser({ id: 'u1', username: 'u1', pin: '1234' });
+    await env.seedUser({
+      id: 'sup',
+      username: 'sup',
+      pin: '1234',
+      role: 'supervisor',
+    });
     await env.seedProduct({ id: 'P1', sku: 'SKU-B', countTolerance: 2 });
     await env.seedProduct({ id: 'P2', sku: 'SKU-A', countTolerance: 0 });
     await env.seedLocation(WH, { id: 'L1', code: 'A-01' });
@@ -272,7 +278,12 @@ describe('stock and ledger', () => {
     expect((d2 as Response).status).toBe(403);
     const a = await handleGetStock(null, stockIn, deps).catch((e) => e);
     expect((a as Response).status).toBe(401);
-    const sup = { ...worker, role: 'supervisor' as const, deviceId: 'desk' };
+    const sup = {
+      ...worker,
+      userId: 'sup',
+      role: 'supervisor' as const,
+      deviceId: 'desk',
+    };
     expect(await handleGetStock(sup, stockIn, deps)).toMatchObject({
       ok: true,
     });
@@ -286,6 +297,7 @@ describe('reason codes', () => {
   let env: TestEnv;
   beforeEach(async () => {
     env = await createTestEnv();
+    await env.seedUser({ id: 'u1', username: 'u1', pin: '1234' });
     const mk = (code: string, appliesTo: string) =>
       env.catalog.reasonCode.create({
         data: { code, label: `L-${code}`, appliesTo },
@@ -318,7 +330,7 @@ describe('reason codes', () => {
     const r = await handleListReasonCodes(
       worker,
       { type: 'ADJUST' },
-      { catalog: env.catalog },
+      { global: env.global, catalog: env.catalog },
     ).catch((e) => e);
     expect((r as Response).status).toBe(403);
   });

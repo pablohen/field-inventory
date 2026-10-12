@@ -340,7 +340,7 @@ export async function handleSuggestPickList(
   input: { warehouseId: string } & SuggestPickListInput,
   deps: PickListDeps,
 ): Promise<SuggestResult> {
-  authorizeDesk(claims);
+  await authorizeDesk(claims, deps.global);
   return suggestPickListCore(deps, input.warehouseId, input.requests);
 }
 
@@ -349,7 +349,7 @@ export async function handleCreatePickList(
   input: { warehouseId: string } & CreatePickListInput,
   deps: PickListDeps,
 ): Promise<CreatePickListResult> {
-  const session = authorizeDesk(claims);
+  const session = await authorizeDesk(claims, deps.global);
   const { warehouseId, ...rest } = input;
   return createPickListCore(deps, session, warehouseId, rest);
 }
@@ -359,7 +359,7 @@ export async function handleListPickLists(
   input: { warehouseId: string } & ListPickListsInput,
   deps: PickListDeps,
 ): Promise<ListPickListsResult> {
-  authorizeDesk(claims);
+  await authorizeDesk(claims, deps.global);
   return listPickListsCore(deps, input.warehouseId, { status: input.status });
 }
 
@@ -368,7 +368,7 @@ export async function handleAssignPickList(
   input: { warehouseId: string } & AssignPickListInput,
   deps: PickListDeps,
 ): Promise<PickListOk> {
-  authorizeDesk(claims);
+  await authorizeDesk(claims, deps.global);
   return assignPickListCore(
     deps,
     input.warehouseId,
@@ -382,6 +382,6 @@ export async function handleClosePickList(
   input: { warehouseId: string } & ClosePickListInput,
   deps: PickListDeps,
 ): Promise<PickListOk> {
-  authorizeDesk(claims);
+  await authorizeDesk(claims, deps.global);
   return closePickListCore(deps, input.warehouseId, input.pickListId);
 }

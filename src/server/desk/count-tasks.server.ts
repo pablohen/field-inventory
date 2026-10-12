@@ -238,7 +238,7 @@ export async function handleCreateCountTask(
   input: { warehouseId: string } & CreateCountTaskInput,
   deps: CountTaskDeps,
 ): Promise<CreateCountTaskResult> {
-  authorizeDesk(claims);
+  await authorizeDesk(claims, deps.global);
   const { warehouseId, ...rest } = input;
   return createCountTaskCore(deps, warehouseId, rest);
 }
@@ -248,7 +248,7 @@ export async function handleListCountTasks(
   input: { warehouseId: string } & ListCountTasksInput,
   deps: CountTaskDeps,
 ): Promise<ListCountTasksResult> {
-  authorizeDesk(claims);
+  await authorizeDesk(claims, deps.global);
   return listCountTasksCore(deps, input.warehouseId, { status: input.status });
 }
 
@@ -257,7 +257,7 @@ export async function handleAssignCountTask(
   input: { warehouseId: string } & AssignCountTaskInput,
   deps: CountTaskDeps,
 ): Promise<CountTaskOk> {
-  authorizeDesk(claims);
+  await authorizeDesk(claims, deps.global);
   return assignCountTaskCore(
     deps,
     input.warehouseId,
@@ -271,6 +271,6 @@ export async function handleCloseCountTask(
   input: { warehouseId: string } & CloseCountTaskInput,
   deps: CountTaskDeps,
 ): Promise<CountTaskOk> {
-  authorizeDesk(claims);
+  await authorizeDesk(claims, deps.global);
   return closeCountTaskCore(deps, input.warehouseId, input.taskId);
 }

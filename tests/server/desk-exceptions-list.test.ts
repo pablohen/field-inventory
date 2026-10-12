@@ -32,6 +32,12 @@ describe('listExceptionsCore', () => {
     await env.seedDevice({ id: DEV, warehouses: [WH, WH2] });
     await env.seedUser({ id: 'u1', username: 'u1', pin: '1234' });
     await env.seedUser({ id: 'u2', username: 'u2', pin: '1234' });
+    await env.seedUser({
+      id: 'sup',
+      username: 'sup',
+      pin: '1234',
+      role: 'supervisor',
+    });
     await env.seedProduct({ id: 'P1', sku: 'P1', countTolerance: 0 });
     await env.seedProduct({ id: 'P2', sku: 'P2', countTolerance: 0 });
     for (const wh of [WH, WH2]) {
@@ -229,7 +235,7 @@ describe('listExceptionsCore', () => {
     );
     expect((anon as Response).status).toBe(401);
     const sup = await handleListExceptions(
-      { ...worker, role: 'supervisor', deviceId: 'desk' },
+      { ...worker, userId: 'sup', role: 'supervisor', deviceId: 'desk' },
       input,
       listDeps(),
     );
