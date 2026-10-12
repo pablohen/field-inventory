@@ -16,10 +16,12 @@ export type CountTaskDeps = {
   newId(): string;
 };
 
+// Strict so that mixed input such as { locations, skus } is rejected on create
+// rather than silently stripped. Reading stored scopes stays lenient.
 export const countScopeSchema = z.union([
-  z.object({ locations: z.array(z.string().min(1)).min(1) }),
-  z.object({ zone: z.string().min(1) }),
-  z.object({ skus: z.array(z.string().min(1)).min(1) }),
+  z.object({ locations: z.array(z.string().min(1)).min(1) }).strict(),
+  z.object({ zone: z.string().min(1) }).strict(),
+  z.object({ skus: z.array(z.string().min(1)).min(1) }).strict(),
 ]);
 export type CountScope = z.infer<typeof countScopeSchema>;
 
@@ -45,6 +47,8 @@ export async function createCountTaskCore(
   const wh = await warehouseClientFor(deps, warehouseId);
   if (!wh.ok) return wh;
   const scope = input.scope;
+  // Counting only reads stock, so inactive locations are allowed, including a
+  // zone made up solely of inactive locations.
 
   if ('locations' in scope) {
     const ids = [...new Set(scope.locations)];
@@ -114,8 +118,8 @@ export type ListCountTasksResult =
   | DeskError;
 
 /**
- * CountTask has no createdAt, so "newest first" is `id` descending: stable and
- * deterministic, and chronological whenever ids are time-ordered.
+ * CountTask has no createdAt, so there is no chronological order. Rows are
+ * ordered OPEN before DONE (`status` desc), then by id for stability.
  */
 export async function listCountTasksCore(
   deps: CountTaskDeps,
@@ -126,7 +130,7 @@ export async function listCountTasksCore(
   if (!wh.ok) return wh;
   const tasks = await wh.db.countTask.findMany({
     where: filters.status ? { status: filters.status } : {},
-    orderBy: { id: 'desc' },
+    orderBy: [{ status: 'desc' }, { id: 'asc' }],
   });
   const ids = tasks.map((t) => t.id);
   const counts =

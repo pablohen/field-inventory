@@ -6,6 +6,7 @@ import {
   closeCountTaskCore,
   countScopeSchema,
   createCountTaskCore,
+  createCountTaskInputSchema,
   handleAssignCountTask,
   handleCloseCountTask,
   handleCreateCountTask,
@@ -132,14 +133,43 @@ describe('count tasks', () => {
     expect(all.find((t) => t.id === other)?.countsRecorded).toBe(1);
   });
 
-  it('orders newest first (id descending) and filters by status', async () => {
-    const a = await create({ zone: 'A' });
-    const b = await create({ zone: 'A' });
-    const c = await create({ zone: 'A' });
-    expect((await tasks()).map((t) => t.id)).toEqual([c, b, a]);
-    await closeCountTaskCore(deps, WH, b);
-    expect((await tasks('OPEN')).map((t) => t.id)).toEqual([c, a]);
-    expect((await tasks('DONE')).map((t) => t.id)).toEqual([b]);
+  it('orders OPEN before DONE, then by id, and filters by status', async () => {
+    const db = await env.warehouse(WH);
+    for (const [id, status] of [
+      ['t-c', 'OPEN'],
+      ['t-a', 'DONE'],
+      ['t-d', 'OPEN'],
+      ['t-b', 'DONE'],
+    ] as const) {
+      await db.countTask.create({
+        data: { id, scope: '{"zone":"A"}', status },
+      });
+    }
+    expect((await tasks()).map((t) => t.id)).toEqual([
+      't-c',
+      't-d',
+      't-a',
+      't-b',
+    ]);
+    expect((await tasks('OPEN')).map((t) => t.id)).toEqual(['t-c', 't-d']);
+    expect((await tasks('DONE')).map((t) => t.id)).toEqual(['t-a', 't-b']);
+  });
+
+  it('allows inactive locations and all-inactive zones', async () => {
+    const db = await env.warehouse(WH);
+    await env.seedLocation(WH, { id: 'X1', code: 'X-01', active: false });
+    await db.location.update({ where: { id: 'X1' }, data: { zone: 'X' } });
+    await create({ locations: ['X1'] });
+    await create({ zone: 'X' });
+    expect(await tasks()).toHaveLength(2);
+  });
+
+  it('rejects mixed locations+skus scope instead of stripping', async () => {
+    const mixed = { locations: ['A1'], skus: ['P1'] };
+    expect(countScopeSchema.safeParse(mixed).success).toBe(false);
+    expect(createCountTaskInputSchema.safeParse({ scope: mixed }).success).toBe(
+      false,
+    );
   });
 
   it('lists a malformed stored scope as null with malformed: true', async () => {
