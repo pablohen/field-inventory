@@ -491,7 +491,8 @@ export async function resolveExceptionCore(
     });
     if (!sku) return invalid('Unknown sku');
     const loc = await db.location.findUnique({ where: { id: locationId } });
-    if (!loc?.active) return invalid('Unknown or inactive location');
+    if (!loc) return invalid(`Location ${locationId} not found`);
+    if (!loc.active) return invalid(`Location ${loc.code} is inactive`);
   } else if (input.action === 'recount') {
     skuId = existing.skuId;
     locationId = existing.locationId;
@@ -540,18 +541,17 @@ export async function resolveExceptionCore(
       }
       // Re-check the target location inside the transaction, after the
       // version guard so an already-resolved exception still reports CONFLICT.
-      if (
-        (input.action === 'adjust' || input.action === 'recount') &&
-        locationId
-      ) {
+      // Recount is exempt: counts may target inactive bins.
+      if (input.action === 'adjust' && locationId) {
         const loc = await tx.location.findUnique({
           where: { id: locationId },
           select: { code: true, active: true },
         });
-        if (!loc?.active) {
-          throw new ResolveAbort(
-            invalid(`Location ${loc?.code ?? locationId} is inactive`),
-          );
+        if (!loc) {
+          throw new ResolveAbort(invalid(`Location ${locationId} not found`));
+        }
+        if (!loc.active) {
+          throw new ResolveAbort(invalid(`Location ${loc.code} is inactive`));
         }
       }
       const out = {

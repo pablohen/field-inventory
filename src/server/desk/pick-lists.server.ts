@@ -187,13 +187,17 @@ export async function createPickListCore(
         where: { id: { in: locationIds } },
         select: { id: true, code: true, active: true },
       });
+      const found = new Set(current.map((l) => l.id));
+      const missing = locationIds.find((lid) => !found.has(lid));
       const inactive = current.find((l) => !l.active);
-      if (inactive || current.length !== locationIds.length) {
-        const bad = inactive?.code ?? 'unknown';
+      if (missing !== undefined || inactive) {
         throw new PickListAbort({
           ok: false,
           code: 'INVALID',
-          message: `Location ${bad} is inactive`,
+          message:
+            missing !== undefined
+              ? `Location ${missing} not found`
+              : `Location ${inactive?.code} is inactive`,
         });
       }
       await tx.pickList.create({

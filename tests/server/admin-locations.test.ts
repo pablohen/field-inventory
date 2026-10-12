@@ -112,6 +112,20 @@ describe('locations admin', () => {
     });
   });
 
+  it('reusing a renamed-away code gets a suffixed id; real duplicates stay INVALID', async () => {
+    await createLocationCore(deps, WH, { code: 'A' });
+    await updateLocationCore(deps, WH, 'wh1-A', { code: 'B' });
+    expect(await createLocationCore(deps, WH, { code: 'A' })).toEqual({
+      ok: true,
+      id: 'wh1-A-2',
+    });
+    expect(await createLocationCore(deps, WH, { code: 'B' })).toEqual({
+      ok: false,
+      code: 'INVALID',
+      message: 'Code B is already used',
+    });
+  });
+
   it('update changes code and zone but keeps the id; unknown is NOT_FOUND', async () => {
     await createLocationCore(deps, WH, { code: 'A-01', zone: 'N' });
     expect(
@@ -311,17 +325,20 @@ describe('locations admin', () => {
         expect(await db.movement.count()).toBe(0);
       });
 
-      it('recount: INVALID, exception OPEN, no count task', async () => {
+      it('recount on an inactive location still succeeds', async () => {
         const r = await resolveExceptionCore(resolveDeps, session, WH, exId, {
           action: 'recount',
           version,
         });
-        expect(r).toMatchObject({ ok: false, code: 'INVALID' });
+        expect(r).toMatchObject({ ok: true });
         const db = await env.warehouse(WH);
         expect(
           await db.exception.findUniqueOrThrow({ where: { id: exId } }),
-        ).toMatchObject({ status: 'OPEN', version });
-        expect(await db.countTask.count()).toBe(0);
+        ).toMatchObject({
+          status: 'RESOLVED',
+          resolution: 'RECOUNT_REQUESTED',
+        });
+        expect(await db.countTask.count()).toBe(1);
       });
 
       it('an already-resolved exception reports CONFLICT before the inactive check', async () => {

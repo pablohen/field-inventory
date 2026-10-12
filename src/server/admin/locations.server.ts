@@ -29,7 +29,7 @@ const notFound: DeskError = {
   message: 'Location not found',
 };
 
-function isCodeConflict(e: unknown): boolean {
+function isUniqueViolation(e: unknown): boolean {
   return (
     typeof e === 'object' &&
     e !== null &&
@@ -81,13 +81,31 @@ export async function createLocationCore(
   const wh = await warehouseClientFor(deps, warehouseId);
   if (!wh.ok) return wh;
   const { code, zone } = locationInputSchema.parse(input);
-  const id = `${warehouseId}-${code}`;
+  // An id can be taken by a renamed location (update keeps the id), so pick
+  // the first free `<wh>-<code>` or `<wh>-<code>-<n>`, n >= 2.
+  const base = `${warehouseId}-${code}`;
+  const taken = new Set(
+    (
+      await wh.db.location.findMany({
+        where: { id: { startsWith: base } },
+        select: { id: true },
+      })
+    ).map((l) => l.id),
+  );
+  let id = base;
+  for (let n = 2; taken.has(id); n++) id = `${base}-${n}`;
   try {
     await wh.db.location.create({
       data: { id, code, zone: normZone(zone), active: true },
     });
   } catch (e) {
-    if (isCodeConflict(e)) return duplicate(code);
+    // Only a violated `code` is a duplicate code; anything else propagates.
+    if (
+      isUniqueViolation(e) &&
+      (await wh.db.location.findUnique({ where: { code } }))
+    ) {
+      return duplicate(code);
+    }
     throw e;
   }
   return { ok: true, id };
@@ -112,7 +130,12 @@ export async function updateLocationCore(
       data: { code, zone: normZone(zone) },
     });
   } catch (e) {
-    if (isCodeConflict(e)) return duplicate(code);
+    if (
+      isUniqueViolation(e) &&
+      (await wh.db.location.findUnique({ where: { code } }))
+    ) {
+      return duplicate(code);
+    }
     throw e;
   }
   return { ok: true };
