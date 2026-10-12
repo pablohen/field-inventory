@@ -1,4 +1,4 @@
-import { Alert, Button, Container, Group, Stack, Text } from '@mantine/core';
+import { Alert, Container, Group, Stack, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import {
   createFileRoute,
@@ -7,13 +7,11 @@ import {
   useRouter,
   useRouterState,
 } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { watchDeskAuth } from '#/desk/auth-error';
 import { DeskNav } from '#/desk/components/DeskNav';
-import {
-  deskLogout,
-  getDeskSession,
-  getWarehouses,
-} from '#/server/desk/desk-auth.fn';
+import { SignOutButton } from '#/desk/components/SignOutButton';
+import { getDeskSession, getWarehouses } from '#/server/desk/desk-auth.fn';
 
 export const Route = createFileRoute('/w/$warehouseId')({
   beforeLoad: async () => {
@@ -39,13 +37,12 @@ function DeskLayout() {
   });
   const known = whs.data?.some((w) => w.id === warehouseId);
 
-  const signOut = async () => {
-    try {
-      await deskLogout();
-    } finally {
-      window.location.assign('/desk/login');
-    }
-  };
+  // An expired session surfaces as an auth error on a polling query.
+  useEffect(
+    () =>
+      watchDeskAuth(queryClient, () => window.location.assign('/desk/login')),
+    [queryClient],
+  );
 
   return (
     <Container size="xl" py="md">
@@ -58,9 +55,7 @@ function DeskLayout() {
           />
           <Group gap="sm">
             <Text size="sm">{session.name}</Text>
-            <Button size="compact-sm" variant="subtle" onClick={signOut}>
-              Sign out
-            </Button>
+            <SignOutButton />
           </Group>
         </Group>
         {whs.data && !known ? (
