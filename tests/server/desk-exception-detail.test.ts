@@ -5,6 +5,7 @@ import {
   exceptionDetailCore,
   handleGetExceptionDetail,
   type ListExceptionsDeps,
+  listExceptionsCore,
 } from '#/server/desk/exceptions.server';
 import { type SyncDeps, syncMovementsCore } from '#/server/sync/sync-movements';
 import { createTestEnv, type TestEnv } from '../support/test-env';
@@ -185,6 +186,107 @@ describe('exceptionDetailCore', () => {
   it('returns NOT_FOUND for an unknown exception id', async () => {
     const res = await exceptionDetailCore(deps(), WH, 'nope');
     expect(res).toMatchObject({ ok: false, code: 'NOT_FOUND' });
+  });
+
+  it('survives malformed details and movementIds on some rows', async () => {
+    const adjust = uuid();
+    await send([adjustOf(adjust, '2026-03-01T09:00:00Z', 5)]);
+    const db = await env.warehouse(WH);
+    const mk = (id: string, details: string, movementIds = '[]') =>
+      db.exception.create({
+        data: {
+          id,
+          type: 'COUNT_VARIANCE',
+          movementIds,
+          skuId: 'P1',
+          locationId: 'L1',
+          details,
+        },
+      });
+    const okDetails = '{"observed":4,"expected":5,"variance":-1}';
+    await mk('bad-null', 'null');
+    await mk('bad-array', '[1]');
+    await mk('bad-json', '{not json');
+    await mk('bad-ids', okDetails, '5');
+    await mk('partial', '{"expected":10}');
+    await mk('good', okDetails, `["${adjust}"]`);
+    const list = await listExceptionsCore(deps(), WH, {});
+    if (!list.ok) throw new Error(list.message);
+    const by = Object.fromEntries(list.rows.map((r) => [r.id, r]));
+    expect(list.rows).toHaveLength(6);
+    for (const id of ['bad-null', 'bad-array', 'bad-json']) {
+      expect(by[id]?.malformed).toEqual(['details']);
+      expect(by[id]?.summary).toBe('details unreadable');
+    }
+    expect(by['bad-ids']?.malformed).toEqual(['movementIds']);
+    expect(by['bad-ids']?.summary).toBe('observed 4, expected 5 (−1)');
+    expect(by.partial?.malformed).toEqual([]);
+    expect(by.partial?.summary).toBe('observed ?, expected 10 (?)');
+    expect(by.good?.malformed).toEqual([]);
+    for (const id of ['bad-null', 'bad-array', 'bad-json', 'bad-ids']) {
+      const d = await detail(id);
+      expect(d.exception.malformed.length).toBeGreaterThan(0);
+      expect(d.exception.details).toEqual(
+        id === 'bad-ids' ? { observed: 4, expected: 5, variance: -1 } : {},
+      );
+    }
+    expect((await detail('good')).bySeq.map((m) => m.id)).toContain(adjust);
+  });
+
+  it('includes non-referenced movements touching the key via fromLocationId', async () => {
+    const adjust = uuid();
+    const pick = uuid();
+    await send([
+      adjustOf(adjust, '2026-03-01T09:00:00Z', 5),
+      {
+        ...base,
+        id: pick,
+        type: 'PICK',
+        skuId: 'P1',
+        occurredAt: '2026-03-01T09:30:00Z',
+        fromLocationId: 'L1',
+        qty: 1,
+      },
+    ]);
+    const db = await env.warehouse(WH);
+    await db.exception.create({
+      data: {
+        id: 'keyed',
+        type: 'COUNT_VARIANCE',
+        movementIds: JSON.stringify([adjust]),
+        skuId: 'P1',
+        locationId: 'L1',
+        details: '{}',
+      },
+    });
+    const res = await detail('keyed');
+    const m = Object.fromEntries(res.bySeq.map((x) => [x.id, x]));
+    expect(m[pick]?.involved).toBe(false);
+    expect(m[adjust]?.involved).toBe(true);
+  });
+
+  it('orders equal occurredAt by seq in byOccurredAt', async () => {
+    const a = uuid();
+    const b = uuid();
+    const c = uuid();
+    await send([
+      adjustOf(a, '2026-03-01T09:00:00Z', 1),
+      adjustOf(b, '2026-03-01T08:00:00Z', 1),
+      adjustOf(c, '2026-03-01T09:00:00Z', 1),
+    ]);
+    const db = await env.warehouse(WH);
+    await db.exception.create({
+      data: {
+        id: 'ties',
+        type: 'COUNT_VARIANCE',
+        movementIds: '[]',
+        skuId: 'P1',
+        locationId: 'L1',
+        details: '{}',
+      },
+    });
+    const res = await detail('ties');
+    expect(res.byOccurredAt.map((x) => x.id)).toEqual([b, a, c]);
   });
 
   it('handleGetExceptionDetail rejects workers with 403 and anonymous with 401', async () => {

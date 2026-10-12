@@ -35,6 +35,8 @@ export type ExceptionRow = {
   ageHours: number;
   version: number;
   summary: string;
+  /** Fields whose stored JSON was unreadable or the wrong shape. */
+  malformed: ('details' | 'movementIds')[];
 };
 
 export type ListExceptionsDeps = {
@@ -59,35 +61,52 @@ function signed(n: number): string {
 function minus(n: number): string {
   return n < 0 ? `−${Math.abs(n)}` : String(n);
 }
-function num(v: unknown): number {
-  return typeof v === 'number' ? v : 0;
+/** A missing or non-numeric field renders as `?`, never as a fake 0. */
+function num(v: unknown): number | '?' {
+  return typeof v === 'number' && Number.isFinite(v) ? v : '?';
+}
+function fmtMinus(v: unknown): string {
+  const n = num(v);
+  return n === '?' ? n : minus(n);
+}
+function fmtSigned(v: unknown, scale = 1): string {
+  const n = num(v);
+  return n === '?' ? n : signed(Math.round(n / scale));
 }
 
+/** `d` is null when the stored details were unreadable. */
 export function exceptionSummary(
   type: ExceptionType,
-  d: Record<string, unknown>,
+  d: Record<string, unknown> | null,
 ): string {
+  if (d === null) return 'details unreadable';
   switch (type) {
     case 'COUNT_VARIANCE':
-      return `observed ${num(d.observed)}, expected ${num(d.expected)} (${minus(num(d.variance))})`;
+      return `observed ${num(d.observed)}, expected ${num(d.expected)} (${fmtMinus(d.variance)})`;
     case 'NEGATIVE_BALANCE':
-      return `balance ${minus(num(d.after))}`;
+      return `balance ${fmtMinus(d.after)}`;
     case 'LATE_MOVEMENT':
-      return `late movement, correction ${signed(num(d.correction))}`;
+      return `late movement, correction ${fmtSigned(d.correction)}`;
     case 'OVER_PICK':
       return `picked ${num(d.pickedAfter)} of ${num(d.requested)}`;
-    case 'TRANSFER_STUCK':
-      return `in transit ${Math.round(num(d.ageHours))} h`;
+    case 'TRANSFER_STUCK': {
+      const h = num(d.ageHours);
+      return `in transit ${h === '?' ? h : Math.round(h)} h`;
+    }
     case 'CLOCK_SKEW':
-      return `clock ${signed(Math.round(num(d.skewMs) / 1000))} s`;
+      return `clock ${fmtSigned(d.skewMs, 1000)} s`;
   }
 }
 
-function parseJson<T>(s: string, fallback: T): T {
+const detailsSchema = z.record(z.string(), z.unknown());
+const movementIdsSchema = z.array(z.string());
+
+function parseWith<T>(schema: z.ZodType<T>, s: string): T | null {
   try {
-    return JSON.parse(s) as T;
+    const r = schema.safeParse(JSON.parse(s));
+    return r.success ? r.data : null;
   } catch {
-    return fallback;
+    return null;
   }
 }
 
@@ -103,16 +122,24 @@ type ExceptionRecord = {
   createdAt: Date;
 };
 
+type BuiltRow = {
+  row: ExceptionRow;
+  movementIds: string[];
+  details: Record<string, unknown>;
+};
+
 /** Shared by list and detail so both build rows identically. */
 async function buildExceptionRows(
   db: WarehouseClient,
   records: ExceptionRecord[],
   nowMs: number,
-): Promise<{ row: ExceptionRow; movementIds: string[] }[]> {
-  const idsByException = new Map<string, string[]>(
-    records.map((e) => [e.id, parseJson<string[]>(e.movementIds, [])]),
+): Promise<BuiltRow[]> {
+  const idsByException = new Map<string, string[] | null>(
+    records.map((e) => [e.id, parseWith(movementIdsSchema, e.movementIds)]),
   );
-  const allIds = [...new Set([...idsByException.values()].flat())];
+  const allIds = [
+    ...new Set([...idsByException.values()].flatMap((v) => v ?? [])),
+  ];
   const movements =
     allIds.length > 0
       ? await db.movement.findMany({
@@ -122,7 +149,12 @@ async function buildExceptionRows(
       : [];
   const userByMovement = new Map(movements.map((m) => [m.id, m.userId]));
   return records.map((e) => {
-    const movementIds = idsByException.get(e.id) ?? [];
+    const parsedIds = idsByException.get(e.id) ?? null;
+    const movementIds = parsedIds ?? [];
+    const parsedDetails = parseWith(detailsSchema, e.details);
+    const malformed: ExceptionRow['malformed'] = [];
+    if (parsedDetails === null) malformed.push('details');
+    if (parsedIds === null) malformed.push('movementIds');
     const userIds = [
       ...new Set(
         movementIds
@@ -132,6 +164,7 @@ async function buildExceptionRows(
     ];
     return {
       movementIds,
+      details: parsedDetails ?? {},
       row: {
         id: e.id,
         type: e.type as ExceptionType,
@@ -143,10 +176,8 @@ async function buildExceptionRows(
         ageHours:
           Math.round(((nowMs - e.createdAt.getTime()) / 3_600_000) * 10) / 10,
         version: e.version,
-        summary: exceptionSummary(
-          e.type as ExceptionType,
-          parseJson<Record<string, unknown>>(e.details, {}),
-        ),
+        summary: exceptionSummary(e.type as ExceptionType, parsedDetails),
+        malformed,
       },
     };
   });
@@ -222,6 +253,10 @@ export type TimelineMovement = {
   involved: boolean;
 };
 
+/**
+ * Wire type only: `details` is validated as a JSON object, but its values
+ * are an unchecked cast to JsonValue (needed for server-fn serialization).
+ */
 export type JsonValue =
   | string
   | number
@@ -260,9 +295,10 @@ export async function exceptionDetailCore(
   if (!e)
     return { ok: false, code: 'NOT_FOUND', message: 'Exception not found' };
 
-  const [built] = await buildExceptionRows(wh.db, [e], deps.now().getTime());
-  if (!built)
-    return { ok: false, code: 'NOT_FOUND', message: 'Exception not found' };
+  // One record in, one row out.
+  const built = (
+    await buildExceptionRows(wh.db, [e], deps.now().getTime())
+  )[0] as BuiltRow;
 
   const hasKey = e.skuId !== null && e.locationId !== null;
   const referenced = new Set(built.movementIds);
@@ -313,7 +349,7 @@ export async function exceptionDetailCore(
     exception: {
       ...built.row,
       status: e.status,
-      details: parseJson<Record<string, JsonValue>>(e.details, {}),
+      details: built.details as Record<string, JsonValue>,
       resolution: e.resolution,
       note: e.note,
       resolvedBy: e.resolvedBy,
