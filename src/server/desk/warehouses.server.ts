@@ -1,5 +1,8 @@
 import { SCHEMA_VERSIONS } from '#/domain/schema-versions';
+import type { SessionClaims } from '#/server/auth/session';
 import type { GlobalClient, WarehouseClient } from '#/server/db/clients';
+
+import { authorizeDesk } from './session';
 
 export type DeskError = {
   ok: false;
@@ -14,6 +17,14 @@ export async function listWarehouses(
     select: { id: true, name: true },
     orderBy: { name: 'asc' },
   });
+}
+
+export async function handleGetWarehouses(
+  claims: SessionClaims | null,
+  deps: { global: GlobalClient },
+): Promise<{ id: string; name: string }[]> {
+  authorizeDesk(claims);
+  return listWarehouses(deps.global);
 }
 
 export async function warehouseClientFor(

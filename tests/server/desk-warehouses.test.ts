@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  handleGetWarehouses,
   listWarehouses,
   warehouseClientFor,
 } from '#/server/desk/warehouses.server';
@@ -49,5 +50,28 @@ describe('desk warehouses', () => {
       'a-wh',
     );
     expect(r).toEqual({ ok: true, db });
+  });
+});
+
+describe('handleGetWarehouses', () => {
+  it('403 for a worker, lists for a supervisor', async () => {
+    const env = await createTestEnv();
+    try {
+      await env.seedWarehouse('a-wh');
+      const claims = (role: 'worker' | 'supervisor') => ({
+        userId: 'u',
+        deviceId: 'desk',
+        role,
+        exp: 0,
+      });
+      await expect(
+        handleGetWarehouses(claims('worker'), { global: env.global }),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(
+        await handleGetWarehouses(claims('supervisor'), { global: env.global }),
+      ).toEqual([{ id: 'a-wh', name: 'a-wh' }]);
+    } finally {
+      await env.cleanup();
+    }
   });
 });

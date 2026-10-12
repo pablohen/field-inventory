@@ -11,15 +11,22 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as HRouteRouteImport } from './routes/h/route'
+import { Route as DeskLoginRouteImport } from './routes/desk/login'
 import { Route as HIndexRouteImport } from './routes/h/index'
 import { Route as HAttentionRouteImport } from './routes/h/attention'
 import { Route as HLoginRouteImport } from './routes/h/login'
+import { Route as WWarehouseIdRouteRouteImport } from './routes/w/$warehouseId/route'
 import { Route as HWhAdjustRouteImport } from './routes/h/$wh.adjust'
 import { Route as HWhCountRouteImport } from './routes/h/$wh.count'
 import { Route as HWhMoveRouteImport } from './routes/h/$wh.move'
 import { Route as HWhPickRouteImport } from './routes/h/$wh.pick'
 import { Route as HWhStockRouteImport } from './routes/h/$wh.stock'
 import { Route as HWhTransferInRouteImport } from './routes/h/$wh.transfer-in'
+import { Route as WWarehouseIdIndexRouteImport } from './routes/w/$warehouseId/index'
+import { Route as WWarehouseIdCountsRouteImport } from './routes/w/$warehouseId/counts'
+import { Route as WWarehouseIdExceptionsRouteImport } from './routes/w/$warehouseId/exceptions'
+import { Route as WWarehouseIdPickListsRouteImport } from './routes/w/$warehouseId/pick-lists'
+import { Route as WWarehouseIdStockRouteImport } from './routes/w/$warehouseId/stock'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -29,6 +36,11 @@ const IndexRoute = IndexRouteImport.update({
 const HRouteRoute = HRouteRouteImport.update({
   id: '/h',
   path: '/h',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeskLoginRoute = DeskLoginRouteImport.update({
+  id: '/desk/login',
+  path: '/desk/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HIndexRoute = HIndexRouteImport.update({
@@ -45,6 +57,11 @@ const HLoginRoute = HLoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => HRouteRoute,
+} as any)
+const WWarehouseIdRouteRoute = WWarehouseIdRouteRouteImport.update({
+  id: '/w/$warehouseId',
+  path: '/w/$warehouseId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const HWhAdjustRoute = HWhAdjustRouteImport.update({
   id: '/$wh/adjust',
@@ -76,10 +93,37 @@ const HWhTransferInRoute = HWhTransferInRouteImport.update({
   path: '/$wh/transfer-in',
   getParentRoute: () => HRouteRoute,
 } as any)
+const WWarehouseIdIndexRoute = WWarehouseIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WWarehouseIdRouteRoute,
+} as any)
+const WWarehouseIdCountsRoute = WWarehouseIdCountsRouteImport.update({
+  id: '/counts',
+  path: '/counts',
+  getParentRoute: () => WWarehouseIdRouteRoute,
+} as any)
+const WWarehouseIdExceptionsRoute = WWarehouseIdExceptionsRouteImport.update({
+  id: '/exceptions',
+  path: '/exceptions',
+  getParentRoute: () => WWarehouseIdRouteRoute,
+} as any)
+const WWarehouseIdPickListsRoute = WWarehouseIdPickListsRouteImport.update({
+  id: '/pick-lists',
+  path: '/pick-lists',
+  getParentRoute: () => WWarehouseIdRouteRoute,
+} as any)
+const WWarehouseIdStockRoute = WWarehouseIdStockRouteImport.update({
+  id: '/stock',
+  path: '/stock',
+  getParentRoute: () => WWarehouseIdRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/h': typeof HRouteRouteWithChildren
+  '/w/$warehouseId': typeof WWarehouseIdRouteRouteWithChildren
+  '/desk/login': typeof DeskLoginRoute
   '/h/attention': typeof HAttentionRoute
   '/h/login': typeof HLoginRoute
   '/h/': typeof HIndexRoute
@@ -89,9 +133,15 @@ export interface FileRoutesByFullPath {
   '/h/$wh/pick': typeof HWhPickRoute
   '/h/$wh/stock': typeof HWhStockRoute
   '/h/$wh/transfer-in': typeof HWhTransferInRoute
+  '/w/$warehouseId/counts': typeof WWarehouseIdCountsRoute
+  '/w/$warehouseId/exceptions': typeof WWarehouseIdExceptionsRoute
+  '/w/$warehouseId/pick-lists': typeof WWarehouseIdPickListsRoute
+  '/w/$warehouseId/stock': typeof WWarehouseIdStockRoute
+  '/w/$warehouseId/': typeof WWarehouseIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/desk/login': typeof DeskLoginRoute
   '/h/attention': typeof HAttentionRoute
   '/h/login': typeof HLoginRoute
   '/h': typeof HIndexRoute
@@ -101,11 +151,18 @@ export interface FileRoutesByTo {
   '/h/$wh/pick': typeof HWhPickRoute
   '/h/$wh/stock': typeof HWhStockRoute
   '/h/$wh/transfer-in': typeof HWhTransferInRoute
+  '/w/$warehouseId/counts': typeof WWarehouseIdCountsRoute
+  '/w/$warehouseId/exceptions': typeof WWarehouseIdExceptionsRoute
+  '/w/$warehouseId/pick-lists': typeof WWarehouseIdPickListsRoute
+  '/w/$warehouseId/stock': typeof WWarehouseIdStockRoute
+  '/w/$warehouseId': typeof WWarehouseIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/h': typeof HRouteRouteWithChildren
+  '/w/$warehouseId': typeof WWarehouseIdRouteRouteWithChildren
+  '/desk/login': typeof DeskLoginRoute
   '/h/attention': typeof HAttentionRoute
   '/h/login': typeof HLoginRoute
   '/h/': typeof HIndexRoute
@@ -115,12 +172,19 @@ export interface FileRoutesById {
   '/h/$wh/pick': typeof HWhPickRoute
   '/h/$wh/stock': typeof HWhStockRoute
   '/h/$wh/transfer-in': typeof HWhTransferInRoute
+  '/w/$warehouseId/counts': typeof WWarehouseIdCountsRoute
+  '/w/$warehouseId/exceptions': typeof WWarehouseIdExceptionsRoute
+  '/w/$warehouseId/pick-lists': typeof WWarehouseIdPickListsRoute
+  '/w/$warehouseId/stock': typeof WWarehouseIdStockRoute
+  '/w/$warehouseId/': typeof WWarehouseIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/h'
+    | '/w/$warehouseId'
+    | '/desk/login'
     | '/h/attention'
     | '/h/login'
     | '/h/'
@@ -130,9 +194,15 @@ export interface FileRouteTypes {
     | '/h/$wh/pick'
     | '/h/$wh/stock'
     | '/h/$wh/transfer-in'
+    | '/w/$warehouseId/counts'
+    | '/w/$warehouseId/exceptions'
+    | '/w/$warehouseId/pick-lists'
+    | '/w/$warehouseId/stock'
+    | '/w/$warehouseId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/desk/login'
     | '/h/attention'
     | '/h/login'
     | '/h'
@@ -142,10 +212,17 @@ export interface FileRouteTypes {
     | '/h/$wh/pick'
     | '/h/$wh/stock'
     | '/h/$wh/transfer-in'
+    | '/w/$warehouseId/counts'
+    | '/w/$warehouseId/exceptions'
+    | '/w/$warehouseId/pick-lists'
+    | '/w/$warehouseId/stock'
+    | '/w/$warehouseId'
   id:
     | '__root__'
     | '/'
     | '/h'
+    | '/w/$warehouseId'
+    | '/desk/login'
     | '/h/attention'
     | '/h/login'
     | '/h/'
@@ -155,11 +232,18 @@ export interface FileRouteTypes {
     | '/h/$wh/pick'
     | '/h/$wh/stock'
     | '/h/$wh/transfer-in'
+    | '/w/$warehouseId/counts'
+    | '/w/$warehouseId/exceptions'
+    | '/w/$warehouseId/pick-lists'
+    | '/w/$warehouseId/stock'
+    | '/w/$warehouseId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HRouteRoute: typeof HRouteRouteWithChildren
+  WWarehouseIdRouteRoute: typeof WWarehouseIdRouteRouteWithChildren
+  DeskLoginRoute: typeof DeskLoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -176,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/h'
       fullPath: '/h'
       preLoaderRoute: typeof HRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desk/login': {
+      id: '/desk/login'
+      path: '/desk/login'
+      fullPath: '/desk/login'
+      preLoaderRoute: typeof DeskLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/h/': {
@@ -198,6 +289,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/h/login'
       preLoaderRoute: typeof HLoginRouteImport
       parentRoute: typeof HRouteRoute
+    }
+    '/w/$warehouseId': {
+      id: '/w/$warehouseId'
+      path: '/w/$warehouseId'
+      fullPath: '/w/$warehouseId'
+      preLoaderRoute: typeof WWarehouseIdRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/h/$wh/adjust': {
       id: '/h/$wh/adjust'
@@ -241,6 +339,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HWhTransferInRouteImport
       parentRoute: typeof HRouteRoute
     }
+    '/w/$warehouseId/': {
+      id: '/w/$warehouseId/'
+      path: '/'
+      fullPath: '/w/$warehouseId/'
+      preLoaderRoute: typeof WWarehouseIdIndexRouteImport
+      parentRoute: typeof WWarehouseIdRouteRoute
+    }
+    '/w/$warehouseId/counts': {
+      id: '/w/$warehouseId/counts'
+      path: '/counts'
+      fullPath: '/w/$warehouseId/counts'
+      preLoaderRoute: typeof WWarehouseIdCountsRouteImport
+      parentRoute: typeof WWarehouseIdRouteRoute
+    }
+    '/w/$warehouseId/exceptions': {
+      id: '/w/$warehouseId/exceptions'
+      path: '/exceptions'
+      fullPath: '/w/$warehouseId/exceptions'
+      preLoaderRoute: typeof WWarehouseIdExceptionsRouteImport
+      parentRoute: typeof WWarehouseIdRouteRoute
+    }
+    '/w/$warehouseId/pick-lists': {
+      id: '/w/$warehouseId/pick-lists'
+      path: '/pick-lists'
+      fullPath: '/w/$warehouseId/pick-lists'
+      preLoaderRoute: typeof WWarehouseIdPickListsRouteImport
+      parentRoute: typeof WWarehouseIdRouteRoute
+    }
+    '/w/$warehouseId/stock': {
+      id: '/w/$warehouseId/stock'
+      path: '/stock'
+      fullPath: '/w/$warehouseId/stock'
+      preLoaderRoute: typeof WWarehouseIdStockRouteImport
+      parentRoute: typeof WWarehouseIdRouteRoute
+    }
   }
 }
 
@@ -271,9 +404,30 @@ const HRouteRouteChildren: HRouteRouteChildren = {
 const HRouteRouteWithChildren =
   HRouteRoute._addFileChildren(HRouteRouteChildren)
 
+interface WWarehouseIdRouteRouteChildren {
+  WWarehouseIdCountsRoute: typeof WWarehouseIdCountsRoute
+  WWarehouseIdExceptionsRoute: typeof WWarehouseIdExceptionsRoute
+  WWarehouseIdPickListsRoute: typeof WWarehouseIdPickListsRoute
+  WWarehouseIdStockRoute: typeof WWarehouseIdStockRoute
+  WWarehouseIdIndexRoute: typeof WWarehouseIdIndexRoute
+}
+
+const WWarehouseIdRouteRouteChildren: WWarehouseIdRouteRouteChildren = {
+  WWarehouseIdCountsRoute: WWarehouseIdCountsRoute,
+  WWarehouseIdExceptionsRoute: WWarehouseIdExceptionsRoute,
+  WWarehouseIdPickListsRoute: WWarehouseIdPickListsRoute,
+  WWarehouseIdStockRoute: WWarehouseIdStockRoute,
+  WWarehouseIdIndexRoute: WWarehouseIdIndexRoute,
+}
+
+const WWarehouseIdRouteRouteWithChildren =
+  WWarehouseIdRouteRoute._addFileChildren(WWarehouseIdRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HRouteRoute: HRouteRouteWithChildren,
+  WWarehouseIdRouteRoute: WWarehouseIdRouteRouteWithChildren,
+  DeskLoginRoute: DeskLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

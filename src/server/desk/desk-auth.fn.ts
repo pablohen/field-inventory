@@ -13,7 +13,8 @@ import {
 } from '#/server/auth/session';
 import { globalDb } from '#/server/db/clients';
 import { deskLoginCore } from './desk-login';
-import { deskSessionInfo } from './session';
+import { deskSessionInfo, readDeskClaims } from './session';
+import { handleGetWarehouses } from './warehouses.server';
 
 const deskLoginSchema = z.object({
   username: z.string().min(1).max(64),
@@ -59,4 +60,9 @@ export const getDeskSession = createServerFn({ method: 'GET' }).handler(
       return null;
     }
   },
+);
+
+export const getWarehouses = createServerFn({ method: 'GET' }).handler(
+  async () =>
+    handleGetWarehouses(await readDeskClaims(), { global: globalDb() }),
 );
