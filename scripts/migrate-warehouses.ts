@@ -6,11 +6,11 @@ import {
   closeClients,
   globalDb,
   globalUrl,
-  warehouseUrl,
 } from '#/server/db/clients';
 import { applyMigrations, migrationsDir } from '#/server/db/migrate';
+import { migrateWarehouseDb } from '#/server/db/migrate-warehouse';
 
-async function migrate(url: string, name: 'global' | 'catalog' | 'warehouse') {
+async function migrate(url: string, name: 'global' | 'catalog') {
   if (url.startsWith('file:'))
     mkdirSync(dirname(url.slice(5)), { recursive: true });
   const client = createClient({
@@ -31,7 +31,7 @@ async function main() {
   const db = globalDb();
   const warehouses = await db.warehouse.findMany({ orderBy: { id: 'asc' } });
   for (const wh of warehouses) {
-    const version = await migrate(warehouseUrl(wh.tursoDbName), 'warehouse');
+    const version = await migrateWarehouseDb(wh.tursoDbName);
     if (version !== wh.schemaVersion) {
       await db.warehouse.update({
         where: { id: wh.id },
