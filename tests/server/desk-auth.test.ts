@@ -3,7 +3,7 @@ import { LOCKOUT_MS, loginCore } from '#/server/auth/login-core';
 import type { SessionClaims } from '#/server/auth/session';
 import { verifySession } from '#/server/auth/session';
 import { deskLoginCore } from '#/server/desk/desk-login';
-import { authorizeDesk } from '#/server/desk/session';
+import { authorizeDesk, deskSessionInfo } from '#/server/desk/session';
 import { createTestEnv, type TestEnv } from '../support/test-env';
 
 beforeEach(() => {
@@ -189,5 +189,122 @@ describe('deskLoginCore', () => {
         reason: 'LOCKED',
       });
     });
+  });
+});
+
+describe('lockout expiry (no permanent locks)', () => {
+  let env: TestEnv;
+  const t0 = new Date('2026-01-01T00:00:00Z');
+  const MIN = 60 * 1000;
+  let clock = t0;
+  const deps = () => ({ global: env.global, now: () => clock });
+  const desk = (pin: string) => deskLoginCore(deps(), { username: 'ana', pin });
+  const handheld = (pin: string, deviceId: string) =>
+    loginCore(deps(), { username: 'ana', pin, deviceId });
+
+  beforeEach(async () => {
+    clock = t0;
+    env = await createTestEnv();
+    await env.seedUser({
+      id: 'u1',
+      username: 'ana',
+      pin: '1234',
+      role: 'supervisor',
+    });
+    for (const id of ['d1', 'd2', 'd3', 'd5']) {
+      await env.seedDevice({ id, warehouses: [] });
+    }
+  });
+  afterEach(async () => {
+    await env.cleanup();
+  });
+
+  it('12 wrong pins on one device still unlock everywhere after LOCKOUT_MS', async () => {
+    for (let i = 0; i < 12; i++) await handheld('0000', 'd1');
+    clock = new Date(t0.getTime() + 30 * MIN);
+    expect((await handheld('1234', 'd5')).ok).toBe(true);
+    for (let i = 0; i < 12; i++) await handheld('0000', 'd1');
+    clock = new Date(clock.getTime() + 25 * 60 * MIN);
+    expect((await desk('1234')).ok).toBe(true);
+  });
+
+  it('12 wrong desk pins unlock after LOCKOUT_MS', async () => {
+    for (let i = 0; i < 12; i++) await desk('0000');
+    clock = new Date(t0.getTime() + LOCKOUT_MS + 1);
+    expect((await desk('1234')).ok).toBe(true);
+  });
+
+  it('retrying the correct pin during a global lock does not lock the device forever', async () => {
+    for (let i = 0; i < 10; i++) await handheld('0000', i % 2 ? 'd1' : 'd2');
+    for (let i = 0; i < 6; i++) {
+      expect(await handheld('1234', 'd5')).toEqual({
+        ok: false,
+        reason: 'LOCKED',
+      });
+    }
+    clock = new Date(t0.getTime() + LOCKOUT_MS + 1);
+    expect((await handheld('1234', 'd5')).ok).toBe(true);
+  });
+
+  it('attempts during a lock do not extend it', async () => {
+    for (let i = 0; i < 5; i++) await handheld('0000', 'd1');
+    clock = new Date(t0.getTime() + 14 * MIN);
+    expect(await handheld('1234', 'd1')).toEqual({
+      ok: false,
+      reason: 'LOCKED',
+    });
+    clock = new Date(t0.getTime() + LOCKOUT_MS + 1);
+    expect((await handheld('1234', 'd1')).ok).toBe(true);
+  });
+
+  it('a global lock leaves the device counter untouched', async () => {
+    for (let i = 0; i < 10; i++) await handheld('0000', i % 2 ? 'd1' : 'd2');
+    await handheld('1234', 'd3');
+    expect(
+      await env.global.loginAttempt.findUnique({
+        where: { deviceId_username: { deviceId: 'd3', username: 'ana' } },
+      }),
+    ).toBeNull();
+  });
+
+  it('reserved attempt keys are not handheld devices', async () => {
+    for (const id of ['desk', '*']) {
+      expect(await handheld('1234', id)).toEqual({
+        ok: false,
+        reason: 'DEVICE_UNKNOWN',
+      });
+    }
+  });
+});
+
+describe('deskSessionInfo', () => {
+  let env: TestEnv;
+  beforeEach(async () => {
+    env = await createTestEnv();
+    await env.seedUser({
+      id: 'u1',
+      username: 'ana',
+      pin: '1',
+      role: 'supervisor',
+    });
+    await env.seedUser({ id: 'u2', username: 'bob', pin: '1', role: 'worker' });
+  });
+  afterEach(async () => {
+    await env.cleanup();
+  });
+
+  it('returns the user for a supervisor, null otherwise', async () => {
+    expect(await deskSessionInfo(env.global, claims('supervisor'))).toEqual({
+      userId: 'u1',
+      name: 'ana',
+      role: 'supervisor',
+    });
+    expect(
+      await deskSessionInfo(env.global, { ...claims('worker'), userId: 'u2' }),
+    ).toBeNull();
+    expect(await deskSessionInfo(env.global, null)).toBeNull();
+    expect(
+      await deskSessionInfo(env.global, { ...claims('admin'), userId: 'zz' }),
+    ).toBeNull();
   });
 });

@@ -13,6 +13,7 @@ import {
 } from '#/server/auth/session';
 import { globalDb } from '#/server/db/clients';
 import { deskLoginCore } from './desk-login';
+import { deskSessionInfo } from './session';
 
 const deskLoginSchema = z.object({
   username: z.string().min(1).max(64),
@@ -53,12 +54,7 @@ export const getDeskSession = createServerFn({ method: 'GET' }).handler(
     try {
       const token = getCookie(SESSION_COOKIE);
       const claims = token ? await verifySession(token) : null;
-      if (!claims || claims.role === 'worker') return null;
-      const user = await globalDb().user.findUnique({
-        where: { id: claims.userId },
-      });
-      if (!user) return null;
-      return { userId: user.id, name: user.name, role: claims.role };
+      return await deskSessionInfo(globalDb(), claims);
     } catch {
       return null;
     }

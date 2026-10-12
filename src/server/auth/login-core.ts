@@ -27,7 +27,10 @@ export const LOCKOUT_MS = 15 * 60 * 1000;
 /** `LoginAttempt.deviceId` used for the per-username counter spanning all devices. */
 const ALL_DEVICES_KEY = '*';
 
-const ROLES: readonly string[] = ['worker', 'supervisor', 'admin'];
+/** Attempt key for desk sign-ins (see `DESK_DEVICE_ID`). */
+const DESK_KEY = 'desk';
+
+export const ROLES: readonly string[] = ['worker', 'supervisor', 'admin'];
 
 /** Lazily computed hash so unknown users still cost one scrypt (no timing enumeration). */
 let dummyHash: Promise<string> | undefined;
@@ -41,6 +44,10 @@ export async function loginCore(
   deps: { global: GlobalClient; now(): Date },
   input: LoginInput,
 ): Promise<LoginResult> {
+  // 'desk' and '*' are reserved attempt keys, never real handheld devices.
+  if (input.deviceId === DESK_KEY || input.deviceId === ALL_DEVICES_KEY) {
+    return { ok: false, reason: 'DEVICE_UNKNOWN' };
+  }
   const device = await deps.global.device.findUnique({
     where: { id: input.deviceId },
   });
@@ -48,37 +55,14 @@ export async function loginCore(
   if (device.revokedAt) return { ok: false, reason: 'DEVICE_REVOKED' };
 
   const now = deps.now();
-  const username = input.username.trim();
-
-  // Reserve the attempts atomically before verifying, so parallel requests
-  // each consume budget instead of all reading "not locked yet".
-  const attempts = await reserveLoginAttempts(
-    deps.global,
-    device.id,
-    username,
-    now,
-  );
-  if (attempts.blocked) {
-    // Equivalent scrypt cost, so a locked response is not distinguishable by timing.
-    await verifyPin(input.pin, await getDummyHash());
-    return { ok: false, reason: 'LOCKED' };
-  }
-
-  const user = await deps.global.user.findUnique({ where: { username } });
-  let valid = false;
-  if (user) {
-    valid =
-      (await verifyPin(input.pin, user.pinHash)) && ROLES.includes(user.role);
-  } else {
-    await verifyPin(input.pin, await getDummyHash());
-  }
-  if (!user || !valid) {
-    await recordLoginFailure(deps.global, device.id, username, attempts, now);
-    return { ok: false, reason: 'BAD_CREDENTIALS' };
-  }
-
-  await clearLoginAttempts(deps.global, device.id, username);
-  const role = user.role as Role; // validated against ROLES above
+  const checked = await checkCredentialsWithLockout(deps, {
+    deviceKey: device.id,
+    username: input.username,
+    pin: input.pin,
+  });
+  if (!checked.ok) return checked;
+  const { user } = checked;
+  const role = user.role as Role; // validated against ROLES by the check
   const token = await signSession(
     { userId: user.id, deviceId: device.id, role },
     now,
@@ -93,55 +77,59 @@ export async function loginCore(
   };
 }
 
-export type Reservation = { failures: number; lockedUntil: Date | null };
+/**
+ * The one lockout-protected PIN check, shared by handheld and desk sign-in.
+ * Reserves attempts atomically before verifying, so parallel requests each
+ * consume budget. The cross-device key is reserved first; if it is locked we
+ * stop without touching the device key. A locked response still spends one
+ * scrypt so it is not distinguishable by timing.
+ */
+export async function checkCredentialsWithLockout(
+  deps: { global: GlobalClient; now(): Date },
+  input: { deviceKey: string; username: string; pin: string },
+): Promise<
+  | { ok: true; user: { id: string; name: string; role: string } }
+  | { ok: false; reason: 'BAD_CREDENTIALS' | 'LOCKED' }
+> {
+  const { global } = deps;
+  const now = deps.now();
+  const username = input.username.trim();
 
-export type LoginAttempts = {
-  device: Reservation;
-  allDevices: Reservation;
-  /** True when either counter is locked or over its limit. */
+  const allDevices = await reserveUsernameAttempt(global, username, now);
+  const device = allDevices.blocked
+    ? null
+    : await reserveAttempt(
+        global,
+        input.deviceKey,
+        username,
+        now,
+        MAX_FAILURES,
+      );
+  if (!device || device.blocked) {
+    await verifyPin(input.pin, await getDummyHash());
+    return { ok: false, reason: 'LOCKED' };
+  }
+
+  const user = await global.user.findUnique({ where: { username } });
+  let valid = false;
+  if (user) {
+    valid =
+      (await verifyPin(input.pin, user.pinHash)) && ROLES.includes(user.role);
+  } else {
+    await verifyPin(input.pin, await getDummyHash());
+  }
+  if (!user || !valid) return { ok: false, reason: 'BAD_CREDENTIALS' };
+
+  await clearLoginAttempts(global, input.deviceKey, username);
+  return { ok: true, user };
+}
+
+export type Reservation = {
+  failures: number;
+  lockedUntil: Date | null;
+  /** True when the lock was already in force before this attempt. */
   blocked: boolean;
 };
-
-function isBlocked(r: Reservation, max: number, now: Date): boolean {
-  return r.failures > max || (r.lockedUntil !== null && r.lockedUntil > now);
-}
-
-/**
- * Reserves one attempt on the per-device counter and one on the cross-device
- * counter (`deviceId = '*'`). Call before verifying the PIN.
- */
-export async function reserveLoginAttempts(
-  global: GlobalClient,
-  deviceKey: string,
-  username: string,
-  now: Date,
-): Promise<LoginAttempts> {
-  const allDevices = await reserveUsernameAttempt(global, username, now);
-  const device = await reserveAttempt(global, deviceKey, username, now);
-  return {
-    device,
-    allDevices,
-    blocked:
-      isBlocked(device, MAX_FAILURES, now) ||
-      isBlocked(allDevices, MAX_FAILURES_ACROSS_DEVICES, now),
-  };
-}
-
-/** After a failed verify: lock whichever counter just reached its limit. */
-export async function recordLoginFailure(
-  global: GlobalClient,
-  deviceKey: string,
-  username: string,
-  attempts: LoginAttempts,
-  now: Date,
-): Promise<void> {
-  if (attempts.device.failures >= MAX_FAILURES) {
-    await lockAttempt(global, deviceKey, username, now);
-  }
-  if (attempts.allDevices.failures >= MAX_FAILURES_ACROSS_DEVICES) {
-    await lockAttempt(global, ALL_DEVICES_KEY, username, now);
-  }
-}
 
 /** After a successful login: forget both counters. */
 export async function clearLoginAttempts(
@@ -159,56 +147,65 @@ export function reserveUsernameAttempt(
   username: string,
   now: Date,
 ): Promise<Reservation> {
-  return reserveAttempt(global, ALL_DEVICES_KEY, username, now);
+  return reserveAttempt(
+    global,
+    ALL_DEVICES_KEY,
+    username,
+    now,
+    MAX_FAILURES_ACROSS_DEVICES,
+  );
 }
 
-export function clearUsernameAttempts(
+export async function clearUsernameAttempts(
   global: GlobalClient,
   username: string,
 ): Promise<void> {
-  return global.loginAttempt
-    .deleteMany({ where: { deviceId: ALL_DEVICES_KEY, username } })
-    .then(() => undefined);
+  await global.loginAttempt.deleteMany({
+    where: { deviceId: ALL_DEVICES_KEY, username },
+  });
 }
 
 /**
- * One atomic statement: count this attempt and return the new state. An
- * expired lock restarts the counter at 1.
+ * One atomic statement owns all lock state for a (key, username) row:
+ * - lock in force (`lockedUntil > now`): no count change beyond a cap of
+ *   `max + 1` (the marker that this attempt is blocked), lock untouched;
+ * - lock expired: restart at 1 and clear it;
+ * - otherwise count the attempt, and the attempt that reaches `max` sets
+ *   `lockedUntil = now + LOCKOUT_MS` right here. That attempt is still allowed
+ *   to verify (`failures === max`); every later one sees `max + 1`.
+ * So a counter can never sit at its limit with `lockedUntil` NULL.
  */
 async function reserveAttempt(
   global: GlobalClient,
   deviceKey: string,
   username: string,
   now: Date,
+  max: number,
 ): Promise<Reservation> {
   const iso = now.toISOString();
+  const lockIso = new Date(now.getTime() + LOCKOUT_MS).toISOString();
   const rows = await global.$queryRaw<
     { failures: number | bigint; lockedUntil: Date | string | null }[]
   >`INSERT INTO "LoginAttempt" ("deviceId", "username", "failures", "lockedUntil", "updatedAt")
     VALUES (${deviceKey}, ${username}, 1, NULL, ${iso})
     ON CONFLICT ("deviceId", "username") DO UPDATE SET
-      "failures" = CASE WHEN "lockedUntil" IS NOT NULL AND "lockedUntil" <= ${iso}
-        THEN 1 ELSE "failures" + 1 END,
-      "lockedUntil" = CASE WHEN "lockedUntil" IS NOT NULL AND "lockedUntil" <= ${iso}
-        THEN NULL ELSE "lockedUntil" END,
+      "failures" = CASE
+        WHEN "lockedUntil" IS NOT NULL AND "lockedUntil" > ${iso} THEN ${max + 1}
+        WHEN "lockedUntil" IS NOT NULL THEN 1
+        ELSE "failures" + 1 END,
+      "lockedUntil" = CASE
+        WHEN "lockedUntil" IS NOT NULL AND "lockedUntil" > ${iso} THEN "lockedUntil"
+        WHEN "lockedUntil" IS NOT NULL THEN NULL
+        WHEN "failures" + 1 >= ${max} THEN ${lockIso}
+        ELSE NULL END,
       "updatedAt" = ${iso}
     RETURNING "failures", "lockedUntil"`;
   const row = rows[0];
   if (!row) throw new Error('login attempt reservation returned no row');
+  const failures = Number(row.failures);
   return {
-    failures: Number(row.failures),
+    failures,
     lockedUntil: row.lockedUntil ? new Date(row.lockedUntil) : null,
+    blocked: failures > max,
   };
-}
-
-async function lockAttempt(
-  global: GlobalClient,
-  deviceKey: string,
-  username: string,
-  now: Date,
-): Promise<void> {
-  await global.loginAttempt.updateMany({
-    where: { deviceId: deviceKey, username },
-    data: { failures: 0, lockedUntil: new Date(now.getTime() + LOCKOUT_MS) },
-  });
 }
