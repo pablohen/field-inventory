@@ -344,9 +344,9 @@ export function startSyncScheduler(
         const again = rerun;
         rerun = null;
         scheduleRetry();
-        if (again) {
-          trigger(again.force);
-        } else {
+        if (again) trigger(again.force);
+        // A deferred (not-due) rerun leaves the scheduler idle: release waiters.
+        if (!running) {
           const done = waiters;
           waiters = [];
           for (const w of done) w();

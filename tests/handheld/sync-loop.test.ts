@@ -667,6 +667,34 @@ describe('startSyncScheduler', () => {
     expect(run).toHaveBeenCalledTimes(1);
   });
 
+  it('runNow resolves when a queued non-forced rerun is deferred by a new backoff', async () => {
+    const env = new FakeEnv();
+    let retryAt: string | null = new Date(NOW.getTime() + 5000).toISOString();
+    const gates: ReturnType<typeof deferred>[] = [];
+    const run = vi.fn(async () => {
+      const g = deferred();
+      gates.push(g);
+      await g.promise;
+      retryAt = new Date(Date.now() + 60000).toISOString();
+    });
+    const stop = startSyncScheduler(run, env, () => retryAt);
+    let resolved = false;
+    const p = stop.runNow().then(() => {
+      resolved = true;
+    });
+    expect(run).toHaveBeenCalledTimes(1);
+    env.document.visibilityState = 'visible';
+    env.dispatchEvent(new Event('visibilitychange')); // queues non-forced rerun
+    gates[0].resolve();
+    await vi.advanceTimersByTimeAsync(0);
+    await p;
+    expect(resolved).toBe(true);
+    expect(run).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(59000);
+    expect(run).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
   it('runs every 30000 ms and on visible; stop removes everything', async () => {
     const env = new FakeEnv();
     const run = vi.fn(async () => {});
