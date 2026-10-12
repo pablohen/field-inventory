@@ -1,7 +1,7 @@
 import { findStuckTransfers } from '#/domain/detectors';
 import type { ExceptionDraft } from '#/domain/types';
 import type { GlobalClient, WarehouseClient } from '#/server/db/clients';
-import { persistExceptions, toDomain, withMovementTx } from './warehouse-repo';
+import { toDomain } from './warehouse-repo';
 
 export interface StuckTransferDeps {
   global: GlobalClient;
@@ -63,10 +63,8 @@ export async function checkStuckTransfers(
   });
   const alreadyFlagged = new Set<string>();
   for (const f of flagged) {
-    const details = JSON.parse(f.details) as { transferId?: unknown };
-    if (typeof details.transferId === 'string') {
-      alreadyFlagged.add(details.transferId);
-    }
+    const transferId = parseTransferId(f.details);
+    if (transferId !== null) alreadyFlagged.add(transferId);
   }
 
   const drafts = findStuckTransfers(
@@ -76,8 +74,38 @@ export async function checkStuckTransfers(
     now,
     deps.transferStuckHours,
   );
-  if (drafts.length > 0) {
-    await withMovementTx(db, (tx) => persistExceptions(tx, drafts));
+  // Deterministic id + per-row unique-violation catch = insert-or-ignore, so
+  // concurrent checks cannot double-flag a transfer.
+  const inserted: ExceptionDraft[] = [];
+  for (const draft of drafts) {
+    const transferId = parseTransferId(JSON.stringify(draft.details));
+    if (transferId === null) continue;
+    try {
+      await db.exception.create({
+        data: {
+          id: `stuck:${transferId}`,
+          type: draft.type,
+          status: 'OPEN',
+          movementIds: JSON.stringify(draft.movementIds),
+          skuId: draft.skuId,
+          locationId: draft.locationId,
+          deviceId: draft.deviceId,
+          details: JSON.stringify(draft.details),
+        },
+      });
+      inserted.push(draft);
+    } catch (err) {
+      if ((err as { code?: unknown }).code !== 'P2002') throw err;
+    }
   }
-  return drafts;
+  return inserted;
+}
+
+function parseTransferId(details: string): string | null {
+  try {
+    const parsed = JSON.parse(details) as { transferId?: unknown } | null;
+    return typeof parsed?.transferId === 'string' ? parsed.transferId : null;
+  } catch {
+    return null;
+  }
 }

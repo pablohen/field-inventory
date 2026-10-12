@@ -100,6 +100,35 @@ describe('checkStuckTransfers', () => {
     expect(await checkStuckTransfers(stuckDeps(), WH)).toEqual([]);
   });
 
+  it('flags a transfer once under concurrent checks', async () => {
+    await seedOut(uuid());
+    const results = await Promise.all([
+      checkStuckTransfers(stuckDeps(), WH),
+      checkStuckTransfers(stuckDeps(), WH),
+    ]);
+    const db = await env.warehouse(WH);
+    expect(
+      await db.exception.count({ where: { type: 'TRANSFER_STUCK' } }),
+    ).toBe(1);
+    expect(results.flat()).toHaveLength(1);
+  });
+
+  it('skips a malformed details row instead of throwing', async () => {
+    await seedOut(uuid());
+    const db = await env.warehouse(WH);
+    await db.exception.create({
+      data: {
+        id: 'junk',
+        type: 'TRANSFER_STUCK',
+        status: 'OPEN',
+        movementIds: '[]',
+        details: '{not json',
+      },
+    });
+    const out = await checkStuckTransfers(stuckDeps(), WH);
+    expect(out.map((d) => d.type)).toEqual(['TRANSFER_STUCK']);
+  });
+
   it('returns none when the IN exists in the counterpart warehouse', async () => {
     const transferId = uuid();
     await seedOut(transferId);
