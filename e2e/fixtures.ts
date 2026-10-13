@@ -53,6 +53,7 @@ export const test = base.extend<{
   handheldA: Handheld;
   handheldB: Handheld;
   desk: Page;
+  admin: Page;
 }>({
   // Runs `pnpm e2e:reset` before each test that uses a signed-in context.
   resetData: [
@@ -97,6 +98,23 @@ export const test = base.extend<{
       await expect(
         page.getByRole('heading', { name: 'Exceptions' }),
       ).toBeVisible();
+      await use(page);
+      await context.close();
+    },
+    { timeout: SETUP_TIMEOUT },
+  ],
+
+  admin: [
+    async ({ browser, resetData: _reset }, use) => {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      await page.goto('/desk/login');
+      await page.getByLabel('Username').fill('admin');
+      await typePin(page);
+      await page.getByRole('button', { name: 'Sign in' }).click();
+      await page.waitForURL((url) => !url.pathname.startsWith('/desk/login'));
+      await page.goto('/admin/devices');
+      await expect(page.getByRole('table')).toBeVisible({ timeout: 30_000 });
       await use(page);
       await context.close();
     },
