@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { type CountScope, countScopeSchema } from '#/desk/count-scope';
 import { deskCall } from '#/desk/desk-call';
+import { runMutation } from '#/desk/run-mutation';
 import { createCountTask } from '#/server/desk/count-tasks.fn';
 import type { LocationRow } from '#/server/desk/locations.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
@@ -72,11 +73,16 @@ export function CountTaskForm({
     setPending(true);
     setError(null);
     try {
-      const res = await deskCall(createCountTask, {
-        warehouseId,
-        scope,
-        ...(assignee ? { assignedUserId: assignee } : {}),
-      });
+      const res = await runMutation(
+        () =>
+          deskCall(createCountTask, {
+            warehouseId,
+            scope,
+            ...(assignee ? { assignedUserId: assignee } : {}),
+          }),
+        setError,
+      );
+      if (res === undefined) return;
       if (res.ok) {
         await qc.invalidateQueries({
           queryKey: ['desk', warehouseId, 'counts'],
@@ -85,11 +91,6 @@ export function CountTaskForm({
       } else {
         setError(res);
       }
-    } catch (err) {
-      setError({
-        code: 'INVALID',
-        message: err instanceof Error ? err.message : 'Request failed',
-      });
     } finally {
       inFlight.current = false;
       setPending(false);

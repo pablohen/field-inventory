@@ -9,7 +9,7 @@ import {
 import { useEffect, useState } from 'react';
 import { adminTarget } from '#/admin/admin-target';
 import { AdminNav } from '#/admin/components/AdminNav';
-import { watchDeskAuth } from '#/desk/auth-error';
+import { onSessionExpired, watchDeskAuth } from '#/desk/auth-error';
 import { SignOutButton } from '#/desk/components/SignOutButton';
 import { deskCall } from '#/desk/desk-call';
 import { getDeskSession } from '#/server/desk/desk-auth.fn';
@@ -44,11 +44,16 @@ export function AdminLayoutView({
   useState(() =>
     queryClient.setQueryDefaults(['admin'], { refetchInterval: 10000 }),
   );
-  // An expired session surfaces as an auth error on a polling query.
-  useEffect(
-    () => watchDeskAuth(queryClient, () => navigate('/desk/login')),
-    [queryClient, navigate],
-  );
+  // An expired session surfaces as an auth error on a polling query or a save.
+  useEffect(() => {
+    const toLogin = () => navigate('/desk/login');
+    const stopWatch = watchDeskAuth(queryClient, toLogin);
+    const stopSaves = onSessionExpired(toLogin);
+    return () => {
+      stopWatch();
+      stopSaves();
+    };
+  }, [queryClient, navigate]);
   return (
     <Container size="xl" py="md">
       <Stack>

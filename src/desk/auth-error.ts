@@ -15,6 +15,25 @@ export function isDeskAuthError(err: unknown): boolean {
   return message === 'Unauthorized' || message === 'Forbidden';
 }
 
+const toLogin = () => window.location.assign('/desk/login');
+let expiredHandler: (() => void) | null = null;
+
+/**
+ * Sets what `notifySessionExpired` does, normally the desk/admin layout's
+ * navigate to sign-in. Returns a function that clears it again.
+ */
+export function onSessionExpired(handler: () => void): () => void {
+  expiredHandler = handler;
+  return () => {
+    if (expiredHandler === handler) expiredHandler = null;
+  };
+}
+
+/** Sends the user to sign-in after a save failed auth. */
+export function notifySessionExpired(): void {
+  (expiredHandler ?? toLogin)();
+}
+
 const WATCHED_ROOTS: ReadonlySet<unknown> = new Set(['desk', 'admin']);
 
 /**

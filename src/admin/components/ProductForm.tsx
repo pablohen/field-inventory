@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { productInputSchema } from '#/admin/catalog-input';
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
 import { deskCall } from '#/desk/desk-call';
+import { runMutation } from '#/desk/run-mutation';
 import { createProduct, updateProduct } from '#/server/admin/catalog.fn';
 import type { CategoryRow, ProductRow } from '#/server/admin/catalog.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
@@ -53,20 +54,20 @@ export function ProductForm({
     setPending(true);
     setError(null);
     try {
-      const res = product
-        ? await deskCall(updateProduct, {
-            productId: product.id,
-            ...parsed.data,
-          })
-        : await deskCall(createProduct, parsed.data);
+      const res = await runMutation(
+        () =>
+          product
+            ? deskCall(updateProduct, {
+                productId: product.id,
+                ...parsed.data,
+              })
+            : deskCall(createProduct, parsed.data),
+        setError,
+      );
+      if (res === undefined) return;
       await qc.invalidateQueries({ queryKey: ['admin', 'products'] });
       if (res.ok) onDone();
       else setError(res);
-    } catch (err) {
-      setError({
-        code: 'INVALID',
-        message: err instanceof Error ? err.message : 'Request failed',
-      });
     } finally {
       inFlight.current = false;
       setPending(false);

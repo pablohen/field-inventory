@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { locationInputSchema } from '#/admin/location-input';
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
 import { deskCall } from '#/desk/desk-call';
+import { runMutation } from '#/desk/run-mutation';
 import { createLocation, updateLocation } from '#/server/admin/locations.fn';
 import type { AdminLocationRow } from '#/server/admin/locations.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
@@ -38,23 +39,23 @@ export function LocationForm({
     setPending(true);
     setError(null);
     try {
-      const res = location
-        ? await deskCall(updateLocation, {
-            warehouseId,
-            locationId: location.id,
-            ...parsed.data,
-          })
-        : await deskCall(createLocation, { warehouseId, ...parsed.data });
+      const res = await runMutation(
+        () =>
+          location
+            ? deskCall(updateLocation, {
+                warehouseId,
+                locationId: location.id,
+                ...parsed.data,
+              })
+            : deskCall(createLocation, { warehouseId, ...parsed.data }),
+        setError,
+      );
+      if (res === undefined) return;
       await qc.invalidateQueries({
         queryKey: ['admin', 'locations', warehouseId],
       });
       if (res.ok) onDone();
       else setError(res);
-    } catch (err) {
-      setError({
-        code: 'INVALID',
-        message: err instanceof Error ? err.message : 'Request failed',
-      });
     } finally {
       inFlight.current = false;
       setPending(false);

@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { enrollDeviceInputSchema } from '#/admin/device-input';
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
 import { deskCall } from '#/desk/desk-call';
+import { runMutation } from '#/desk/run-mutation';
 import { enrollDevice } from '#/server/admin/devices.fn';
 import type { DeskError } from '#/server/desk/warehouses.server';
 import { type WarehouseOption, warehouseOptions } from './DeviceTable';
@@ -43,18 +44,17 @@ export function DeviceForm({
     setPending(true);
     setError(null);
     try {
-      const res = await deskCall(enrollDevice, parsed.data);
+      const res = await runMutation(
+        () => deskCall(enrollDevice, parsed.data),
+        setError,
+      );
+      if (res === undefined) return;
       await Promise.all([
         qc.invalidateQueries({ queryKey: ['admin', 'devices'] }),
         qc.invalidateQueries({ queryKey: ['admin', 'warehouses'] }),
       ]);
       if (res.ok) onCreated();
       else setError(res);
-    } catch (err) {
-      setError({
-        code: 'INVALID',
-        message: err instanceof Error ? err.message : 'Request failed',
-      });
     } finally {
       inFlight.current = false;
       setPending(false);

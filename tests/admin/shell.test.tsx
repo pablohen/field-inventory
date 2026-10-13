@@ -13,6 +13,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { adminTarget } from '#/admin/admin-target';
 import { AdminNav } from '#/admin/components/AdminNav';
+import { notifySessionExpired } from '#/desk/auth-error';
 import { HttpError } from '#/shared/checked-fetch';
 
 vi.mock('#/server/desk/desk-auth.fn', () => ({
@@ -145,5 +146,24 @@ describe('AdminLayoutView', () => {
       })
       .catch(() => {});
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/desk/login'));
+  });
+
+  it('routes a save auth failure to /desk/login while mounted', async () => {
+    const navigate = vi.fn();
+    mount(
+      () => <AdminLayoutView session={{ name: 'Root' }} navigate={navigate} />,
+      new QueryClient(),
+    );
+    await screen.findByText('Root');
+    notifySessionExpired();
+    expect(navigate).toHaveBeenCalledWith('/desk/login');
+    cleanup();
+    navigate.mockClear();
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
+    notifySessionExpired();
+    vi.unstubAllGlobals();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(assign).toHaveBeenCalledWith('/desk/login');
   });
 });

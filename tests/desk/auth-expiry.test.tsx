@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-router';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { notifySessionExpired } from '#/desk/auth-error';
 import { HttpError } from '#/shared/checked-fetch';
 
 const getWarehouses = vi.hoisted(() => vi.fn());
@@ -88,6 +89,24 @@ describe('desk layout session expiry', () => {
       client(),
     );
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/desk/login'));
+  });
+
+  it('navigates to /desk/login when a save reports an expired session', async () => {
+    getWarehouses.mockResolvedValue([]);
+    const navigate = vi.fn();
+    mount(
+      () => (
+        <DeskLayoutView
+          warehouseId="wh1"
+          session={{ name: 'Sue' }}
+          navigate={navigate}
+        />
+      ),
+      client(),
+    );
+    await screen.findByText('Sue');
+    notifySessionExpired();
+    expect(navigate).toHaveBeenCalledWith('/desk/login');
   });
 
   it('does not crash when warehouses resolves to a raw Response', async () => {

@@ -11,6 +11,7 @@ import { useRef, useState } from 'react';
 import { createUserInputSchema, roleSchema } from '#/admin/user-input';
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
 import { deskCall } from '#/desk/desk-call';
+import { runMutation } from '#/desk/run-mutation';
 import { createUser } from '#/server/admin/users.fn';
 import type { DeskError } from '#/server/desk/warehouses.server';
 
@@ -42,17 +43,16 @@ export function UserForm({ onCreated }: { onCreated: () => void }) {
     setPending(true);
     setError(null);
     try {
-      const res = await deskCall(createUser, parsed.data);
+      const res = await runMutation(
+        () => deskCall(createUser, parsed.data),
+        setError,
+      );
+      if (res === undefined) return;
       await qc.invalidateQueries({ queryKey: ['admin', 'users'] });
       if (res.ok) {
         setPin('');
         onCreated();
       } else setError(res);
-    } catch (err) {
-      setError({
-        code: 'INVALID',
-        message: err instanceof Error ? err.message : 'Request failed',
-      });
     } finally {
       inFlight.current = false;
       setPending(false);

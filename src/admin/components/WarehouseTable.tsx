@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 import { renameWarehouseInputSchema } from '#/admin/warehouse-input';
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
 import { deskCall } from '#/desk/desk-call';
+import { runMutation } from '#/desk/run-mutation';
 import {
   finishWarehouseSetup,
   renameWarehouse,
@@ -71,15 +72,11 @@ function WarehouseRowView({ row }: { row: AdminWarehouseRow }) {
     setPending(true);
     setError(null);
     try {
-      const res = await fn();
+      const res = await runMutation(fn, setError);
+      if (res === undefined) return;
       await qc.invalidateQueries({ queryKey: ['admin', 'warehouses'] });
       if (res.ok) onOk?.();
       else setError(res);
-    } catch (err) {
-      setError({
-        code: 'INVALID',
-        message: err instanceof Error ? err.message : 'Request failed',
-      });
     } finally {
       inFlight.current = false;
       setPending(false);

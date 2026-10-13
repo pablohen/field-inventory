@@ -1,4 +1,5 @@
 import { Text } from '@mantine/core';
+import { readableError } from '#/desk/run-mutation';
 
 export const REFRESH_FAILED = 'Refresh failed — showing the last loaded data.';
 
@@ -12,5 +13,5 @@ export function RefreshNote() {
 }
 
 export function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Request failed';
+  return readableError(error);
 }

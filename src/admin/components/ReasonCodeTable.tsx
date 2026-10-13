@@ -17,6 +17,7 @@ import {
 } from '#/admin/catalog-input';
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
 import { deskCall } from '#/desk/desk-call';
+import { runMutation } from '#/desk/run-mutation';
 import { createReasonCode, updateReasonCode } from '#/server/admin/catalog.fn';
 import type { ReasonCodeRow } from '#/server/admin/catalog.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
@@ -36,15 +37,11 @@ function useReasonSave(
     setPending(true);
     setError(null);
     try {
-      const res = await run(data);
+      const res = await runMutation(() => run(data), setError);
+      if (res === undefined) return;
       await qc.invalidateQueries({ queryKey: ['admin', 'reason-codes'] });
       if (res.ok) onOk?.();
       else setError(res);
-    } catch (err) {
-      setError({
-        code: 'INVALID',
-        message: err instanceof Error ? err.message : 'Request failed',
-      });
     } finally {
       inFlight.current = false;
       setPending(false);

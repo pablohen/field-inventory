@@ -18,12 +18,13 @@ import {
   it,
   vi,
 } from 'vitest';
+import { onSessionExpired } from '#/desk/auth-error';
 import { scopeSummary } from '#/desk/count-scope';
 import type { CountTaskRow } from '#/server/desk/count-tasks.server';
 import type { LocationRow } from '#/server/desk/locations.server';
 import type { PickListRow } from '#/server/desk/pick-lists.server';
 
-import { deskFetch } from '#/shared/checked-fetch';
+import { deskFetch, HttpError } from '#/shared/checked-fetch';
 
 const fns = vi.hoisted(() => ({
   suggestPickList: vi.fn(),
@@ -356,6 +357,34 @@ describe('PickListForm', () => {
       await screen.findByText('Line 1: location L1 is inactive'),
     ).toBeTruthy();
     expect(onCreated).not.toHaveBeenCalled();
+    expect(field('Bin for line 1')).toBeTruthy();
+  });
+
+  it('sends a 401 on create to sign-in and keeps the form', async () => {
+    stockFor({ P1: [{ id: 'L1', code: 'A-01' }] });
+    fns.suggestPickList.mockResolvedValue({
+      ok: true,
+      lines: [{ skuId: 'P1', locationId: 'L1', qty: 10 }],
+      shortfalls: [],
+    });
+    fns.createPickList.mockRejectedValue(new HttpError(401, 'HTTP 401'));
+    const expired = vi.fn();
+    const stop = onSessionExpired(expired);
+    const onCreated = vi.fn();
+    mount(
+      <PickListForm
+        warehouseId={WH}
+        workers={WORKERS}
+        locations={LOCATIONS}
+        onCreated={onCreated}
+      />,
+    );
+    await suggestFlow();
+    fireEvent.click(screen.getByRole('button', { name: 'Create pick list' }));
+    await waitFor(() => expect(expired).toHaveBeenCalledTimes(1));
+    stop();
+    expect(onCreated).not.toHaveBeenCalled();
+    expect(screen.queryByText('HTTP 401')).toBeNull();
     expect(field('Bin for line 1')).toBeTruthy();
   });
 });

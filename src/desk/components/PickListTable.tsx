@@ -2,6 +2,7 @@ import { Badge, Button, Group, Select, Table, Text } from '@mantine/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { deskCall } from '#/desk/desk-call';
+import { runMutation } from '#/desk/run-mutation';
 import { assignPickList, closePickList } from '#/server/desk/pick-lists.fn';
 import type { PickListRow } from '#/server/desk/pick-lists.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
@@ -75,7 +76,8 @@ function PickListRowView({
     setPending(true);
     setError(null);
     try {
-      const res = await fn();
+      const res = await runMutation(fn, setError);
+      if (res === undefined) return;
       if (res.ok) {
         await qc.invalidateQueries({
           queryKey: ['desk', warehouseId, 'pick-lists'],
@@ -83,11 +85,6 @@ function PickListRowView({
       } else {
         setError(res);
       }
-    } catch (err) {
-      setError({
-        code: 'INVALID',
-        message: err instanceof Error ? err.message : 'Request failed',
-      });
     } finally {
       inFlight.current = false;
       setPending(false);

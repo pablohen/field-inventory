@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { scopeSummary } from '#/desk/count-scope';
 import { deskCall } from '#/desk/desk-call';
+import { runMutation } from '#/desk/run-mutation';
 import { assignCountTask, closeCountTask } from '#/server/desk/count-tasks.fn';
 import type { CountTaskRow } from '#/server/desk/count-tasks.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
@@ -74,7 +75,8 @@ function CountTaskRowView({
     setPending(true);
     setError(null);
     try {
-      const res = await fn();
+      const res = await runMutation(fn, setError);
+      if (res === undefined) return;
       if (res.ok) {
         await qc.invalidateQueries({
           queryKey: ['desk', warehouseId, 'counts'],
@@ -82,11 +84,6 @@ function CountTaskRowView({
       } else {
         setError(res);
       }
-    } catch (err) {
-      setError({
-        code: 'INVALID',
-        message: err instanceof Error ? err.message : 'Request failed',
-      });
     } finally {
       inFlight.current = false;
       setPending(false);

@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
 import { deskCall } from '#/desk/desk-call';
+import { runMutation } from '#/desk/run-mutation';
 import { resetPin } from '#/server/admin/users.fn';
 import type { DeskError } from '#/server/desk/warehouses.server';
 
@@ -40,17 +41,16 @@ export function PinDialog({
     setPending(true);
     setError(null);
     try {
-      const res = await deskCall(resetPin, { userId: user.id, pin });
+      const res = await runMutation(
+        () => deskCall(resetPin, { userId: user.id, pin }),
+        setError,
+      );
+      if (res === undefined) return;
       await qc.invalidateQueries({ queryKey: ['admin', 'users'] });
       if (res.ok) {
         setPin('');
         setDone(true);
       } else setError(res);
-    } catch (err) {
-      setError({
-        code: 'INVALID',
-        message: err instanceof Error ? err.message : 'Request failed',
-      });
     } finally {
       inFlight.current = false;
       setPending(false);

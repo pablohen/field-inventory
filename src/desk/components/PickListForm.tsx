@@ -11,6 +11,7 @@ import {
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { deskCall } from '#/desk/desk-call';
+import { runMutation } from '#/desk/run-mutation';
 import type { LocationRow } from '#/server/desk/locations.server';
 import { createPickList, suggestPickList } from '#/server/desk/pick-lists.fn';
 import { getStock } from '#/server/desk/stock.fn';
@@ -155,24 +156,24 @@ export function PickListForm({
     setPending(true);
     setError(null);
     try {
-      const res = await deskCall(suggestPickList, {
-        warehouseId,
-        requests: requests.map((r) => ({
-          skuId: r.skuId.trim(),
-          qty: r.qty as number,
-        })),
-      });
+      const res = await runMutation(
+        () =>
+          deskCall(suggestPickList, {
+            warehouseId,
+            requests: requests.map((r) => ({
+              skuId: r.skuId.trim(),
+              qty: r.qty as number,
+            })),
+          }),
+        setError,
+      );
+      if (res === undefined) return;
       if (res.ok) {
         setSuggestion({ lines: res.lines, shortfalls: res.shortfalls });
         setBins(res.lines.map((l) => l.locationId));
       } else {
         setError(res);
       }
-    } catch (err) {
-      setError({
-        code: 'INVALID',
-        message: err instanceof Error ? err.message : 'Request failed',
-      });
     } finally {
       inFlight.current = false;
       setPending(false);
@@ -191,15 +192,20 @@ export function PickListForm({
     setPending(true);
     setError(null);
     try {
-      const res = await deskCall(createPickList, {
-        warehouseId,
-        lines: suggestion.lines.map((l, i) => ({
-          skuId: l.skuId,
-          locationId: bins[i] as string,
-          qty: l.qty,
-        })),
-        ...(assignee ? { assignedUserId: assignee } : {}),
-      });
+      const res = await runMutation(
+        () =>
+          deskCall(createPickList, {
+            warehouseId,
+            lines: suggestion.lines.map((l, i) => ({
+              skuId: l.skuId,
+              locationId: bins[i] as string,
+              qty: l.qty,
+            })),
+            ...(assignee ? { assignedUserId: assignee } : {}),
+          }),
+        setError,
+      );
+      if (res === undefined) return;
       if (res.ok) {
         await qc.invalidateQueries({
           queryKey: ['desk', warehouseId, 'pick-lists'],
@@ -208,11 +214,6 @@ export function PickListForm({
       } else {
         setError(res);
       }
-    } catch (err) {
-      setError({
-        code: 'INVALID',
-        message: err instanceof Error ? err.message : 'Request failed',
-      });
     } finally {
       inFlight.current = false;
       setPending(false);

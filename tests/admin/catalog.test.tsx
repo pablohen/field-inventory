@@ -18,11 +18,13 @@ import {
 import type { ReactNode } from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { parseProductSearch } from '#/admin/catalog-input';
+import { onSessionExpired } from '#/desk/auth-error';
 import type {
   CategoryRow,
   ProductRow,
   ReasonCodeRow,
 } from '#/server/admin/catalog.server';
+import { HttpError } from '#/shared/checked-fetch';
 
 const fns = vi.hoisted(() => ({
   listProducts: vi.fn(),
@@ -179,6 +181,50 @@ describe('ProductsPage', () => {
     expect((screen.getByLabelText('SKU') as HTMLInputElement).value).toBe(
       'SKU1',
     );
+    expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(
+      'Widget',
+    );
+  });
+});
+
+describe('ProductsPage save errors', () => {
+  async function submitNewProduct() {
+    fns.listCategories.mockResolvedValue([category({})]);
+    fns.listProducts.mockResolvedValue([]);
+    mount('/admin/products', '/admin/products', <ProductsPage />);
+    fireEvent.click(await screen.findByText('New product'));
+    fireEvent.change(await screen.findByLabelText('SKU'), {
+      target: { value: 'SKU1' },
+    });
+    fireEvent.change(screen.getByLabelText('Name'), {
+      target: { value: 'Widget' },
+    });
+    fireEvent.click(screen.getByText('Create product'));
+  }
+
+  it('sends a 401 on save to sign-in instead of an inline error', async () => {
+    fns.createProduct.mockRejectedValue(
+      new HttpError(401, '{"error":"Unauthorized"}'),
+    );
+    const expired = vi.fn();
+    const stop = onSessionExpired(expired);
+    await submitNewProduct();
+    await waitFor(() => expect(expired).toHaveBeenCalledTimes(1));
+    stop();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect((screen.getByLabelText('SKU') as HTMLInputElement).value).toBe(
+      'SKU1',
+    );
+  });
+
+  it('shows a readable message, not raw JSON, for a thrown JSON error', async () => {
+    fns.createProduct.mockRejectedValue(
+      new Error('{"error":"Database is locked"}'),
+    );
+    await submitNewProduct();
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('Database is locked');
+    expect(alert.textContent).not.toContain('{');
     expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(
       'Widget',
     );

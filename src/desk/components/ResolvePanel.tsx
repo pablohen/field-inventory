@@ -12,6 +12,7 @@ import {
 } from '@mantine/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { runMutation } from '#/desk/run-mutation';
 import type {
   ResolveInput,
   ResolveResult,
@@ -113,9 +114,14 @@ export function ResolvePanel({
     setPending(true);
     setError(null);
     try {
-      const res = await resolve({
-        data: { warehouseId, exceptionId, input: build() },
-      });
+      const res = await runMutation(
+        () =>
+          resolve({
+            data: { warehouseId, exceptionId, input: build() },
+          }),
+        setError,
+      );
+      if (res === undefined) return;
       if (res.ok) {
         setLocked(true);
         setDone(true);
@@ -129,11 +135,6 @@ export function ResolvePanel({
         setError(res);
         if (res.code === 'CONFLICT') setLocked(true);
       }
-    } catch (err) {
-      setError({
-        code: 'INVALID',
-        message: err instanceof Error ? err.message : 'Request failed',
-      });
     } finally {
       setPending(false);
     }

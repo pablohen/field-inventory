@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { createWarehouseInputSchema } from '#/admin/warehouse-input';
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
 import { deskCall } from '#/desk/desk-call';
+import { runMutation } from '#/desk/run-mutation';
 import { createWarehouse } from '#/server/admin/warehouses.fn';
 import type { DeskError } from '#/server/desk/warehouses.server';
 
@@ -30,16 +31,15 @@ export function WarehouseForm({ onCreated }: { onCreated: () => void }) {
     setPending(true);
     setError(null);
     try {
-      const res = await deskCall(createWarehouse, parsed.data);
+      const res = await runMutation(
+        () => deskCall(createWarehouse, parsed.data),
+        setError,
+      );
+      if (res === undefined) return;
       // NOT_READY keeps the row: refresh the list either way.
       await qc.invalidateQueries({ queryKey: ['admin', 'warehouses'] });
       if (res.ok) onCreated();
       else setError(res);
-    } catch (err) {
-      setError({
-        code: 'INVALID',
-        message: err instanceof Error ? err.message : 'Request failed',
-      });
     } finally {
       inFlight.current = false;
       setPending(false);

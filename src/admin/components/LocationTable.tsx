@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
 import { deskCall } from '#/desk/desk-call';
+import { runMutation } from '#/desk/run-mutation';
 import { setLocationActive } from '#/server/admin/locations.fn';
 import type { AdminLocationRow } from '#/server/admin/locations.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
@@ -61,21 +62,21 @@ function LocationRowView({
     setPending(true);
     setError(null);
     try {
-      const res = await deskCall(setLocationActive, {
-        warehouseId,
-        locationId: row.id,
-        active,
-      });
+      const res = await runMutation(
+        () =>
+          deskCall(setLocationActive, {
+            warehouseId,
+            locationId: row.id,
+            active,
+          }),
+        setError,
+      );
+      if (res === undefined) return;
       await qc.invalidateQueries({
         queryKey: ['admin', 'locations', warehouseId],
       });
       if (res.ok) onWarning(res.warning ?? null);
       else setError(res);
-    } catch (err) {
-      setError({
-        code: 'INVALID',
-        message: err instanceof Error ? err.message : 'Request failed',
-      });
     } finally {
       inFlight.current = false;
       setPending(false);

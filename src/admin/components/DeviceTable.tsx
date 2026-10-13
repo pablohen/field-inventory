@@ -12,6 +12,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
 import { deskCall } from '#/desk/desk-call';
+import { runMutation } from '#/desk/run-mutation';
 import {
   setDeviceRevoked,
   setDeviceWarehouses,
@@ -97,18 +98,14 @@ function DeviceRowView({
     setHint(false);
     let ok = false;
     try {
-      const res = await fn();
+      const res = await runMutation(fn, setError);
+      if (res === undefined) return false;
       await Promise.all([
         qc.invalidateQueries({ queryKey: ['admin', 'devices'] }),
         qc.invalidateQueries({ queryKey: ['admin', 'warehouses'] }),
       ]);
       if (res.ok) ok = true;
       else setError(res);
-    } catch (err) {
-      setError({
-        code: 'INVALID',
-        message: err instanceof Error ? err.message : 'Request failed',
-      });
     } finally {
       inFlight.current = false;
       setPending(false);

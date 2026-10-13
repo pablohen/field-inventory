@@ -9,7 +9,7 @@ import {
   useRouterState,
 } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
-import { watchDeskAuth } from '#/desk/auth-error';
+import { onSessionExpired, watchDeskAuth } from '#/desk/auth-error';
 import { DeskNav } from '#/desk/components/DeskNav';
 import { SignOutButton } from '#/desk/components/SignOutButton';
 import { deskCall } from '#/desk/desk-call';
@@ -56,11 +56,16 @@ export function DeskLayoutView({
     ? whs.data.some((w) => w.id === warehouseId)
     : undefined;
 
-  // An expired session surfaces as an auth error on a polling query.
-  useEffect(
-    () => watchDeskAuth(queryClient, () => navigate('/desk/login')),
-    [queryClient, navigate],
-  );
+  // An expired session surfaces as an auth error on a polling query or a save.
+  useEffect(() => {
+    const toLogin = () => navigate('/desk/login');
+    const stopWatch = watchDeskAuth(queryClient, toLogin);
+    const stopSaves = onSessionExpired(toLogin);
+    return () => {
+      stopWatch();
+      stopSaves();
+    };
+  }, [queryClient, navigate]);
 
   return (
     <Container size="xl" py="md">
