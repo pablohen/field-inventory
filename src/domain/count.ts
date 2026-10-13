@@ -6,6 +6,13 @@ export type CountOutcome =
   | { kind: 'auto_adjust'; adjust: Movement }
   | { kind: 'exception'; exception: ExceptionDraft };
 
+/**
+ * Outcome of re-running a count after a late movement. `supersedes` is true
+ * when the corrected total variance is within tolerance, so any earlier open
+ * exception for the count is stale.
+ */
+export type LateCorrection = CountOutcome & { supersedes: boolean };
+
 function countKey(count: Movement): string {
   if (count.toLocationId === null) {
     throw new Error(`COUNT ${count.id} has no toLocationId`);
@@ -142,22 +149,25 @@ export function correctForLateMovement(
   tolerance: number,
   newId: () => string,
   lateId: string,
-): CountOutcome {
+): LateCorrection {
   const expected = expectedAt(binLedgerIncludingLate, count);
   const totalAdjust = count.qty - expected;
   const existing = binLedgerIncludingLate
     .filter((m) => isOwnAdjust(m, count.id))
     .reduce((s, m) => s + m.qty, 0);
   const correction = totalAdjust - existing;
-  if (correction === 0) return { kind: 'none' };
-  if (Math.abs(totalAdjust) <= tolerance) {
+  const supersedes = Math.abs(totalAdjust) <= tolerance;
+  if (correction === 0) return { kind: 'none', supersedes };
+  if (supersedes) {
     return {
       kind: 'auto_adjust',
       adjust: autoAdjust(count, correction, newId),
+      supersedes,
     };
   }
   return {
     kind: 'exception',
+    supersedes,
     exception: {
       type: 'LATE_MOVEMENT',
       movementIds: [count.id, lateId],

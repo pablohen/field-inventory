@@ -204,6 +204,37 @@ describe('processMovement', () => {
     });
   });
 
+  it('lists a count whose late-movement correction is within tolerance as superseded', () => {
+    const count = mv({
+      id: 'c1',
+      type: 'COUNT',
+      qty: 4,
+      occurredAt: at('10:00'),
+    });
+    const first = processMovement(
+      count,
+      ctxFor([receipt], { tolerance: 2 }),
+      idGen(),
+    );
+    expect(first.exceptions.map((x) => x.type)).toEqual(['COUNT_VARIANCE']);
+    expect(first.supersededCountIds).toEqual([]);
+    const late = mv({
+      id: 'late1',
+      type: 'MOVE',
+      fromLocationId: 'A',
+      toLocationId: 'B',
+      qty: 6,
+      occurredAt: at('09:30'),
+    });
+    const e = processMovement(
+      late,
+      ctxFor([receipt, count], { tolerance: 2 }),
+      idGen(),
+    );
+    expect(e.supersededCountIds).toEqual(['c1']);
+    expect(e.exceptions).toEqual([]);
+  });
+
   it('raises OVER_PICK', () => {
     const e = processMovement(
       pick({ qty: 3 }),

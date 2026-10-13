@@ -158,6 +158,48 @@ export async function persistEffects(
     });
   }
   await persistExceptions(tx, effects.exceptions);
+  await supersedeCountExceptions(tx, effects.supersededCountIds);
+}
+
+/**
+ * Resolves OPEN COUNT_VARIANCE/LATE_MOVEMENT exceptions of the given counts
+ * (movementIds[0] is the count id). Runs in the late movement's transaction;
+ * the version bump makes a concurrent desk resolution lose with CONFLICT.
+ */
+async function supersedeCountExceptions(
+  tx: WarehouseTx,
+  countIds: string[],
+): Promise<void> {
+  if (countIds.length === 0) return;
+  const wanted = new Set(countIds);
+  const open = await tx.exception.findMany({
+    where: {
+      status: 'OPEN',
+      type: { in: ['COUNT_VARIANCE', 'LATE_MOVEMENT'] },
+    },
+  });
+  const now = new Date();
+  for (const e of open) {
+    let ids: unknown;
+    try {
+      ids = JSON.parse(e.movementIds);
+    } catch {
+      continue;
+    }
+    if (!Array.isArray(ids) || typeof ids[0] !== 'string') continue;
+    if (!wanted.has(ids[0])) continue;
+    await tx.exception.updateMany({
+      where: { id: e.id, status: 'OPEN', version: e.version },
+      data: {
+        status: 'RESOLVED',
+        resolution: 'SUPERSEDED',
+        resolvedBy: 'system',
+        resolvedAt: now,
+        version: { increment: 1 },
+        note: 'A later-arriving movement made this count consistent',
+      },
+    });
+  }
 }
 
 /** Inserts OPEN exception rows for the given drafts. */

@@ -1,4 +1,5 @@
 import { describe, it } from 'vitest';
+import { scenarios as countBeforeLateMove } from './count-before-late-move.scenario';
 import { scenarios as countDuringOfflineMove } from './count-during-offline-move.scenario';
 import { scenarios as crossWarehouseTransfer } from './cross-warehouse-transfer.scenario';
 import { runScenario, type Scenario } from './dsl';
@@ -10,6 +11,7 @@ import { scenarios as twoPickersLastUnits } from './two-pickers-last-units.scena
 const all: Scenario[] = [
   ...twoPickersLastUnits,
   ...countDuringOfflineMove,
+  ...countBeforeLateMove,
   ...latePickAfterCount,
   ...latePickEmptiesBin,
   ...crossWarehouseTransfer,

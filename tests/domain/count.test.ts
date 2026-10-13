@@ -192,7 +192,64 @@ describe('correctForLateMovement', () => {
         ids(),
         'late1',
       ),
-    ).toEqual({ kind: 'none' });
+    ).toEqual({ kind: 'none', supersedes: true });
+  });
+
+  describe('supersedes (D1), tolerance 2', () => {
+    const count4 = mv({
+      id: 'c1',
+      type: 'COUNT',
+      qty: 4,
+      occurredAt: at('10:00'),
+    });
+    const lateMove = (qty: number) =>
+      mv({
+        id: 'late1',
+        type: 'MOVE',
+        fromLocationId: 'A',
+        toLocationId: 'B',
+        qty,
+        occurredAt: at('09:30'),
+      });
+
+    it('is true with kind none when the late move fully explains the count', () => {
+      const out = correctForLateMovement(
+        count4,
+        [receipt, lateMove(6), count4],
+        2,
+        ids(),
+        'late1',
+      );
+      expect(out).toEqual({ kind: 'none', supersedes: true });
+    });
+
+    it('is true with an auto-adjust within tolerance', () => {
+      const out = correctForLateMovement(
+        count4,
+        [receipt, lateMove(7), count4],
+        2,
+        ids(),
+        'late1',
+      );
+      expect(out.kind).toBe('auto_adjust');
+      if (out.kind !== 'auto_adjust') return;
+      expect(out.adjust.qty).toBe(1);
+      expect(out.supersedes).toBe(true);
+    });
+
+    it('is false when the total variance stays over tolerance', () => {
+      const out = correctForLateMovement(
+        count4,
+        [receipt, lateMove(1), count4],
+        2,
+        ids(),
+        'late1',
+      );
+      expect(out.kind).toBe('exception');
+      if (out.kind !== 'exception') return;
+      expect(out.exception.type).toBe('LATE_MOVEMENT');
+      expect(out.supersedes).toBe(false);
+    });
   });
 });
 

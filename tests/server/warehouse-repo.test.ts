@@ -61,6 +61,7 @@ describe('warehouse repository', () => {
         movements: [m],
         balanceDeltas: [],
         exceptions: [],
+        supersededCountIds: [],
       });
     });
   }
@@ -72,6 +73,7 @@ describe('warehouse repository', () => {
         movements: [adjust],
         balanceDeltas: [{ skuId: 'P1', locationId: 'L1', delta: 10 }],
         exceptions: [],
+        supersededCountIds: [],
       }),
     );
     const ctx = await withMovementTx(db, (tx) =>
@@ -94,6 +96,7 @@ describe('warehouse repository', () => {
         movements: [adjust],
         balanceDeltas: [{ skuId: 'P1', locationId: 'L1', delta: 10 }],
         exceptions: [],
+        supersededCountIds: [],
       }),
     );
     const sysAdjust = mv({
@@ -117,6 +120,7 @@ describe('warehouse repository', () => {
           details: { variance: -1 },
         },
       ],
+      supersededCountIds: [],
     };
     await withMovementTx(db, (tx) => persistEffects(tx, effects));
 
@@ -139,6 +143,7 @@ describe('warehouse repository', () => {
         movements: [],
         balanceDeltas: [{ skuId: 'P1', locationId: 'L2', delta: -3 }],
         exceptions: [],
+        supersededCountIds: [],
       }),
     );
     const bal = await db.stockBalance.findMany();

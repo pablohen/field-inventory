@@ -25,6 +25,8 @@ export interface Effects {
   /** Aggregated per key over all `movements`; zero-net keys are dropped. */
   balanceDeltas: BalanceDelta[];
   exceptions: ExceptionDraft[];
+  /** Counts whose late-movement correction landed within tolerance (D1); no duplicates. */
+  supersededCountIds: string[];
 }
 
 /** Keys a movement touches, including a COUNT's own (sku, toLocation) key. */
@@ -85,6 +87,7 @@ export function processMovement(
   }
 
   const corrected = new Set<string>();
+  const supersededCountIds: string[] = [];
   for (let x = queue.shift(); x !== undefined; x = queue.shift()) {
     for (const key of touchedKeys(x)) {
       const ledger = ledgerFor(key);
@@ -98,6 +101,7 @@ export function processMovement(
         newId,
         x.id,
       );
+      if (outcome.supersedes) supersededCountIds.push(count.id);
       if (outcome.kind === 'auto_adjust') produce(outcome.adjust);
       else if (outcome.kind === 'exception') exceptions.push(outcome.exception);
     }
@@ -136,5 +140,5 @@ export function processMovement(
     exceptions.push(...detectOverPick(m, ctx.pickLine, ctx.pickedBefore));
   }
 
-  return { movements, balanceDeltas, exceptions };
+  return { movements, balanceDeltas, exceptions, supersededCountIds };
 }

@@ -52,6 +52,17 @@ export function simulate(
       const k = balanceKeyString(d);
       balances.set(k, (balances.get(k) ?? 0) + d.delta);
     }
+    const superseded = new Set(effects.supersededCountIds);
+    for (let i = exceptions.length - 1; i >= 0; i--) {
+      const e = exceptions[i];
+      if (
+        e !== undefined &&
+        (e.type === 'COUNT_VARIANCE' || e.type === 'LATE_MOVEMENT') &&
+        superseded.has(e.movementIds[0] ?? '')
+      ) {
+        exceptions.splice(i, 1);
+      }
+    }
     exceptions.push(...effects.exceptions);
   }
   return { balances, exceptions };

@@ -187,7 +187,9 @@ export async function runScenario(s: Scenario): Promise<void> {
       for (const b of await db.stockBalance.findMany()) {
         actual.set(`${w}|${b.skuId}|${b.locationId}`, b.qty);
       }
-      for (const e of await db.exception.findMany()) {
+      for (const e of await db.exception.findMany({
+        where: { status: 'OPEN' },
+      })) {
         exceptions.push(
           exceptionLabel(
             e.type,
