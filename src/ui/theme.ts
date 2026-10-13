@@ -10,7 +10,9 @@ export type TokenName =
   | 'rail'
   | 'danger'
   | 'ok'
-  | 'resolved';
+  | 'resolved'
+  | 'btn-bg'
+  | 'btn-fg';
 
 /** Single source of truth for the §3.1 colour tokens; tokens.css mirrors it. */
 export const TOKENS: Record<'light' | 'dark', Record<TokenName, string>> = {
@@ -25,6 +27,8 @@ export const TOKENS: Record<'light' | 'dark', Record<TokenName, string>> = {
     danger: '#dc2626',
     ok: '#15803d',
     resolved: '#d6d3d1',
+    'btn-bg': '#1c1917',
+    'btn-fg': '#facc15',
   },
   dark: {
     bg: '#0c0a09',
@@ -37,6 +41,8 @@ export const TOKENS: Record<'light' | 'dark', Record<TokenName, string>> = {
     danger: '#f87171',
     ok: '#4ade80',
     resolved: '#44403c',
+    'btn-bg': '#facc15',
+    'btn-fg': '#1c1917',
   },
 };
 
@@ -79,23 +85,26 @@ export const theme = createTheme({
   colors: { stone, signal },
   primaryColor: 'signal',
   primaryShade: 4,
+  autoContrast: true,
   fontFamily: "'Archivo Variable', system-ui, sans-serif",
   headings: { fontFamily: "'Archivo Variable', system-ui, sans-serif" },
   defaultRadius: 'sm',
   components: {
     Button: {
-      styles: (_theme: unknown, props: { variant?: string }) => ({
-        root: {
-          ...CONDENSED,
-          ...(props.variant === undefined || props.variant === 'filled'
-            ? {
-                backgroundColor: 'var(--fi-ink)',
-                color: 'var(--fi-signal)',
-                ...INK_BORDER,
-              }
-            : {}),
-        },
-      }),
+      vars: (_theme: unknown, props: { variant?: string }) =>
+        props.variant === undefined || props.variant === 'filled'
+          ? {
+              root: {
+                '--button-bg': 'var(--fi-btn-bg)',
+                '--button-hover': 'var(--fi-btn-bg)',
+                '--button-color': 'var(--fi-btn-fg)',
+                '--button-bd': '2px solid var(--fi-ink)',
+              },
+            }
+          : { root: {} },
+      styles: {
+        root: CONDENSED,
+      },
     },
     Badge: {
       defaultProps: { radius: 0 },

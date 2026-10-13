@@ -9,6 +9,8 @@
   --fi-danger: #dc2626;
   --fi-ok: #15803d;
   --fi-resolved: #d6d3d1;
+  --fi-btn-bg: #1c1917;
+  --fi-btn-fg: #facc15;
 }
 
 :root[data-mantine-color-scheme="dark"] {
@@ -22,6 +24,8 @@
   --fi-danger: #f87171;
   --fi-ok: #4ade80;
   --fi-resolved: #44403c;
+  --fi-btn-bg: #facc15;
+  --fi-btn-fg: #1c1917;
 }
 
 :root[data-mantine-color-scheme] {
@@ -41,6 +45,10 @@ body {
     #facc15 0 10px,
     #1c1917 10px 20px
   );
+}
+
+.mantine-Button-root:hover:not(:disabled):not([data-disabled]) {
+  filter: brightness(0.92);
 }
 
 .fi-num {

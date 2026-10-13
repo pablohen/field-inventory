@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { contrastRatio } from '#/ui/contrast';
 import { type StatusKind, statusColor } from '#/ui/status';
-import { TOKENS } from '#/ui/theme';
+import { TOKENS, theme } from '#/ui/theme';
 
 const KINDS: StatusKind[] = [
   'NEGATIVE_BALANCE',
@@ -15,6 +15,16 @@ const KINDS: StatusKind[] = [
   'attention',
   'resolved',
 ];
+
+describe('autoContrast', () => {
+  it('resolves to dark text on the signal fill', () => {
+    const signal = theme.colors?.signal?.[4] ?? '';
+    const dark = '#1c1917';
+    expect(contrastRatio(dark, signal)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio('#ffffff', signal)).toBeLessThan(4.5);
+    expect(theme.autoContrast).toBe(true);
+  });
+});
 
 describe('contrastRatio', () => {
   it('is 21 for black on white', () => {
@@ -32,6 +42,12 @@ for (const scheme of ['light', 'dark'] as const) {
       expect(contrastRatio(t.muted, t.surface)).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(t.danger, t.surface)).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(t.signal, t.rail)).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('button fill/text pair meets AA 4.5', () => {
+      expect(contrastRatio(t['btn-fg'], t['btn-bg'])).toBeGreaterThanOrEqual(
+        4.5,
+      );
     });
 
     for (const kind of KINDS) {
