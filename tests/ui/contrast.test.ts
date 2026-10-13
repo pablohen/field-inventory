@@ -38,10 +38,8 @@ for (const scheme of ['light', 'dark'] as const) {
       it(`badge text for ${kind} is legible`, () => {
         const s = statusColor(kind);
         const ratio = contrastRatio(s.text[scheme], t[s.fill]);
-        // Light "synced" is spec-mandated ink on green (3.49:1): an 800-weight
-        // badge label, so it is held to the 3:1 non-body threshold.
-        const min = scheme === 'light' && kind === 'synced' ? 3 : 4.5;
-        expect(ratio).toBeGreaterThanOrEqual(min);
+        // Badge labels are small text: every pair must reach AA 4.5.
+        expect(ratio).toBeGreaterThanOrEqual(4.5);
       });
     }
   });

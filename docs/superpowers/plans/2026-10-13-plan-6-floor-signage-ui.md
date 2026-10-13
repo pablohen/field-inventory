@@ -26,7 +26,7 @@
   - Lanes fallback: "Too many movements to draw — see the lists below."
   - A "▲" glyph on existing empty states
 - **Colour tokens are exactly §3.1.** Badge text follows §3.1:
-  - light: white on danger, ink on the other fills
+  - light: white on danger and ok, ink on signal and resolved fills
   - dark: `#1c1917` on danger, signal and ok fills, `#e7e5e4` on the resolved fill
 - **Yellow** is only a fill behind ink text, or text on `--fi-rail`. Never yellow text on a light background.
 - **Status colours** go only through `statusColor()`. Components hard-code no status colour.

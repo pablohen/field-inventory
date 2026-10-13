@@ -53,7 +53,7 @@
 - Green is synced only.
 
 **Badge text on filled status colours:**
-- Light: white on `--fi-danger`, and `--fi-ink` on signal, resolved and ok fills.
+- Light: white on `--fi-danger` and `--fi-ok`; `--fi-ink` on signal and resolved fills.
 - Dark: `#1c1917` on the danger, signal and ok fills (white on `#f87171` would fail AA), and `#e7e5e4` on the dark resolved fill `#44403c`.
 
 **Contrast rule:** yellow is only ever a fill behind `--fi-ink` (`#1c1917`) text, or text on `--fi-rail`. Never use yellow text on a light background.

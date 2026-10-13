@@ -23,7 +23,7 @@ export function statusColor(kind: string): StatusColor {
     case 'attention':
       return { fill: 'danger', text: { light: '#ffffff', dark: INK } };
     case 'synced':
-      return { fill: 'ok', text: { light: INK, dark: INK } };
+      return { fill: 'ok', text: { light: '#ffffff', dark: INK } };
     case 'resolved':
       return { fill: 'resolved', text: { light: INK, dark: STONE_200 } };
     default:

@@ -49,10 +49,11 @@ describe('statusColor', () => {
     }
   });
 
-  it('uses white on danger and ink elsewhere in light mode', () => {
+  it('uses white on danger and ok, ink elsewhere, in light mode', () => {
     for (const k of ALL) {
-      const danger = statusColor(k).fill === 'danger';
-      expect(statusColor(k).text.light).toBe(danger ? '#ffffff' : '#1c1917');
+      const fill = statusColor(k).fill;
+      const white = fill === 'danger' || fill === 'ok';
+      expect(statusColor(k).text.light).toBe(white ? '#ffffff' : '#1c1917');
     }
   });
 });
