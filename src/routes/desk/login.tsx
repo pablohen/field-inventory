@@ -1,17 +1,9 @@
-import {
-  Alert,
-  Button,
-  Container,
-  PinInput,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core';
+import { Alert, Button, PinInput, Stack, Text, TextInput } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { deskLogin } from '#/server/desk/desk-auth.fn';
 import { checkedFetch } from '#/shared/checked-fetch';
+import { AuthSplit } from '#/ui/AuthSplit';
 
 export const Route = createFileRoute('/desk/login')({ component: DeskLogin });
 
@@ -60,7 +52,7 @@ export function DeskLogin() {
   };
 
   return (
-    <Container size="xs" py="xl">
+    <AuthSplit title="Supervisor sign-in">
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -68,7 +60,6 @@ export function DeskLogin() {
         }}
       >
         <Stack>
-          <Title order={3}>Supervisor desk</Title>
           <TextInput
             label="Username"
             autoComplete="username"
@@ -96,6 +87,6 @@ export function DeskLogin() {
           </Button>
         </Stack>
       </form>
-    </Container>
+    </AuthSplit>
   );
 }

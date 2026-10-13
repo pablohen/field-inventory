@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PITCH_COLOR } from '#/ui/AuthSplit';
 import { contrastRatio } from '#/ui/contrast';
 import { type StatusKind, statusColor } from '#/ui/status';
 import { TOKENS, theme } from '#/ui/theme';
@@ -42,6 +43,7 @@ for (const scheme of ['light', 'dark'] as const) {
       expect(contrastRatio(t.muted, t.surface)).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(t.danger, t.surface)).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(t.signal, t.rail)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(PITCH_COLOR, t.rail)).toBeGreaterThanOrEqual(4.5);
     });
 
     it('button fill/text pair meets AA 4.5', () => {

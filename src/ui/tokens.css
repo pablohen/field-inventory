@@ -60,3 +60,70 @@ body {
   outline-offset: 2px;
   box-shadow: 0 0 0 2px var(--fi-ink);
 }
+
+.fi-auth {
+  display: flex;
+  min-height: 100vh;
+  background: var(--fi-surface);
+}
+
+.fi-auth-panel {
+  flex: 0 0 42%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--fi-rail);
+}
+
+.fi-auth-brand {
+  padding: 48px 40px;
+}
+
+.fi-auth-pitch {
+  margin: 16px 0 0;
+  max-width: 28ch;
+  font-size: 18px;
+}
+
+.fi-auth-stripe {
+  height: 24px;
+}
+
+.fi-auth-form {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.fi-auth-card {
+  width: 100%;
+  max-width: 360px;
+}
+
+@media (max-width: 720px) {
+  .fi-auth {
+    flex-direction: column;
+  }
+
+  .fi-auth-panel {
+    flex: none;
+  }
+
+  .fi-auth-brand {
+    padding: 20px 16px;
+  }
+
+  .fi-auth-pitch {
+    display: none;
+  }
+
+  .fi-auth-stripe {
+    height: 12px;
+  }
+
+  .fi-auth-form {
+    align-items: flex-start;
+  }
+}

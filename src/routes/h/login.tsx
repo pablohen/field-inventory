@@ -1,4 +1,12 @@
-import { Alert, Button, PinInput, Stack, Text, TextInput } from '@mantine/core';
+import {
+  Alert,
+  Button,
+  PinInput,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+} from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import {
@@ -88,46 +96,57 @@ function LoginPage() {
   };
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (canSubmit && !busy) void submit();
-      }}
-    >
-      <Stack>
-        {!storedDevice && (
+    <div style={{ minHeight: '100vh', background: 'var(--fi-surface)' }}>
+      <div className="fi-stripe" style={{ height: 16 }} aria-hidden="true" />
+      <form
+        style={{ padding: 16 }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (canSubmit && !busy) void submit();
+        }}
+      >
+        <Stack>
+          <Title order={2}>▲ Handheld</Title>
+          {!storedDevice && (
+            <TextInput
+              label="Device id"
+              value={deviceId}
+              onChange={(e) => setDevice(e.currentTarget.value)}
+            />
+          )}
           <TextInput
-            label="Device id"
-            value={deviceId}
-            onChange={(e) => setDevice(e.currentTarget.value)}
+            label="Username"
+            autoComplete="username"
+            autoCapitalize="off"
+            value={username}
+            onChange={(e) => setUsername(e.currentTarget.value)}
           />
-        )}
-        <TextInput
-          label="Username"
-          autoComplete="username"
-          autoCapitalize="off"
-          value={username}
-          onChange={(e) => setUsername(e.currentTarget.value)}
-        />
-        <div>
-          <Text size="sm" fw={500} mb={4}>
-            PIN
-          </Text>
-          <PinInput
-            length={4}
-            type="number"
-            mask
-            inputMode="numeric"
-            value={pin}
-            onChange={setPin}
-            aria-label="PIN"
-          />
-        </div>
-        {error && <Alert color="red">{error}</Alert>}
-        <Button type="submit" loading={busy} disabled={!canSubmit}>
-          Sign in
-        </Button>
-      </Stack>
-    </form>
+          <div>
+            <Text size="sm" fw={500} mb={4}>
+              PIN
+            </Text>
+            <PinInput
+              length={4}
+              type="number"
+              mask
+              inputMode="numeric"
+              value={pin}
+              onChange={setPin}
+              aria-label="PIN"
+            />
+          </div>
+          {error && <Alert color="red">{error}</Alert>}
+          <Button
+            type="submit"
+            fullWidth
+            mih={48}
+            loading={busy}
+            disabled={!canSubmit}
+          >
+            Sign in
+          </Button>
+        </Stack>
+      </form>
+    </div>
   );
 }
