@@ -117,14 +117,14 @@ The catalog is kept separate from the global database so user and device data ne
 |---|---|
 | `NEGATIVE_BALANCE` | A movement drives a balance below zero |
 | `COUNT_VARIANCE` | The count variance is over tolerance |
-| `LATE_MOVEMENT` | A movement arrives with an `occurredAt` before an accepted count on the same (sku, location). The server re-runs that count's reconciliation and records the result (the previous auto-adjust is kept and a correcting adjust is added, or an exception is raised) |
+| `LATE_MOVEMENT` | A movement arrives with an `occurredAt` before one or more accepted counts on the same (sku, location). The server re-runs the reconciliation of every such count, earliest first, and records each result (the previous auto-adjust is kept and a correcting adjust is added, or an exception is raised) |
 | `OVER_PICK` | The total picked against a pick line is more than `qtyRequested` |
 | `TRANSFER_STUCK` | A `TRANSFER_OUT` has had no matching `TRANSFER_IN` after N hours (configurable). Checked when the exceptions list is loaded and on each sync |
 | `CLOCK_SKEW` | A device's measured clock drift is over the threshold |
 
 Each count has at most one open count exception (`COUNT_VARIANCE` or `LATE_MOVEMENT`), whatever the arrival order of the movements around it. For bins with a single count, the same counts end up flagged in every arrival order. When a late movement makes the server re-run a count:
 - If the corrected variance is within tolerance, the count's open exception is closed as `SUPERSEDED` (resolved by `system`, in the same transaction).
-- If the corrected variance is still over tolerance and the re-run changes the result, the old exception is superseded and one `LATE_MOVEMENT` with the corrected variance replaces it.
+- If the corrected variance is still over tolerance and the re-run changes the result, any open exception for that count is superseded and one `LATE_MOVEMENT` with the corrected variance replaces it.
 - If it is over tolerance and nothing changes, the existing exception stays open.
 
 ## 6. Handheld: local storage and sync
