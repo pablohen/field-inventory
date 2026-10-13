@@ -10,7 +10,13 @@ export function ConfirmButton({
   label?: string;
 }) {
   return (
-    <Button size="md" disabled={isPending} onClick={onConfirm}>
+    <Button
+      size="md"
+      fullWidth
+      style={{ minHeight: 48 }}
+      disabled={isPending}
+      onClick={onConfirm}
+    >
       {label}
     </Button>
   );

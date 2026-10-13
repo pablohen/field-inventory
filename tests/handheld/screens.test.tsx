@@ -26,6 +26,10 @@ import {
   vi,
 } from 'vitest';
 import type { MovementInput } from '#/domain/schemas';
+import { ConfirmButton } from '#/handheld/components/ConfirmButton';
+import { HandheldPinInput } from '#/handheld/components/HandheldPinInput';
+import { QtyInput } from '#/handheld/components/QtyInput';
+import { ScanInput } from '#/handheld/components/ScanInput';
 import { ScreenFrame } from '#/handheld/components/ScreenFrame';
 import { HandheldContext, type HandheldValue } from '#/handheld/context';
 import { initialSyncState } from '#/handheld/sync-loop';
@@ -674,5 +678,63 @@ describe('ScreenFrame', () => {
       t.value,
     );
     await screen.findByText('content');
+  });
+});
+
+describe('handheld signage styling', () => {
+  const minPx = (el: Element, prop: 'minHeight' | 'minWidth') =>
+    Number.parseFloat(getComputedStyle(el)[prop]);
+
+  it('ScreenFrame renders a stripe status bar', async () => {
+    const t = setup();
+    await mount(
+      <ScreenFrame wh="w1" title="Count">
+        <p>content</p>
+      </ScreenFrame>,
+      t.value,
+    );
+    await screen.findByText('content');
+    expect(document.querySelector('.fi-stripe')).toBeTruthy();
+  });
+
+  it('ConfirmButton is at least 48px tall', () => {
+    render(
+      <MantineProvider>
+        <ConfirmButton onConfirm={() => {}} isPending={false} />
+      </MantineProvider>,
+    );
+    const btn = screen.getByRole('button', { name: 'Confirm' });
+    expect(minPx(btn, 'minHeight')).toBeGreaterThanOrEqual(48);
+  });
+
+  it('scan and quantity inputs are at least 48px tall', () => {
+    const t = setup();
+    render(
+      <MantineProvider>
+        <HandheldContext.Provider value={t.value}>
+          <ScanInput onScan={() => {}} label="Scan it" />
+          <QtyInput value="" onChange={() => {}} onEnter={() => {}} />
+        </HandheldContext.Provider>
+      </MantineProvider>,
+    );
+    for (const label of ['Scan it', 'Quantity']) {
+      expect(
+        minPx(screen.getByLabelText(label), 'minHeight'),
+      ).toBeGreaterThanOrEqual(48);
+    }
+  });
+
+  it('PIN boxes are at least 48px', () => {
+    render(
+      <MantineProvider>
+        <HandheldPinInput value="" onChange={() => {}} />
+      </MantineProvider>,
+    );
+    const boxes = document.querySelectorAll('.mantine-PinInput-input');
+    expect(boxes.length).toBe(4);
+    for (const b of boxes) {
+      expect(minPx(b, 'minHeight')).toBeGreaterThanOrEqual(48);
+      expect(minPx(b, 'minWidth')).toBeGreaterThanOrEqual(48);
+    }
   });
 });

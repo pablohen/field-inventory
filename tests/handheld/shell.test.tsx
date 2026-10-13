@@ -191,6 +191,20 @@ describe('StatusPill', () => {
     },
   );
 
+  it.each([
+    [{}, 'synced'],
+    [{ pendingCount: 2 }, 'pending'],
+    [{ attentionCount: 1, pendingCount: 2 }, 'attention'],
+    [{ phase: 'device_revoked' }, 'attention'],
+    [{ phase: 'device_unknown' }, 'attention'],
+  ] as const)('exposes data-status for %j', async (patch, status) => {
+    await pill({ ...patch }, T0);
+    await screen.findByText('Sync now');
+    expect(
+      document.querySelector('[data-status]')?.getAttribute('data-status'),
+    ).toBe(status);
+  });
+
   it('shows Update required for update_required', async () => {
     await pill({ phase: 'update_required' }, T0);
     expect(await screen.findByText('Update required')).toBeTruthy();

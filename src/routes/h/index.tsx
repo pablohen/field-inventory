@@ -1,8 +1,9 @@
-import { Badge, Button, Card, Group, Stack, Text, Title } from '@mantine/core';
+import { Button, Card, Group, Stack, Text, Title } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useHandheld } from '#/handheld/context';
 import { getCachedReplicaConfig } from '#/handheld/session-store';
+import { StatusBadge } from '#/ui/StatusBadge';
 
 export const Route = createFileRoute('/h/')({ component: HandheldHome });
 
@@ -22,7 +23,7 @@ function Exceptions({ wh }: { wh: string }) {
       </Text>
       {data.map((e) => (
         <Group key={e.id} gap="xs">
-          <Badge color="orange">{e.type}</Badge>
+          <StatusBadge kind={e.type}>{e.type}</StatusBadge>
           <Text size="sm">{e.skuId ?? e.locationId ?? e.id}</Text>
         </Group>
       ))}

@@ -19,6 +19,8 @@ export function QtyInput({
   return (
     <NumberInput
       label={label}
+      size="lg"
+      styles={{ input: { minHeight: 48 } }}
       value={value}
       min={min}
       allowNegative={allowNegative}

@@ -1,8 +1,19 @@
-import { Badge, Button, Group } from '@mantine/core';
+import { Button, Group } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { StatusBadge } from '#/ui/StatusBadge';
 import { useHandheld } from '../context';
 import { STALE_WARNING_MS } from '../sync-loop';
+
+const LINK_STYLE = { textDecoration: 'none' } as const;
+
+function overallStatus(
+  attention: boolean,
+  pending: boolean,
+): 'synced' | 'pending' | 'attention' {
+  if (attention) return 'attention';
+  return pending ? 'pending' : 'synced';
+}
 
 export function relativeTime(iso: string, now: number): string {
   const diff = Math.max(0, now - Date.parse(iso));
@@ -46,8 +57,8 @@ export function StatusPill({ now: nowProp }: { now?: number }) {
 
   if (!backend || !syncState) {
     return (
-      <Group gap="xs">
-        <Badge color="gray">Starting…</Badge>
+      <Group gap="xs" data-status="pending">
+        <StatusBadge kind="resolved">Starting…</StatusBadge>
       </Group>
     );
   }
@@ -56,57 +67,50 @@ export function StatusPill({ now: nowProp }: { now?: number }) {
   const stale =
     syncState.lastPullAt !== null &&
     now - Date.parse(syncState.lastPullAt) > STALE_WARNING_MS;
+  const blocked =
+    syncState.phase === 'device_revoked' ||
+    syncState.phase === 'device_unknown';
+  const status = overallStatus(
+    blocked || syncState.attentionCount > 0,
+    syncState.pendingCount > 0,
+  );
 
   return (
-    <Group gap="xs" wrap="wrap">
-      <Badge color={isOnline ? 'green' : 'gray'}>
+    <Group gap="xs" wrap="wrap" data-status={status}>
+      <StatusBadge kind={isOnline ? 'synced' : 'resolved'}>
         {isOnline ? 'Online' : 'Offline'}
-      </Badge>
-      <Badge color="blue" variant="light">
-        {syncState.pendingCount} pending
-      </Badge>
+      </StatusBadge>
+      <StatusBadge kind="pending">{syncState.pendingCount} pending</StatusBadge>
       {syncState.attentionCount > 0 && (
-        <Badge
-          color="red"
-          component={Link}
-          to="/h/attention"
-          style={{ cursor: 'pointer' }}
-        >
-          {syncState.attentionCount} need attention
-        </Badge>
+        <Link to="/h/attention" style={LINK_STYLE}>
+          <StatusBadge kind="attention">
+            {syncState.attentionCount} need attention
+          </StatusBadge>
+        </Link>
       )}
       {syncState.phase === 'needs_sign_in' && (
-        <Badge
-          color="orange"
-          component={Link}
-          to="/h/login"
-          style={{ cursor: 'pointer' }}
-        >
-          Sign in to sync
-        </Badge>
+        <Link to="/h/login" style={LINK_STYLE}>
+          <StatusBadge kind="pending">Sign in to sync</StatusBadge>
+        </Link>
       )}
-      {(syncState.phase === 'device_revoked' ||
-        syncState.phase === 'device_unknown') && (
-        <Badge
-          color="red"
-          component={Link}
-          to="/h/attention"
-          style={{ cursor: 'pointer' }}
-        >
-          {syncState.phase === 'device_revoked'
-            ? 'Device revoked'
-            : 'Device not enrolled'}
-        </Badge>
+      {blocked && (
+        <Link to="/h/attention" style={LINK_STYLE}>
+          <StatusBadge kind="attention">
+            {syncState.phase === 'device_revoked'
+              ? 'Device revoked'
+              : 'Device not enrolled'}
+          </StatusBadge>
+        </Link>
       )}
       {syncState.phase === 'update_required' && (
-        <Badge color="orange">Update required</Badge>
+        <StatusBadge kind="pending">Update required</StatusBadge>
       )}
-      {stale && <Badge color="yellow">Data is stale</Badge>}
-      <Badge color="gray" variant="outline">
+      {stale && <StatusBadge kind="pending">Data is stale</StatusBadge>}
+      <StatusBadge kind="resolved">
         {syncState.lastPullAt
           ? `Synced ${relativeTime(syncState.lastPullAt, now)}`
           : 'Never synced'}
-      </Badge>
+      </StatusBadge>
       <Button
         size="compact-xs"
         variant="light"

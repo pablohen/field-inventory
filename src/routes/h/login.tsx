@@ -1,14 +1,7 @@
-import {
-  Alert,
-  Button,
-  PinInput,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core';
+import { Alert, Button, Stack, Text, TextInput, Title } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
+import { HandheldPinInput } from '#/handheld/components/HandheldPinInput';
 import {
   getDeviceId,
   setCachedSession,
@@ -125,15 +118,7 @@ function LoginPage() {
             <Text size="sm" fw={500} mb={4}>
               PIN
             </Text>
-            <PinInput
-              length={4}
-              type="number"
-              mask
-              inputMode="numeric"
-              value={pin}
-              onChange={setPin}
-              aria-label="PIN"
-            />
+            <HandheldPinInput value={pin} onChange={setPin} />
           </div>
           {error && <Alert color="red">{error}</Alert>}
           <Button

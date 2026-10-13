@@ -30,5 +30,9 @@ export function DisplayedQty({
   const row = data.find(
     (r) => r.skuId === skuId && r.locationId === locationId,
   );
-  return <Text>On hand: {row?.qty ?? 0}</Text>;
+  return (
+    <Text fz={40} fw={800} lh={1.1} className="fi-num">
+      On hand: {row?.qty ?? 0}
+    </Text>
+  );
 }

@@ -24,6 +24,8 @@ export function ScanInput({
     <TextInput
       ref={ref}
       label={label}
+      size="lg"
+      styles={{ input: { minHeight: 48 } }}
       placeholder={starting ? 'Starting…' : placeholder}
       disabled={starting}
       value={value}
