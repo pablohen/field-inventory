@@ -83,6 +83,29 @@ describe('replicaConfigCore', () => {
     expect(cfg.replicas[0].dbName).toBe('cat');
   });
 
+  it('skips warehouses that are not ready and never mints for them', async () => {
+    await env.seedDevice({ id: 'd3', warehouses: ['w4', 'w5'] });
+    await env.global.warehouse.update({
+      where: { id: 'w5' },
+      data: { schemaVersion: 0 },
+    });
+    const mint = vi.fn(async (db: string) => ({
+      token: `t-${db}`,
+      expiresAt: 'x',
+    }));
+    const cfg = await replicaConfigCore(
+      {
+        global: env.global,
+        minter: { mint },
+        urlFor: (n) => `libsql://${n}`,
+        catalogDbName: 'cat',
+      },
+      { userId: 'u', deviceId: 'd3', role: 'worker', exp: 0 },
+    );
+    expect(cfg.replicas.map((r) => r.name)).toEqual(['catalog', 'w4']);
+    expect(mint.mock.calls.map((c) => c[0])).toEqual(['cat', 'w4']);
+  });
+
   it.each([
     ['dr', 'DEVICE_REVOKED'],
     ['ghost', 'DEVICE_UNKNOWN'],

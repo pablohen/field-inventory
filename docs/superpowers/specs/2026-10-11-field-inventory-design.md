@@ -231,4 +231,5 @@ Lists use route search params validated by Zod (shareable URLs) and refresh by p
 ## 12. Open risks
 - **Turso browser sync maturity:** covered by milestone 0 and the approach B fallback.
 - **Device clock drift:** count reconciliation depends on `occurredAt`. Drift is measured on every sync and flagged with `CLOCK_SKEW`, but not corrected automatically.
+- **Revocation lag on replica tokens:** a disabled worker or revoked device keeps read-only replica access with already-minted tokens until they expire (7 days at most). Turso tokens can't be revoked individually; rotate the group token if this needs to be cut off sooner.
 - **OPFS on rugged Android Chrome versions:** checked in milestone 0 on a real or emulated target if possible.

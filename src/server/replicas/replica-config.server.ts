@@ -1,3 +1,4 @@
+import { SCHEMA_VERSIONS } from '#/domain/schema-versions';
 import { assertSessionUserActive } from '#/server/auth/authorize';
 import type { SessionClaims } from '#/server/auth/session';
 import { type GlobalClient, globalDb, warehouseUrl } from '#/server/db/clients';
@@ -28,11 +29,17 @@ export async function replicaConfigCore(
   });
   if (!device) throw forbidden('DEVICE_UNKNOWN');
   if (device.revokedAt !== null) throw forbidden('DEVICE_REVOKED');
-  const links = await deps.global.deviceWarehouse.findMany({
+  const allLinks = await deps.global.deviceWarehouse.findMany({
     where: { deviceId: session.deviceId },
     include: { warehouse: true },
     orderBy: { warehouseId: 'asc' },
   });
+  // Same readiness notion as warehouseClientFor / sync's WAREHOUSE_NOT_READY:
+  // a warehouse that isn't at the current schema gets no replica, so one bad
+  // link can't fail the whole config.
+  const links = allLinks.filter(
+    (l) => l.warehouse.schemaVersion === SCHEMA_VERSIONS.warehouse,
+  );
   const targets = [
     { name: 'catalog', dbName: deps.catalogDbName },
     ...links.map((l) => ({

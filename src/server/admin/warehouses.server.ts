@@ -28,6 +28,14 @@ export interface ProvisionDeps {
   migrate(dbName: string): Promise<number>;
 }
 
+function isUniqueViolation(e: unknown): boolean {
+  return (
+    typeof e === 'object' &&
+    e !== null &&
+    (e as { code?: unknown }).code === 'P2002'
+  );
+}
+
 export function warehouseStatus(schemaVersion: number): WarehouseStatus {
   if (schemaVersion === SCHEMA_VERSIONS.warehouse) return 'READY';
   return schemaVersion === 0 ? 'SETUP_INCOMPLETE' : 'NEEDS_MIGRATION';
@@ -93,9 +101,10 @@ export async function createWarehouseCore(
     await deps.global.warehouse.create({
       data: { id, name, tursoDbName: `fi-${id}`, schemaVersion: 0 },
     });
-  } catch {
+  } catch (e) {
     // Lost a race with a concurrent create of the same id.
-    return exists;
+    if (isUniqueViolation(e)) return exists;
+    throw e;
   }
   return finishWarehouseSetupCore(deps, id);
 }

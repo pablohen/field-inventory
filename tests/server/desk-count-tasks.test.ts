@@ -229,6 +229,17 @@ describe('count tasks', () => {
     ]);
   });
 
+  it('listWorkersCore excludes disabled workers', async () => {
+    await env.seedUser({
+      id: 'off',
+      username: 'aaa-off',
+      pin: '1234',
+      disabledAt: new Date(),
+    });
+    const ws = await listWorkersCore(env.global);
+    expect(ws.map((w) => w.id)).not.toContain('off');
+  });
+
   it('returns 403 for a worker session on every handler', async () => {
     const worker = {
       userId: 'w1',

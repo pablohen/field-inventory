@@ -162,6 +162,23 @@ describe('warehouse provisioning', () => {
     });
   });
 
+  it('reports only a unique violation as already exists; rethrows other insert errors', async () => {
+    const d = deps();
+    const create = vi.spyOn(d.global.warehouse, 'create');
+    create.mockRejectedValueOnce(
+      Object.assign(new Error('x'), { code: 'P2002' }),
+    );
+    expect(await createWarehouseCore(d, { id: 'north', name: 'N' })).toEqual({
+      ok: false,
+      code: 'INVALID',
+      message: 'Warehouse north already exists',
+    });
+    create.mockRejectedValueOnce(new Error('db down'));
+    await expect(
+      createWarehouseCore(d, { id: 'north', name: 'N' }),
+    ).rejects.toThrow('db down');
+  });
+
   it('rejects a duplicate id and reports NOT_FOUND on finish', async () => {
     await createWarehouseCore(deps(), { id: 'north', name: 'North' });
     expect(

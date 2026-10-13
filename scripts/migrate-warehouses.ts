@@ -8,6 +8,7 @@ import {
   globalUrl,
 } from '#/server/db/clients';
 import { applyMigrations, migrationsDir } from '#/server/db/migrate';
+import { migrateAllWarehouses } from '#/server/db/migrate-all-warehouses';
 import { migrateWarehouseDb } from '#/server/db/migrate-warehouse';
 
 async function migrate(url: string, name: 'global' | 'catalog') {
@@ -29,16 +30,10 @@ async function main() {
   console.log(`catalog: v${await migrate(catalogUrl(), 'catalog')}`);
 
   const db = globalDb();
-  const warehouses = await db.warehouse.findMany({ orderBy: { id: 'asc' } });
-  for (const wh of warehouses) {
-    const version = await migrateWarehouseDb(wh.tursoDbName);
-    if (version !== wh.schemaVersion) {
-      await db.warehouse.update({
-        where: { id: wh.id },
-        data: { schemaVersion: version },
-      });
-    }
-    console.log(`${wh.tursoDbName}: v${version}`);
+  const failed = await migrateAllWarehouses(db, migrateWarehouseDb);
+  if (failed > 0) {
+    console.error(`${failed} warehouse(s) failed to migrate`);
+    process.exitCode = 1;
   }
 }
 

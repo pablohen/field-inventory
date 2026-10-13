@@ -115,8 +115,18 @@ export async function suggestPickListCore(
   if (unknown !== undefined) {
     return { ok: false, code: 'INVALID', message: `Unknown SKU ${unknown}` };
   }
+  // Stock in an inactive bin can't be picked (create refuses it), so it
+  // must not be suggested; it surfaces as a shortfall instead.
+  const active = await wh.db.location.findMany({
+    where: { active: true },
+    select: { id: true },
+  });
   const balances = await wh.db.stockBalance.findMany({
-    where: { skuId: { in: skuIds }, qty: { gt: 0 } },
+    where: {
+      skuId: { in: skuIds },
+      qty: { gt: 0 },
+      locationId: { in: active.map((l) => l.id) },
+    },
   });
   return { ok: true, ...suggestBins(requests, balances) };
 }

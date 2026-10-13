@@ -198,6 +198,33 @@ describe('pick lists', () => {
     });
   });
 
+  it('never suggests stock held in an inactive bin', async () => {
+    const db = await env.warehouse(WH);
+    await db.stockBalance.create({
+      data: { skuId: 'P1', locationId: 'L2', qty: 5 },
+    });
+    const r = await suggestPickListCore(deps, WH, [{ skuId: 'P1', qty: 3 }]);
+    expect(r).toEqual({
+      ok: true,
+      lines: [{ skuId: 'P1', locationId: null, qty: 3 }],
+      shortfalls: [{ skuId: 'P1', missing: 3 }],
+    });
+  });
+
+  it('rejects a disabled assignee', async () => {
+    await env.seedUser({
+      id: 'gone',
+      username: 'gone',
+      pin: '1234',
+      disabledAt: new Date(),
+    });
+    const r = await createPickListCore(deps, session, WH, {
+      lines: [{ skuId: 'P1', locationId: 'L1', qty: 1 }],
+      assignedUserId: 'gone',
+    });
+    expect(r).toMatchObject({ ok: false, code: 'INVALID' });
+  });
+
   it('rejects suggestions for SKUs not in the catalog', async () => {
     expect(
       await suggestPickListCore(deps, WH, [{ skuId: 'NOPE', qty: 1 }]),

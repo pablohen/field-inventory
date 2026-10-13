@@ -10,10 +10,14 @@ export async function assertWorker(
 ): Promise<DeskError | null> {
   const user = await global.user.findUnique({
     where: { id: userId },
-    select: { role: true },
+    select: { role: true, disabledAt: true },
   });
-  if (user?.role !== 'worker') {
-    return { ok: false, code: 'INVALID', message: 'Assignee must be a worker' };
+  if (user?.role !== 'worker' || user.disabledAt !== null) {
+    return {
+      ok: false,
+      code: 'INVALID',
+      message: 'Assignee must be an active worker',
+    };
   }
   return null;
 }
@@ -23,7 +27,7 @@ export async function listWorkersCore(
   global: GlobalClient,
 ): Promise<{ id: string; name: string }[]> {
   return global.user.findMany({
-    where: { role: 'worker' },
+    where: { role: 'worker', disabledAt: null },
     select: { id: true, name: true },
     orderBy: [{ name: 'asc' }, { id: 'asc' }],
   });
