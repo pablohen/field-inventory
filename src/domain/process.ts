@@ -25,7 +25,7 @@ export interface Effects {
   /** Aggregated per key over all `movements`; zero-net keys are dropped. */
   balanceDeltas: BalanceDelta[];
   exceptions: ExceptionDraft[];
-  /** Counts whose late-movement correction landed within tolerance (D1); no duplicates. */
+  /** Counts whose open exceptions a late movement made stale (D1 within tolerance, D2 replaced by a LATE_MOVEMENT); no duplicates. */
   supersededCountIds: string[];
 }
 

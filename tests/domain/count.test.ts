@@ -237,7 +237,7 @@ describe('correctForLateMovement', () => {
       expect(out.supersedes).toBe(true);
     });
 
-    it('is false when the total variance stays over tolerance', () => {
+    it('is true when the corrected variance is over tolerance and the correction is non-zero (D2)', () => {
       const out = correctForLateMovement(
         count4,
         [receipt, lateMove(1), count4],
@@ -248,7 +248,28 @@ describe('correctForLateMovement', () => {
       expect(out.kind).toBe('exception');
       if (out.kind !== 'exception') return;
       expect(out.exception.type).toBe('LATE_MOVEMENT');
-      expect(out.supersedes).toBe(false);
+      expect(out.exception.movementIds).toEqual(['c1', 'late1']);
+      expect(out.supersedes).toBe(true);
+    });
+
+    it('is false when the variance is over tolerance and nothing changes', () => {
+      const ownAdjust = mv({
+        id: 'sys-0',
+        type: 'ADJUST',
+        source: 'system',
+        ref: 'c1',
+        toLocationId: 'A',
+        qty: -5,
+        occurredAt: at('10:00'),
+      });
+      const out = correctForLateMovement(
+        count4,
+        [receipt, lateMove(1), count4, ownAdjust],
+        2,
+        ids(),
+        'late1',
+      );
+      expect(out).toEqual({ kind: 'none', supersedes: false });
     });
   });
 });

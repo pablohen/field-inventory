@@ -17,11 +17,18 @@ export type WarehouseTx = Parameters<
   Parameters<WarehouseClient['$transaction']>[0]
 >[0];
 
+/**
+ * Interactive-transaction limits for the ledger paths. Prisma's defaults
+ * (2 s maxWait, 5 s timeout) are too tight when every statement is a round
+ * trip to a remote Turso database.
+ */
+export const LEDGER_TX_OPTIONS = { maxWait: 15_000, timeout: 30_000 } as const;
+
 export function withMovementTx<T>(
   db: WarehouseClient,
   fn: (tx: WarehouseTx) => Promise<T>,
 ): Promise<T> {
-  return db.$transaction(fn);
+  return db.$transaction(fn, LEDGER_TX_OPTIONS);
 }
 
 export interface MovementRow {
@@ -157,8 +164,10 @@ export async function persistEffects(
       update: { qty: { increment: d.delta } },
     });
   }
-  await persistExceptions(tx, effects.exceptions);
+  // Supersede first so a replacement LATE_MOVEMENT raised in the same effects
+  // is inserted afterwards and is never itself superseded.
   await supersedeCountExceptions(tx, effects.supersededCountIds);
+  await persistExceptions(tx, effects.exceptions);
 }
 
 /**

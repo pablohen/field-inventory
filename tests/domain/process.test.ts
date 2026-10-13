@@ -235,6 +235,56 @@ describe('processMovement', () => {
     expect(e.exceptions).toEqual([]);
   });
 
+  describe('over-tolerance late correction (D2)', () => {
+    const count = mv({
+      id: 'c1',
+      type: 'COUNT',
+      qty: 4,
+      occurredAt: at('10:00'),
+    });
+    const late = mv({
+      id: 'late1',
+      type: 'MOVE',
+      fromLocationId: 'A',
+      toLocationId: 'B',
+      qty: 1,
+      occurredAt: at('09:30'),
+    });
+
+    it('B then A: supersedes the count variance and raises one LATE_MOVEMENT', () => {
+      const first = processMovement(
+        count,
+        ctxFor([receipt], { tolerance: 2 }),
+        idGen(),
+      );
+      expect(first.exceptions.map((x) => x.type)).toEqual(['COUNT_VARIANCE']);
+      const e = processMovement(
+        late,
+        ctxFor([receipt, count], { tolerance: 2 }),
+        idGen(),
+      );
+      expect(e.supersededCountIds).toEqual(['c1']);
+      expect(e.exceptions.map((x) => x.type)).toEqual(['LATE_MOVEMENT']);
+      expect(e.exceptions[0]?.movementIds).toEqual(['c1', 'late1']);
+    });
+
+    it('A then B: the count raises exactly one COUNT_VARIANCE', () => {
+      const first = processMovement(
+        late,
+        ctxFor([receipt], { tolerance: 2 }),
+        idGen(),
+      );
+      expect(first.exceptions).toEqual([]);
+      const e = processMovement(
+        count,
+        ctxFor([receipt, late], { tolerance: 2 }),
+        idGen(),
+      );
+      expect(e.supersededCountIds).toEqual([]);
+      expect(e.exceptions.map((x) => x.type)).toEqual(['COUNT_VARIANCE']);
+    });
+  });
+
   it('raises OVER_PICK', () => {
     const e = processMovement(
       pick({ qty: 3 }),

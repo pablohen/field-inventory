@@ -122,6 +122,11 @@ The catalog is kept separate from the global database so user and device data ne
 | `TRANSFER_STUCK` | A `TRANSFER_OUT` has had no matching `TRANSFER_IN` after N hours (configurable). Checked when the exceptions list is loaded and on each sync |
 | `CLOCK_SKEW` | A device's measured clock drift is over the threshold |
 
+A count has at most one open count exception (`COUNT_VARIANCE` or `LATE_MOVEMENT`), whatever the arrival order of the movements around it. When a late movement makes the server re-run a count:
+- If the corrected variance is within tolerance, the count's open exception is closed as `SUPERSEDED` (resolved by `system`, in the same transaction).
+- If the corrected variance is still over tolerance and the re-run changes the result, the old exception is superseded and one `LATE_MOVEMENT` with the corrected variance replaces it.
+- If it is over tolerance and nothing changes, the existing exception stays open.
+
 ## 6. Handheld: local storage and sync
 
 ### 6.1 Local storage

@@ -8,8 +8,10 @@ export type CountOutcome =
 
 /**
  * Outcome of re-running a count after a late movement. `supersedes` is true
- * when the corrected total variance is within tolerance, so any earlier open
- * exception for the count is stale.
+ * when any earlier open exception for the count is stale: the corrected total
+ * variance is within tolerance (D1), or it is over tolerance and the outcome
+ * carries a replacement LATE_MOVEMENT (D2). It is false only when the variance
+ * stays over tolerance with nothing to correct.
  */
 export type LateCorrection = CountOutcome & { supersedes: boolean };
 
@@ -156,18 +158,20 @@ export function correctForLateMovement(
     .filter((m) => isOwnAdjust(m, count.id))
     .reduce((s, m) => s + m.qty, 0);
   const correction = totalAdjust - existing;
-  const supersedes = Math.abs(totalAdjust) <= tolerance;
-  if (correction === 0) return { kind: 'none', supersedes };
-  if (supersedes) {
+  const withinTolerance = Math.abs(totalAdjust) <= tolerance;
+  if (correction === 0) return { kind: 'none', supersedes: withinTolerance };
+  if (withinTolerance) {
     return {
       kind: 'auto_adjust',
       adjust: autoAdjust(count, correction, newId),
-      supersedes,
+      supersedes: true,
     };
   }
+  // D2: over tolerance with a real correction. The new LATE_MOVEMENT replaces
+  // the count's stale open exception, so the count keeps at most one.
   return {
     kind: 'exception',
-    supersedes,
+    supersedes: true,
     exception: {
       type: 'LATE_MOVEMENT',
       movementIds: [count.id, lateId],

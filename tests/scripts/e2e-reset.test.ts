@@ -158,5 +158,5 @@ describe('e2e reset', () => {
       if (prev.a === undefined) delete process.env.E2E_ALLOW_RESET;
       else process.env.E2E_ALLOW_RESET = prev.a;
     }
-  });
+  }, 30_000);
 });

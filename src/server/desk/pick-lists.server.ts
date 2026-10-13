@@ -5,6 +5,7 @@ import type {
   GlobalClient,
   WarehouseClient,
 } from '#/server/db/clients';
+import { LEDGER_TX_OPTIONS } from '#/server/sync/warehouse-repo';
 import { authorizeDesk, type DeskSession } from './session';
 import { assertWorker } from './users.server';
 import { type DeskError, warehouseClientFor } from './warehouses.server';
@@ -229,7 +230,7 @@ export async function createPickListCore(
           },
         });
       }
-    });
+    }, LEDGER_TX_OPTIONS);
   } catch (err) {
     if (err instanceof PickListAbort) return err.error;
     throw err;

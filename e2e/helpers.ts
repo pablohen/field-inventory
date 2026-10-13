@@ -92,6 +92,8 @@ const PENDING = /^(\d+) pending$/;
 export async function syncNow(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Sync now' }).click();
   await expect(page.getByText(/^0 pending$/)).toBeVisible({ timeout: 15_000 });
+  // A rejected row also leaves "pending"; make that a direct failure.
+  await expect(page.getByText(/need attention$/)).toHaveCount(0);
 }
 
 /** The "N pending" count in the status pill (the page must be a ready handheld page). */

@@ -252,3 +252,20 @@ describe('warehouse repository', () => {
     expect(noMatch.pickedBefore).toBe(0);
   });
 });
+
+describe('withMovementTx', () => {
+  it('passes the ledger transaction limits to $transaction', async () => {
+    const calls: unknown[][] = [];
+    const fake = {
+      $transaction: async (
+        fn: (tx: unknown) => Promise<unknown>,
+        ...rest: unknown[]
+      ) => {
+        calls.push(rest);
+        return fn({});
+      },
+    } as unknown as WarehouseClient;
+    await expect(withMovementTx(fake, async () => 'ok')).resolves.toBe('ok');
+    expect(calls).toEqual([[{ maxWait: 15_000, timeout: 30_000 }]]);
+  });
+});
