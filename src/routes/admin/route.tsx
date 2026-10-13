@@ -1,18 +1,19 @@
-import { Container, Group, Stack, Text } from '@mantine/core';
+import { Text } from '@mantine/core';
 import {
   createFileRoute,
   Link,
   Outlet,
   redirect,
   useRouter,
+  useRouterState,
 } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { adminTarget } from '#/admin/admin-target';
-import { AdminNav } from '#/admin/components/AdminNav';
 import { onSessionExpired, watchDeskAuth } from '#/desk/auth-error';
 import { SignOutButton } from '#/desk/components/SignOutButton';
 import { deskCall } from '#/desk/desk-call';
 import { getDeskSession } from '#/server/desk/desk-auth.fn';
+import { AppShellSidebar } from '#/ui/AppShellSidebar';
 
 export const Route = createFileRoute('/admin')({
   beforeLoad: async () => {
@@ -30,6 +31,15 @@ function AdminLayout() {
   return <AdminLayoutView session={session} />;
 }
 
+const ADMIN_LINKS = [
+  { to: '/admin/warehouses', label: 'Warehouses' },
+  { to: '/admin/users', label: 'Users' },
+  { to: '/admin/devices', label: 'Devices' },
+  { to: '/admin/products', label: 'Products' },
+  { to: '/admin/categories', label: 'Categories' },
+  { to: '/admin/reason-codes', label: 'Reason codes' },
+] as const;
+
 const assignUrl = (url: string) => window.location.assign(url);
 
 export function AdminLayoutView({
@@ -40,6 +50,7 @@ export function AdminLayoutView({
   navigate?: (url: string) => void;
 }) {
   const { queryClient } = useRouter().options.context;
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   // Every admin query polls; set once, before children mount.
   useState(() =>
     queryClient.setQueryDefaults(['admin'], { refetchInterval: 10000 }),
@@ -55,18 +66,27 @@ export function AdminLayoutView({
     };
   }, [queryClient, navigate]);
   return (
-    <Container size="xl" py="md">
-      <Stack>
-        <Group justify="space-between" align="flex-end">
-          <AdminNav />
-          <Group gap="sm">
-            <Link to="/">Back to desk</Link>
-            <Text size="sm">{session?.name}</Text>
-            <SignOutButton />
-          </Group>
-        </Group>
-        <Outlet />
-      </Stack>
-    </Container>
+    <AppShellSidebar
+      switcher={
+        <Text fw={800} size="lg" c="inherit">
+          Admin
+        </Text>
+      }
+      links={ADMIN_LINKS.map((l) => ({
+        ...l,
+        active: pathname === l.to || pathname.startsWith(`${l.to}/`),
+      }))}
+      footer={
+        <>
+          <Link to="/">Back to desk</Link>
+          <Text size="sm" className="fi-trunc" title={session?.name}>
+            {session?.name}
+          </Text>
+          <SignOutButton />
+        </>
+      }
+    >
+      <Outlet />
+    </AppShellSidebar>
   );
 }

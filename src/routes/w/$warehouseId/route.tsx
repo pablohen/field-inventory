@@ -1,4 +1,4 @@
-import { Alert, Container, Group, Stack, Text } from '@mantine/core';
+import { Alert, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import {
   createFileRoute,
@@ -10,10 +10,11 @@ import {
 } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { onSessionExpired, watchDeskAuth } from '#/desk/auth-error';
-import { DeskNav } from '#/desk/components/DeskNav';
 import { SignOutButton } from '#/desk/components/SignOutButton';
+import { WarehouseSwitcher } from '#/desk/components/WarehouseSwitcher';
 import { deskCall } from '#/desk/desk-call';
 import { getDeskSession, getWarehouses } from '#/server/desk/desk-auth.fn';
+import { AppShellSidebar } from '#/ui/AppShellSidebar';
 
 export const Route = createFileRoute('/w/$warehouseId')({
   beforeLoad: async () => {
@@ -29,6 +30,13 @@ function DeskLayout() {
   const { session } = Route.useRouteContext();
   return <DeskLayoutView warehouseId={warehouseId} session={session} />;
 }
+
+const DESK_LINKS = [
+  { to: '/w/$warehouseId/exceptions', label: 'Exceptions', seg: 'exceptions' },
+  { to: '/w/$warehouseId/stock', label: 'Stock', seg: 'stock' },
+  { to: '/w/$warehouseId/pick-lists', label: 'Pick lists', seg: 'pick-lists' },
+  { to: '/w/$warehouseId/counts', label: 'Counts', seg: 'counts' },
+] as const;
 
 const assignUrl = (url: string) => window.location.assign(url);
 
@@ -67,27 +75,38 @@ export function DeskLayoutView({
     };
   }, [queryClient, navigate]);
 
+  const links = DESK_LINKS.map((l) => ({
+    label: l.label,
+    to: l.to,
+    params: { warehouseId },
+    active: pathname.endsWith(`/${l.seg}`) || pathname.includes(`/${l.seg}/`),
+  }));
+
   return (
-    <Container size="xl" py="md">
-      <Stack>
-        <Group justify="space-between" align="flex-end">
-          <DeskNav
-            warehouseId={warehouseId}
-            warehouses={warehouses}
-            pathname={pathname}
-          />
-          <Group gap="sm">
-            {session.role === 'admin' && <Link to="/admin">Admin</Link>}
-            <Text size="sm">{session.name}</Text>
-            <SignOutButton />
-          </Group>
-        </Group>
-        {known === false ? (
-          <Alert color="red">Warehouse not found</Alert>
-        ) : (
-          <Outlet />
-        )}
-      </Stack>
-    </Container>
+    <AppShellSidebar
+      switcher={
+        <WarehouseSwitcher
+          warehouseId={warehouseId}
+          warehouses={warehouses}
+          pathname={pathname}
+        />
+      }
+      links={links}
+      footer={
+        <>
+          {session.role === 'admin' && <Link to="/admin">Admin</Link>}
+          <Text size="sm" className="fi-trunc" title={session.name}>
+            {session.name}
+          </Text>
+          <SignOutButton />
+        </>
+      }
+    >
+      {known === false ? (
+        <Alert color="red">Warehouse not found</Alert>
+      ) : (
+        <Outlet />
+      )}
+    </AppShellSidebar>
   );
 }

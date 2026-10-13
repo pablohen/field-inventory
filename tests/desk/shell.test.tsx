@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 import { MantineProvider } from '@mantine/core';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   createMemoryHistory,
   createRootRoute,
+  createRootRouteWithContext,
   createRoute,
   createRouter,
   RouterProvider,
@@ -15,7 +17,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { DeskNav, switchWarehousePath } from '#/desk/components/DeskNav';
+import { switchWarehousePath } from '#/desk/components/WarehouseSwitcher';
 import { deskHomeTarget } from '#/desk/home-target';
 
 const deskLogin = vi.hoisted(() => vi.fn());
@@ -28,6 +30,7 @@ vi.mock('#/server/desk/desk-auth.fn', () => ({
 vi.mock('#/shared/checked-fetch', () => ({ checkedFetch: () => fetch }));
 
 import { DeskLogin } from '#/routes/desk/login';
+import { DeskLayoutView } from '#/routes/w/$warehouseId/route';
 
 beforeAll(() => {
   window.scrollTo = () => {};
@@ -103,16 +106,10 @@ describe('DeskNav', () => {
   });
 
   it('renders the four links for the current warehouse', async () => {
-    const root = createRootRoute({
+    const qc = new QueryClient();
+    const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({
       component: () => (
-        <DeskNav
-          warehouseId="wh-1"
-          warehouses={[
-            { id: 'wh-1', name: 'One' },
-            { id: 'wh-2', name: 'Two' },
-          ]}
-          pathname="/w/wh-1/stock"
-        />
+        <DeskLayoutView warehouseId="wh-1" session={{ name: 'Sup' }} />
       ),
     });
     const leaf = createRoute({
@@ -122,10 +119,13 @@ describe('DeskNav', () => {
     const router = createRouter({
       routeTree: root.addChildren([leaf]),
       history: createMemoryHistory({ initialEntries: ['/w/wh-1/stock'] }),
+      context: { queryClient: qc },
     });
     render(
       <MantineProvider>
-        <RouterProvider router={router} />
+        <QueryClientProvider client={qc}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
       </MantineProvider>,
     );
     await waitFor(() => screen.getByText('Exceptions'));

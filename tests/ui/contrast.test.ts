@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { RAIL_ACTIVE_INK, RAIL_LINK_COLOR } from '#/ui/AppShellSidebar';
 import { PITCH_COLOR } from '#/ui/AuthSplit';
 import { contrastRatio } from '#/ui/contrast';
 import { type StatusKind, statusColor } from '#/ui/status';
@@ -44,6 +45,15 @@ for (const scheme of ['light', 'dark'] as const) {
       expect(contrastRatio(t.danger, t.surface)).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(t.signal, t.rail)).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(PITCH_COLOR, t.rail)).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('rail link pairs meet AA 4.5', () => {
+      expect(contrastRatio(RAIL_LINK_COLOR, t.rail)).toBeGreaterThanOrEqual(
+        4.5,
+      );
+      expect(contrastRatio(RAIL_ACTIVE_INK, t.signal)).toBeGreaterThanOrEqual(
+        4.5,
+      );
     });
 
     it('button fill/text pair meets AA 4.5', () => {

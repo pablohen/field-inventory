@@ -3,16 +3,13 @@ import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   createMemoryHistory,
-  createRootRoute,
   createRootRouteWithContext,
-  createRoute,
   createRouter,
   RouterProvider,
 } from '@tanstack/react-router';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { adminTarget } from '#/admin/admin-target';
-import { AdminNav } from '#/admin/components/AdminNav';
 import { notifySessionExpired } from '#/desk/auth-error';
 import { HttpError } from '#/shared/checked-fetch';
 
@@ -78,22 +75,9 @@ describe('adminTarget', () => {
   });
 });
 
-describe('AdminNav', () => {
+describe('admin sidebar', () => {
   it('renders the six section links', async () => {
-    const root = createRootRoute({ component: AdminNav });
-    const leaf = createRoute({
-      getParentRoute: () => root,
-      path: '/admin/$page',
-    });
-    const router = createRouter({
-      routeTree: root.addChildren([leaf]),
-      history: createMemoryHistory({ initialEntries: ['/admin/users'] }),
-    });
-    render(
-      <MantineProvider>
-        <RouterProvider router={router} />
-      </MantineProvider>,
-    );
+    mount(() => <AdminLayoutView session={{ name: 'Root' }} />);
     await waitFor(() => screen.getByText('Warehouses'));
     const href = (name: string) =>
       screen.getByText(name).closest('a')?.getAttribute('href');
