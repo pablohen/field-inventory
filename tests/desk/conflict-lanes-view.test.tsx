@@ -69,6 +69,25 @@ describe('ConflictLanes', () => {
     ).toBeTruthy();
   });
 
+  it('renders a late label per late line and the worker in a title', () => {
+    const { container } = show([
+      mv(1, true, '2026-03-01T10:00:00.000Z', 19),
+      mv(2, true, '2026-03-01T10:30:00.000Z', 17),
+    ]);
+    expect(screen.getAllByText('late')).toHaveLength(1);
+    const late = container.querySelector('line[data-late="true"] title');
+    expect(late?.textContent).toContain('Wendy');
+  });
+
+  it('draws 12 involved movements without the fallback', () => {
+    const ms = Array.from({ length: 12 }, (_, i) =>
+      mv(i, true, `2026-03-01T10:${String(i).padStart(2, '0')}:00.000Z`, i),
+    );
+    const { container } = show(ms);
+    expect(container.querySelectorAll('line[data-late]')).toHaveLength(12);
+    expect(screen.queryByText(/Too many movements/)).toBeNull();
+  });
+
   it('falls back to text above 12 involved movements', () => {
     const ms = Array.from({ length: 13 }, (_, i) =>
       mv(i, true, `2026-03-01T10:${String(i).padStart(2, '0')}:00.000Z`, i),

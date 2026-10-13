@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { type LaneInput, laneLayout } from '#/desk/conflict-lanes';
+import {
+  CHAR_W,
+  LANE_W,
+  type LaneInput,
+  laneLayout,
+  laneSlot,
+} from '#/desk/conflict-lanes';
 
 function m(
   id: string,
@@ -48,5 +54,40 @@ describe('laneLayout', () => {
     expect(one[0]?.late).toBe(false);
     expect(one[0]?.label).toBe('MOVE · Wendy');
     expect(laneLayout([])).toEqual([]);
+  });
+
+  it('flags only the overtaken one among three, with a short label', () => {
+    const out = laneLayout([
+      m('C', '2026-03-01T09:00:00.000Z', 3, -6),
+      m('A', '2026-03-01T10:00:00.000Z', 1, 2),
+      m('B', '2026-03-01T11:00:00.000Z', 2, 2),
+    ]);
+    expect(out.filter((o) => o.late).map((o) => o.id)).toEqual(['C']);
+    expect(out.find((o) => o.id === 'C')?.shortLabel).toBe('MOVE −6');
+    expect(out.find((o) => o.id === 'C')?.label).toBe('MOVE −6 · Wendy');
+  });
+});
+
+describe('laneSlot', () => {
+  it('keeps same-row labels apart and inside the viewBox at n=12', () => {
+    const n = 12;
+    const width = 'TRANSFER_OUT −99'.length * CHAR_W;
+    const slots = Array.from({ length: n }, (_, r) => laneSlot(r, n));
+    for (let i = 0; i < n; i++) {
+      const a = slots[i];
+      if (!a) continue;
+      expect(a.labelX - width / 2).toBeGreaterThanOrEqual(0);
+      expect(a.labelX + width / 2).toBeLessThanOrEqual(LANE_W);
+      for (let j = i + 1; j < n; j++) {
+        const b = slots[j];
+        if (b && a.row === b.row) {
+          expect(Math.abs(b.x - a.x)).toBeGreaterThanOrEqual(width * 1.2);
+        }
+      }
+    }
+  });
+
+  it('centres a single point', () => {
+    expect(laneSlot(0, 1).x).toBe(LANE_W / 2);
   });
 });

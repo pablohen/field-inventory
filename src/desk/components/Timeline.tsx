@@ -1,14 +1,11 @@
 import { Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
+import { signed } from '#/desk/format';
 import { movementDeltas } from '#/domain/balance';
 import type { MovementSource, MovementType } from '#/domain/types';
 import type { TimelineMovement } from '#/server/desk/exceptions.server';
 import { StatusBadge } from '#/ui/StatusBadge';
 
 export type TimelineKey = { skuId: string; locationId: string };
-
-export function signed(n: number): string {
-  return n < 0 ? `−${Math.abs(n)}` : n > 0 ? `+${n}` : '0';
-}
 
 /** Compact UTC timestamp, stable across viewer time zones. */
 export function fmtTime(iso: string): string {
