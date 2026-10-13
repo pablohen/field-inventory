@@ -15,8 +15,11 @@ export function isDeskAuthError(err: unknown): boolean {
   return message === 'Unauthorized' || message === 'Forbidden';
 }
 
+const WATCHED_ROOTS: ReadonlySet<unknown> = new Set(['desk', 'admin']);
+
 /**
- * Calls `onExpired` when any `['desk', ...]` query fails with an auth error.
+ * Calls `onExpired` when any `['desk', ...]` or `['admin', ...]` query fails
+ * with an auth error.
  * Returns the unsubscribe function.
  */
 export function watchDeskAuth(
@@ -27,7 +30,7 @@ export function watchDeskAuth(
     if (
       event.type === 'updated' &&
       event.action.type === 'error' &&
-      event.query.queryKey[0] === 'desk' &&
+      WATCHED_ROOTS.has(event.query.queryKey[0]) &&
       isDeskAuthError(event.action.error)
     ) {
       onExpired();

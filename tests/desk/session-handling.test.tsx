@@ -90,6 +90,20 @@ describe('watchDeskAuth', () => {
     stop();
   });
 
+  it('fires when an admin query rejects with an auth error', async () => {
+    const qc = client();
+    const onExpired = vi.fn();
+    const stop = watchDeskAuth(qc, onExpired);
+    await qc
+      .fetchQuery({
+        queryKey: ['admin', 'users'],
+        queryFn: () => Promise.reject(new Error('Forbidden')),
+      })
+      .catch(() => {});
+    expect(onExpired).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
   it('ignores other errors and non-desk queries, and stops after unsubscribe', async () => {
     const qc = client();
     const onExpired = vi.fn();

@@ -13,6 +13,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { adminTarget } from '#/admin/admin-target';
 import { AdminNav } from '#/admin/components/AdminNav';
+import { HttpError } from '#/shared/checked-fetch';
 
 vi.mock('#/server/desk/desk-auth.fn', () => ({
   getWarehouses: vi.fn().mockResolvedValue([]),
@@ -20,6 +21,7 @@ vi.mock('#/server/desk/desk-auth.fn', () => ({
   deskLogout: vi.fn(),
 }));
 
+import { AdminLayoutView } from '#/routes/admin/route';
 import { DeskLayoutView } from '#/routes/w/$warehouseId/route';
 
 beforeAll(() => {
@@ -45,8 +47,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function mount(ui: () => React.ReactNode) {
-  const qc = new QueryClient();
+function mount(ui: () => React.ReactNode, qc = new QueryClient()) {
   const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({
     component: ui,
   });
@@ -123,5 +124,26 @@ describe('desk header Admin link', () => {
     ));
     await screen.findByText('Sup');
     expect(screen.queryByText('Admin')).toBeNull();
+  });
+});
+
+describe('AdminLayoutView', () => {
+  it('navigates to /desk/login when an admin query fails with 401', async () => {
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const navigate = vi.fn();
+    mount(
+      () => <AdminLayoutView session={{ name: 'Root' }} navigate={navigate} />,
+      qc,
+    );
+    await screen.findByText('Root');
+    await qc
+      .fetchQuery({
+        queryKey: ['admin', 'users'],
+        queryFn: () => Promise.reject(new HttpError(401, 'HTTP 401')),
+      })
+      .catch(() => {});
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/desk/login'));
   });
 });
