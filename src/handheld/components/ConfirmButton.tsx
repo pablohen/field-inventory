@@ -1,4 +1,5 @@
 import { Alert, Button } from '@mantine/core';
+import { TOUCH } from '../touch';
 
 export function ConfirmButton({
   onConfirm,
@@ -13,7 +14,8 @@ export function ConfirmButton({
     <Button
       size="md"
       fullWidth
-      style={{ minHeight: 48 }}
+      // Inline (not `mih`) so jsdom can read the 48px minimum.
+      style={TOUCH}
       disabled={isPending}
       onClick={onConfirm}
     >

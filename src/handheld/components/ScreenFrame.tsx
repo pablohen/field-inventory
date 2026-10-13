@@ -16,7 +16,7 @@ export function ScreenFrame({
   if (!getCachedSession()) return <Navigate to="/h/login" />;
   return (
     <>
-      <div className="fi-handheld-bar" style={{ background: 'var(--fi-rail)' }}>
+      <div style={{ background: 'var(--fi-rail)' }}>
         <div className="fi-stripe" style={{ height: 8 }} aria-hidden="true" />
         <div style={{ padding: '8px 12px 12px' }}>
           <Anchor

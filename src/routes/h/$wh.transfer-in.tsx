@@ -9,6 +9,7 @@ import {
 import { ScanStep } from '#/handheld/components/ScanStep';
 import { ScreenFrame } from '#/handheld/components/ScreenFrame';
 import { useHandheld } from '#/handheld/context';
+import { TOUCH } from '#/handheld/touch';
 import { type FoundLocation, useLookups } from '#/handheld/use-lookups';
 import { useRecorder } from '#/handheld/use-recorder';
 
@@ -76,6 +77,7 @@ export function TransferInFlow({ wh }: { wh: string }) {
                 {t.skuId} x {t.qty} from {t.fromWarehouseId}
               </Text>
               <Button
+                style={TOUCH}
                 size="compact-md"
                 onClick={() => {
                   rec.clearRecorded();

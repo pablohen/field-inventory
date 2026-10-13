@@ -11,6 +11,7 @@ import { useHandheld } from '#/handheld/context';
 import { HandheldProvider } from '#/handheld/HandheldProvider';
 import { getCachedSession } from '#/handheld/session-store';
 import { signOut } from '#/handheld/sign-out';
+import { TOUCH } from '#/handheld/touch';
 import { SW_SCOPE, SW_URL } from '#/pwa-options';
 
 export const Route = createFileRoute('/h')({
@@ -62,7 +63,12 @@ function Header() {
           </Link>
         </Title>
         {session && (
-          <Button size="compact-sm" variant="subtle" onClick={() => signOut()}>
+          <Button
+            style={TOUCH}
+            size="compact-sm"
+            variant="subtle"
+            onClick={() => signOut()}
+          >
             Sign out
           </Button>
         )}

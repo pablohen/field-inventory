@@ -26,11 +26,13 @@ import {
   vi,
 } from 'vitest';
 import type { MovementInput } from '#/domain/schemas';
+import { BlockingBanner } from '#/handheld/components/BlockingBanner';
 import { ConfirmButton } from '#/handheld/components/ConfirmButton';
 import { HandheldPinInput } from '#/handheld/components/HandheldPinInput';
 import { QtyInput } from '#/handheld/components/QtyInput';
 import { ScanInput } from '#/handheld/components/ScanInput';
 import { ScreenFrame } from '#/handheld/components/ScreenFrame';
+import { StatusPill } from '#/handheld/components/StatusPill';
 import { HandheldContext, type HandheldValue } from '#/handheld/context';
 import { initialSyncState } from '#/handheld/sync-loop';
 import { AdjustFlow } from '../../src/routes/h/$wh.adjust';
@@ -735,6 +737,28 @@ describe('handheld signage styling', () => {
     for (const b of boxes) {
       expect(minPx(b, 'minHeight')).toBeGreaterThanOrEqual(48);
       expect(minPx(b, 'minWidth')).toBeGreaterThanOrEqual(48);
+    }
+  });
+
+  it('banner Dismiss, Sync now and linked badges are at least 48px', async () => {
+    const t = setup();
+    t.value.syncState = {
+      ...initialSyncState,
+      attentionCount: 1,
+      lastPullAt: new Date().toISOString(),
+    };
+    await mount(
+      <>
+        <BlockingBanner kind="storage" onDismiss={() => {}} />
+        <StatusPill />
+      </>,
+      t.value,
+    );
+    const dismiss = await screen.findByRole('button', { name: 'Dismiss' });
+    const sync = await screen.findByRole('button', { name: 'Sync now' });
+    const link = (await screen.findByText('1 need attention')).closest('a');
+    for (const el of [dismiss, sync, link as Element]) {
+      expect(minPx(el, 'minHeight')).toBeGreaterThanOrEqual(48);
     }
   });
 });

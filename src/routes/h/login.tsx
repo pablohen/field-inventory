@@ -7,6 +7,7 @@ import {
   setCachedSession,
   setDeviceId,
 } from '#/handheld/session-store';
+import { TOUCH } from '#/handheld/touch';
 import { login } from '#/server/auth/auth.fn';
 import { checkedFetch } from '#/shared/checked-fetch';
 
@@ -102,12 +103,14 @@ function LoginPage() {
           <Title order={2}>▲ Handheld</Title>
           {!storedDevice && (
             <TextInput
+              styles={{ input: TOUCH }}
               label="Device id"
               value={deviceId}
               onChange={(e) => setDevice(e.currentTarget.value)}
             />
           )}
           <TextInput
+            styles={{ input: TOUCH }}
             label="Username"
             autoComplete="username"
             autoCapitalize="off"
@@ -122,9 +125,9 @@ function LoginPage() {
           </div>
           {error && <Alert color="red">{error}</Alert>}
           <Button
+            style={TOUCH}
             type="submit"
             fullWidth
-            mih={48}
             loading={busy}
             disabled={!canSubmit}
           >

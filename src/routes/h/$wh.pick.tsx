@@ -11,6 +11,7 @@ import { ScanStep } from '#/handheld/components/ScanStep';
 import { ScreenFrame } from '#/handheld/components/ScreenFrame';
 import { useHandheld } from '#/handheld/context';
 import { getCachedSession } from '#/handheld/session-store';
+import { TOUCH } from '#/handheld/touch';
 import { useLookups } from '#/handheld/use-lookups';
 import { useRecorder } from '#/handheld/use-recorder';
 
@@ -101,6 +102,7 @@ export function PickFlow({ wh }: { wh: string }) {
                 {l.id} ({l.lines.length} lines)
               </Text>
               <Button
+                style={TOUCH}
                 size="compact-md"
                 onClick={() => {
                   rec.clearRecorded();
@@ -121,6 +123,7 @@ export function PickFlow({ wh }: { wh: string }) {
   return (
     <Stack>
       <Button
+        style={TOUCH}
         size="compact-sm"
         variant="subtle"
         onClick={() => {
@@ -142,6 +145,7 @@ export function PickFlow({ wh }: { wh: string }) {
           </Text>
           {l.id !== line?.id && (
             <Button
+              style={TOUCH}
               size="compact-xs"
               variant="subtle"
               onClick={() => {

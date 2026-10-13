@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useHandheld } from '#/handheld/context';
 import { getCachedReplicaConfig } from '#/handheld/session-store';
+import { TOUCH } from '#/handheld/touch';
 import { StatusBadge } from '#/ui/StatusBadge';
 
 export const Route = createFileRoute('/h/')({ component: HandheldHome });
@@ -53,6 +54,7 @@ function HandheldHome() {
             <Text fw={600}>{wh}</Text>
             <Group gap="xs">
               <Button
+                style={TOUCH}
                 renderRoot={(props) => (
                   <Link to="/h/$wh/stock" params={{ wh }} {...props} />
                 )}
@@ -61,6 +63,7 @@ function HandheldHome() {
                 Stock
               </Button>
               <Button
+                style={TOUCH}
                 renderRoot={(props) => (
                   <Link to="/h/$wh/count" params={{ wh }} {...props} />
                 )}
@@ -70,6 +73,7 @@ function HandheldHome() {
                 Count
               </Button>
               <Button
+                style={TOUCH}
                 renderRoot={(props) => (
                   <Link to="/h/$wh/move" params={{ wh }} {...props} />
                 )}
@@ -79,6 +83,7 @@ function HandheldHome() {
                 Move
               </Button>
               <Button
+                style={TOUCH}
                 renderRoot={(props) => (
                   <Link to="/h/$wh/transfer-in" params={{ wh }} {...props} />
                 )}
@@ -88,6 +93,7 @@ function HandheldHome() {
                 Transfer in
               </Button>
               <Button
+                style={TOUCH}
                 renderRoot={(props) => (
                   <Link to="/h/$wh/pick" params={{ wh }} {...props} />
                 )}
@@ -97,6 +103,7 @@ function HandheldHome() {
                 Pick
               </Button>
               <Button
+                style={TOUCH}
                 renderRoot={(props) => (
                   <Link to="/h/$wh/adjust" params={{ wh }} {...props} />
                 )}

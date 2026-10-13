@@ -1,6 +1,7 @@
 import { Alert, Button, Card, Group, Modal, Stack, Text } from '@mantine/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { TOUCH } from '#/handheld/touch';
 import { useHandheld } from '../context';
 import type { OutboxRow } from '../outbox';
 import { getDeviceId } from '../session-store';
@@ -92,7 +93,9 @@ export function AttentionView() {
         >
           <Stack gap="xs">
             <span>Export the outbox so the records are not lost.</span>
-            <Button onClick={() => void exportAll()}>Export outbox</Button>
+            <Button style={TOUCH} onClick={() => void exportAll()}>
+              Export outbox
+            </Button>
           </Stack>
         </Alert>
       )}
@@ -110,6 +113,7 @@ export function AttentionView() {
               </Text>
             </Stack>
             <Button
+              style={TOUCH}
               color="red"
               variant="light"
               onClick={() => setConfirming(row)}
@@ -140,10 +144,14 @@ export function AttentionView() {
         <Stack>
           <Text>It will be removed from this device and never synced.</Text>
           <Group justify="flex-end">
-            <Button variant="default" onClick={() => setConfirming(null)}>
+            <Button
+              style={TOUCH}
+              variant="default"
+              onClick={() => setConfirming(null)}
+            >
               Cancel
             </Button>
-            <Button color="red" onClick={() => void discard()}>
+            <Button style={TOUCH} color="red" onClick={() => void discard()}>
               Confirm discard
             </Button>
           </Group>

@@ -10,6 +10,7 @@ import { QtyInput } from '#/handheld/components/QtyInput';
 import { ScanStep } from '#/handheld/components/ScanStep';
 import { ScreenFrame } from '#/handheld/components/ScreenFrame';
 import { getCachedReplicaConfig } from '#/handheld/session-store';
+import { TOUCH } from '#/handheld/touch';
 import {
   type FoundLocation,
   type FoundProduct,
@@ -160,6 +161,7 @@ export function MoveFlow({ wh }: { wh: string }) {
             </>
           ) : (
             <NativeSelect
+              styles={{ input: TOUCH }}
               label="Destination warehouse"
               value={otherWh}
               onChange={(e) => setOtherWh(e.currentTarget.value)}

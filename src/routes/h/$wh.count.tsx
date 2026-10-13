@@ -11,6 +11,7 @@ import { ScanStep } from '#/handheld/components/ScanStep';
 import { ScreenFrame } from '#/handheld/components/ScreenFrame';
 import { useHandheld } from '#/handheld/context';
 import { getCachedSession } from '#/handheld/session-store';
+import { TOUCH } from '#/handheld/touch';
 import {
   type FoundLocation,
   type FoundProduct,
@@ -79,6 +80,7 @@ export function CountFlow({ wh }: { wh: string }) {
     <Stack>
       {tasks && tasks.length > 0 && (
         <NativeSelect
+          styles={{ input: TOUCH }}
           label="Count task (optional)"
           value={taskId}
           onChange={(e) => setTaskId(e.currentTarget.value)}

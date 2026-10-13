@@ -1,11 +1,18 @@
 import { Button, Group } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { TOUCH } from '#/handheld/touch';
 import { StatusBadge } from '#/ui/StatusBadge';
 import { useHandheld } from '../context';
 import { STALE_WARNING_MS } from '../sync-loop';
 
-const LINK_STYLE = { textDecoration: 'none' } as const;
+/** Compact badge inside a 48px tap area. */
+const LINK_STYLE = {
+  ...TOUCH,
+  display: 'inline-flex',
+  alignItems: 'center',
+  textDecoration: 'none',
+} as const;
 
 function overallStatus(
   attention: boolean,
@@ -80,7 +87,9 @@ export function StatusPill({ now: nowProp }: { now?: number }) {
       <StatusBadge kind={isOnline ? 'synced' : 'resolved'}>
         {isOnline ? 'Online' : 'Offline'}
       </StatusBadge>
-      <StatusBadge kind="pending">{syncState.pendingCount} pending</StatusBadge>
+      <StatusBadge kind={syncState.pendingCount > 0 ? 'pending' : 'synced'}>
+        {syncState.pendingCount} pending
+      </StatusBadge>
       {syncState.attentionCount > 0 && (
         <Link to="/h/attention" style={LINK_STYLE}>
           <StatusBadge kind="attention">
@@ -112,6 +121,7 @@ export function StatusPill({ now: nowProp }: { now?: number }) {
           : 'Never synced'}
       </StatusBadge>
       <Button
+        style={TOUCH}
         size="compact-xs"
         variant="light"
         loading={syncing}

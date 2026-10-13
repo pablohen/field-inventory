@@ -1,5 +1,6 @@
 import { Alert, type AlertProps, Button, List, Stack } from '@mantine/core';
 import type { MissingCapability } from '../capabilities';
+import { TOUCH } from '../touch';
 
 /** Rail fill with signal text (pair covered by the signal/rail contrast test). */
 const RAIL_ALERT: AlertProps = {
@@ -52,6 +53,7 @@ export function BlockingBanner(
             size="xs"
             variant="outline"
             style={{
+              ...TOUCH,
               color: 'var(--fi-signal)',
               borderColor: 'var(--fi-signal)',
             }}

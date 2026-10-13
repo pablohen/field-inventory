@@ -1,6 +1,7 @@
 import { Alert, Badge, Button, Group, Stack, Table, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { TOUCH } from '#/handheld/touch';
 import { useHandheld } from '../context';
 import { type StockFilter, stockKey } from '../record';
 import { ScanInput } from './ScanInput';
@@ -55,6 +56,7 @@ export function StockView({ wh }: { wh: string }) {
         <Group gap="xs">
           <Badge variant="outline">{label}</Badge>
           <Button
+            style={TOUCH}
             size="compact-xs"
             variant="subtle"
             onClick={() => {

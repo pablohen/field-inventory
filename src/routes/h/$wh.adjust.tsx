@@ -11,6 +11,7 @@ import { QtyInput } from '#/handheld/components/QtyInput';
 import { ScanStep } from '#/handheld/components/ScanStep';
 import { ScreenFrame } from '#/handheld/components/ScreenFrame';
 import { useHandheld } from '#/handheld/context';
+import { TOUCH } from '#/handheld/touch';
 import {
   type FoundLocation,
   type FoundProduct,
@@ -123,6 +124,7 @@ export function AdjustFlow({ wh }: { wh: string }) {
             onEnter={confirm}
           />
           <NativeSelect
+            styles={{ input: TOUCH }}
             label="Reason"
             value={reason}
             onChange={(e) => setReason(e.currentTarget.value)}
