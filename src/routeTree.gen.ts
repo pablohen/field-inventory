@@ -10,12 +10,20 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as HRouteRouteImport } from './routes/h/route'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminCategoriesRouteImport } from './routes/admin/categories'
+import { Route as AdminDevicesRouteImport } from './routes/admin/devices'
+import { Route as AdminProductsRouteImport } from './routes/admin/products'
+import { Route as AdminReasonCodesRouteImport } from './routes/admin/reason-codes'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as DeskLoginRouteImport } from './routes/desk/login'
 import { Route as HIndexRouteImport } from './routes/h/index'
 import { Route as HAttentionRouteImport } from './routes/h/attention'
 import { Route as HLoginRouteImport } from './routes/h/login'
 import { Route as WWarehouseIdRouteRouteImport } from './routes/w/$warehouseId/route'
+import { Route as AdminWarehousesIndexRouteImport } from './routes/admin/warehouses.index'
 import { Route as HWhAdjustRouteImport } from './routes/h/$wh.adjust'
 import { Route as HWhCountRouteImport } from './routes/h/$wh.count'
 import { Route as HWhMoveRouteImport } from './routes/h/$wh.move'
@@ -25,6 +33,7 @@ import { Route as HWhTransferInRouteImport } from './routes/h/$wh.transfer-in'
 import { Route as WWarehouseIdIndexRouteImport } from './routes/w/$warehouseId/index'
 import { Route as WWarehouseIdCountsRouteImport } from './routes/w/$warehouseId/counts'
 import { Route as WWarehouseIdPickListsRouteImport } from './routes/w/$warehouseId/pick-lists'
+import { Route as AdminWarehousesWarehouseIdLocationsRouteImport } from './routes/admin/warehouses.$warehouseId.locations'
 import { Route as WWarehouseIdExceptionsIndexRouteImport } from './routes/w/$warehouseId/exceptions.index'
 import { Route as WWarehouseIdExceptionsIdRouteImport } from './routes/w/$warehouseId/exceptions.$id'
 import { Route as WWarehouseIdStockIndexRouteImport } from './routes/w/$warehouseId/stock.index'
@@ -35,10 +44,45 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRouteRoute = AdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HRouteRoute = HRouteRouteImport.update({
   id: '/h',
   path: '/h',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminDevicesRoute = AdminDevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminProductsRoute = AdminProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminReasonCodesRoute = AdminReasonCodesRouteImport.update({
+  id: '/reason-codes',
+  path: '/reason-codes',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRouteRoute,
 } as any)
 const DeskLoginRoute = DeskLoginRouteImport.update({
   id: '/desk/login',
@@ -64,6 +108,11 @@ const WWarehouseIdRouteRoute = WWarehouseIdRouteRouteImport.update({
   id: '/w/$warehouseId',
   path: '/w/$warehouseId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminWarehousesIndexRoute = AdminWarehousesIndexRouteImport.update({
+  id: '/warehouses/',
+  path: '/warehouses/',
+  getParentRoute: () => AdminRouteRoute,
 } as any)
 const HWhAdjustRoute = HWhAdjustRouteImport.update({
   id: '/$wh/adjust',
@@ -110,6 +159,12 @@ const WWarehouseIdPickListsRoute = WWarehouseIdPickListsRouteImport.update({
   path: '/pick-lists',
   getParentRoute: () => WWarehouseIdRouteRoute,
 } as any)
+const AdminWarehousesWarehouseIdLocationsRoute =
+  AdminWarehousesWarehouseIdLocationsRouteImport.update({
+    id: '/warehouses/$warehouseId/locations',
+    path: '/warehouses/$warehouseId/locations',
+    getParentRoute: () => AdminRouteRoute,
+  } as any)
 const WWarehouseIdExceptionsIndexRoute =
   WWarehouseIdExceptionsIndexRouteImport.update({
     id: '/exceptions/',
@@ -135,11 +190,18 @@ const WWarehouseIdStockLedgerRoute = WWarehouseIdStockLedgerRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
   '/h': typeof HRouteRouteWithChildren
   '/w/$warehouseId': typeof WWarehouseIdRouteRouteWithChildren
+  '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/devices': typeof AdminDevicesRoute
+  '/admin/products': typeof AdminProductsRoute
+  '/admin/reason-codes': typeof AdminReasonCodesRoute
+  '/admin/users': typeof AdminUsersRoute
   '/desk/login': typeof DeskLoginRoute
   '/h/attention': typeof HAttentionRoute
   '/h/login': typeof HLoginRoute
+  '/admin/': typeof AdminIndexRoute
   '/h/': typeof HIndexRoute
   '/h/$wh/adjust': typeof HWhAdjustRoute
   '/h/$wh/count': typeof HWhCountRoute
@@ -149,7 +211,9 @@ export interface FileRoutesByFullPath {
   '/h/$wh/transfer-in': typeof HWhTransferInRoute
   '/w/$warehouseId/counts': typeof WWarehouseIdCountsRoute
   '/w/$warehouseId/pick-lists': typeof WWarehouseIdPickListsRoute
+  '/admin/warehouses/': typeof AdminWarehousesIndexRoute
   '/w/$warehouseId/': typeof WWarehouseIdIndexRoute
+  '/admin/warehouses/$warehouseId/locations': typeof AdminWarehousesWarehouseIdLocationsRoute
   '/w/$warehouseId/exceptions/$id': typeof WWarehouseIdExceptionsIdRoute
   '/w/$warehouseId/stock/ledger': typeof WWarehouseIdStockLedgerRoute
   '/w/$warehouseId/exceptions/': typeof WWarehouseIdExceptionsIndexRoute
@@ -157,9 +221,15 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/devices': typeof AdminDevicesRoute
+  '/admin/products': typeof AdminProductsRoute
+  '/admin/reason-codes': typeof AdminReasonCodesRoute
+  '/admin/users': typeof AdminUsersRoute
   '/desk/login': typeof DeskLoginRoute
   '/h/attention': typeof HAttentionRoute
   '/h/login': typeof HLoginRoute
+  '/admin': typeof AdminIndexRoute
   '/h': typeof HIndexRoute
   '/h/$wh/adjust': typeof HWhAdjustRoute
   '/h/$wh/count': typeof HWhCountRoute
@@ -169,7 +239,9 @@ export interface FileRoutesByTo {
   '/h/$wh/transfer-in': typeof HWhTransferInRoute
   '/w/$warehouseId/counts': typeof WWarehouseIdCountsRoute
   '/w/$warehouseId/pick-lists': typeof WWarehouseIdPickListsRoute
+  '/admin/warehouses': typeof AdminWarehousesIndexRoute
   '/w/$warehouseId': typeof WWarehouseIdIndexRoute
+  '/admin/warehouses/$warehouseId/locations': typeof AdminWarehousesWarehouseIdLocationsRoute
   '/w/$warehouseId/exceptions/$id': typeof WWarehouseIdExceptionsIdRoute
   '/w/$warehouseId/stock/ledger': typeof WWarehouseIdStockLedgerRoute
   '/w/$warehouseId/exceptions': typeof WWarehouseIdExceptionsIndexRoute
@@ -178,11 +250,18 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
   '/h': typeof HRouteRouteWithChildren
   '/w/$warehouseId': typeof WWarehouseIdRouteRouteWithChildren
+  '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/devices': typeof AdminDevicesRoute
+  '/admin/products': typeof AdminProductsRoute
+  '/admin/reason-codes': typeof AdminReasonCodesRoute
+  '/admin/users': typeof AdminUsersRoute
   '/desk/login': typeof DeskLoginRoute
   '/h/attention': typeof HAttentionRoute
   '/h/login': typeof HLoginRoute
+  '/admin/': typeof AdminIndexRoute
   '/h/': typeof HIndexRoute
   '/h/$wh/adjust': typeof HWhAdjustRoute
   '/h/$wh/count': typeof HWhCountRoute
@@ -192,7 +271,9 @@ export interface FileRoutesById {
   '/h/$wh/transfer-in': typeof HWhTransferInRoute
   '/w/$warehouseId/counts': typeof WWarehouseIdCountsRoute
   '/w/$warehouseId/pick-lists': typeof WWarehouseIdPickListsRoute
+  '/admin/warehouses/': typeof AdminWarehousesIndexRoute
   '/w/$warehouseId/': typeof WWarehouseIdIndexRoute
+  '/admin/warehouses/$warehouseId/locations': typeof AdminWarehousesWarehouseIdLocationsRoute
   '/w/$warehouseId/exceptions/$id': typeof WWarehouseIdExceptionsIdRoute
   '/w/$warehouseId/stock/ledger': typeof WWarehouseIdStockLedgerRoute
   '/w/$warehouseId/exceptions/': typeof WWarehouseIdExceptionsIndexRoute
@@ -202,11 +283,18 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/h'
     | '/w/$warehouseId'
+    | '/admin/categories'
+    | '/admin/devices'
+    | '/admin/products'
+    | '/admin/reason-codes'
+    | '/admin/users'
     | '/desk/login'
     | '/h/attention'
     | '/h/login'
+    | '/admin/'
     | '/h/'
     | '/h/$wh/adjust'
     | '/h/$wh/count'
@@ -216,7 +304,9 @@ export interface FileRouteTypes {
     | '/h/$wh/transfer-in'
     | '/w/$warehouseId/counts'
     | '/w/$warehouseId/pick-lists'
+    | '/admin/warehouses/'
     | '/w/$warehouseId/'
+    | '/admin/warehouses/$warehouseId/locations'
     | '/w/$warehouseId/exceptions/$id'
     | '/w/$warehouseId/stock/ledger'
     | '/w/$warehouseId/exceptions/'
@@ -224,9 +314,15 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin/categories'
+    | '/admin/devices'
+    | '/admin/products'
+    | '/admin/reason-codes'
+    | '/admin/users'
     | '/desk/login'
     | '/h/attention'
     | '/h/login'
+    | '/admin'
     | '/h'
     | '/h/$wh/adjust'
     | '/h/$wh/count'
@@ -236,7 +332,9 @@ export interface FileRouteTypes {
     | '/h/$wh/transfer-in'
     | '/w/$warehouseId/counts'
     | '/w/$warehouseId/pick-lists'
+    | '/admin/warehouses'
     | '/w/$warehouseId'
+    | '/admin/warehouses/$warehouseId/locations'
     | '/w/$warehouseId/exceptions/$id'
     | '/w/$warehouseId/stock/ledger'
     | '/w/$warehouseId/exceptions'
@@ -244,11 +342,18 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/h'
     | '/w/$warehouseId'
+    | '/admin/categories'
+    | '/admin/devices'
+    | '/admin/products'
+    | '/admin/reason-codes'
+    | '/admin/users'
     | '/desk/login'
     | '/h/attention'
     | '/h/login'
+    | '/admin/'
     | '/h/'
     | '/h/$wh/adjust'
     | '/h/$wh/count'
@@ -258,7 +363,9 @@ export interface FileRouteTypes {
     | '/h/$wh/transfer-in'
     | '/w/$warehouseId/counts'
     | '/w/$warehouseId/pick-lists'
+    | '/admin/warehouses/'
     | '/w/$warehouseId/'
+    | '/admin/warehouses/$warehouseId/locations'
     | '/w/$warehouseId/exceptions/$id'
     | '/w/$warehouseId/stock/ledger'
     | '/w/$warehouseId/exceptions/'
@@ -267,6 +374,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
   HRouteRoute: typeof HRouteRouteWithChildren
   WWarehouseIdRouteRoute: typeof WWarehouseIdRouteRouteWithChildren
   DeskLoginRoute: typeof DeskLoginRoute
@@ -281,12 +389,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/h': {
       id: '/h'
       path: '/h'
       fullPath: '/h'
       preLoaderRoute: typeof HRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/categories': {
+      id: '/admin/categories'
+      path: '/categories'
+      fullPath: '/admin/categories'
+      preLoaderRoute: typeof AdminCategoriesRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/devices': {
+      id: '/admin/devices'
+      path: '/devices'
+      fullPath: '/admin/devices'
+      preLoaderRoute: typeof AdminDevicesRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/products': {
+      id: '/admin/products'
+      path: '/products'
+      fullPath: '/admin/products'
+      preLoaderRoute: typeof AdminProductsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/reason-codes': {
+      id: '/admin/reason-codes'
+      path: '/reason-codes'
+      fullPath: '/admin/reason-codes'
+      preLoaderRoute: typeof AdminReasonCodesRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
     '/desk/login': {
       id: '/desk/login'
@@ -322,6 +479,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/w/$warehouseId'
       preLoaderRoute: typeof WWarehouseIdRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/warehouses/': {
+      id: '/admin/warehouses/'
+      path: '/warehouses'
+      fullPath: '/admin/warehouses/'
+      preLoaderRoute: typeof AdminWarehousesIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
     '/h/$wh/adjust': {
       id: '/h/$wh/adjust'
@@ -386,6 +550,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWarehouseIdPickListsRouteImport
       parentRoute: typeof WWarehouseIdRouteRoute
     }
+    '/admin/warehouses/$warehouseId/locations': {
+      id: '/admin/warehouses/$warehouseId/locations'
+      path: '/warehouses/$warehouseId/locations'
+      fullPath: '/admin/warehouses/$warehouseId/locations'
+      preLoaderRoute: typeof AdminWarehousesWarehouseIdLocationsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/w/$warehouseId/exceptions/': {
       id: '/w/$warehouseId/exceptions/'
       path: '/exceptions'
@@ -416,6 +587,33 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminRouteRouteChildren {
+  AdminCategoriesRoute: typeof AdminCategoriesRoute
+  AdminDevicesRoute: typeof AdminDevicesRoute
+  AdminProductsRoute: typeof AdminProductsRoute
+  AdminReasonCodesRoute: typeof AdminReasonCodesRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminWarehousesIndexRoute: typeof AdminWarehousesIndexRoute
+  AdminWarehousesWarehouseIdLocationsRoute: typeof AdminWarehousesWarehouseIdLocationsRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminCategoriesRoute: AdminCategoriesRoute,
+  AdminDevicesRoute: AdminDevicesRoute,
+  AdminProductsRoute: AdminProductsRoute,
+  AdminReasonCodesRoute: AdminReasonCodesRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  AdminWarehousesIndexRoute: AdminWarehousesIndexRoute,
+  AdminWarehousesWarehouseIdLocationsRoute:
+    AdminWarehousesWarehouseIdLocationsRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
 
 interface HRouteRouteChildren {
   HAttentionRoute: typeof HAttentionRoute
@@ -469,6 +667,7 @@ const WWarehouseIdRouteRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
   HRouteRoute: HRouteRouteWithChildren,
   WWarehouseIdRouteRoute: WWarehouseIdRouteRouteWithChildren,
   DeskLoginRoute: DeskLoginRoute,

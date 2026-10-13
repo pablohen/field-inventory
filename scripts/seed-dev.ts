@@ -30,6 +30,7 @@ const USERS = [
   { id: 'user-ana', username: 'ana', name: 'Ana', role: 'worker' },
   { id: 'user-bruno', username: 'bruno', name: 'Bruno', role: 'worker' },
   { id: 'user-sup', username: 'sup', name: 'Supervisor', role: 'supervisor' },
+  { id: 'user-admin', username: 'admin', name: 'Admin', role: 'admin' },
 ];
 
 const CATEGORIES = [

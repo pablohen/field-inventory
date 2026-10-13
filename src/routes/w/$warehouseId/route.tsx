@@ -2,6 +2,7 @@ import { Alert, Container, Group, Stack, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import {
   createFileRoute,
+  Link,
   Outlet,
   redirect,
   useRouter,
@@ -37,7 +38,7 @@ export function DeskLayoutView({
   navigate = assignUrl,
 }: {
   warehouseId: string;
-  session: { name: string };
+  session: { name: string; role?: string };
   navigate?: (url: string) => void;
 }) {
   const { queryClient } = useRouter().options.context;
@@ -71,6 +72,7 @@ export function DeskLayoutView({
             pathname={pathname}
           />
           <Group gap="sm">
+            {session.role === 'admin' && <Link to="/admin">Admin</Link>}
             <Text size="sm">{session.name}</Text>
             <SignOutButton />
           </Group>
