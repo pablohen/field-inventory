@@ -77,9 +77,7 @@ export function StockTable({
                 ta="right"
                 className="fi-num"
                 data-negative={r.qty < 0 ? 'true' : undefined}
-                style={
-                  r.qty < 0 ? { color: 'var(--fi-danger, red)' } : undefined
-                }
+                style={r.qty < 0 ? { color: 'var(--fi-danger)' } : undefined}
                 fw={800}
               >
                 {r.qty}

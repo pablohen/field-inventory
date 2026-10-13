@@ -11,6 +11,10 @@
   --fi-resolved: #d6d3d1;
   --fi-btn-bg: #1c1917;
   --fi-btn-fg: #facc15;
+  --fi-on-danger: #ffffff;
+  --fi-on-signal: #1c1917;
+  --fi-on-ok: #ffffff;
+  --fi-on-resolved: #1c1917;
 }
 
 :root[data-mantine-color-scheme="dark"] {
@@ -26,6 +30,10 @@
   --fi-resolved: #44403c;
   --fi-btn-bg: #facc15;
   --fi-btn-fg: #1c1917;
+  --fi-on-danger: #1c1917;
+  --fi-on-signal: #1c1917;
+  --fi-on-ok: #1c1917;
+  --fi-on-resolved: #e7e5e4;
 }
 
 :root[data-mantine-color-scheme] {

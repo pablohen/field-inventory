@@ -122,10 +122,10 @@ describe('stock page', () => {
     stockPage();
     const neg = (await screen.findByText('-3')).closest('td');
     expect(neg?.dataset.negative).toBe('true');
-    expect(neg?.getAttribute('style') ?? '').toContain('red');
+    expect(neg?.getAttribute('style') ?? '').toContain('var(--fi-danger)');
     const pos = screen.getByText('5').closest('td');
     expect(pos?.dataset.negative).toBeUndefined();
-    expect(pos?.getAttribute('style') ?? '').not.toContain('red');
+    expect(pos?.getAttribute('style') ?? '').not.toContain('--fi-danger');
   });
 
   it('links rows to the ledger with the right search params', async () => {

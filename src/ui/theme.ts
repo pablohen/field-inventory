@@ -12,7 +12,11 @@ export type TokenName =
   | 'ok'
   | 'resolved'
   | 'btn-bg'
-  | 'btn-fg';
+  | 'btn-fg'
+  | 'on-danger'
+  | 'on-signal'
+  | 'on-ok'
+  | 'on-resolved';
 
 /** Single source of truth for the §3.1 colour tokens; tokens.css mirrors it. */
 export const TOKENS: Record<'light' | 'dark', Record<TokenName, string>> = {
@@ -29,6 +33,10 @@ export const TOKENS: Record<'light' | 'dark', Record<TokenName, string>> = {
     resolved: '#d6d3d1',
     'btn-bg': '#1c1917',
     'btn-fg': '#facc15',
+    'on-danger': '#ffffff',
+    'on-signal': '#1c1917',
+    'on-ok': '#ffffff',
+    'on-resolved': '#1c1917',
   },
   dark: {
     bg: '#0c0a09',
@@ -43,6 +51,10 @@ export const TOKENS: Record<'light' | 'dark', Record<TokenName, string>> = {
     resolved: '#44403c',
     'btn-bg': '#facc15',
     'btn-fg': '#1c1917',
+    'on-danger': '#1c1917',
+    'on-signal': '#1c1917',
+    'on-ok': '#1c1917',
+    'on-resolved': '#e7e5e4',
   },
 };
 

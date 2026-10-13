@@ -79,7 +79,12 @@ function Column({
               </StatusBadge>
               <Text size="sm">qty {m.qty}</Text>
               {m.delta !== null && (
-                <Text size="sm" c={m.delta < 0 ? 'red' : undefined}>
+                <Text
+                  size="sm"
+                  style={
+                    m.delta < 0 ? { color: 'var(--fi-danger)' } : undefined
+                  }
+                >
                   Δ {signed(m.delta)}
                 </Text>
               )}

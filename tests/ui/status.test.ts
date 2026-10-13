@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ExceptionType } from '#/domain/types';
 import { type StatusKind, statusColor } from '#/ui/status';
+import { TOKENS } from '#/ui/theme';
 
 const EXCEPTIONS: ExceptionType[] = [
   'NEGATIVE_BALANCE',
@@ -56,4 +57,16 @@ describe('statusColor', () => {
       expect(statusColor(k).text.light).toBe(white ? '#ffffff' : '#1c1917');
     }
   });
+});
+
+describe('--fi-on-* tokens mirror statusColor text', () => {
+  for (const scheme of ['light', 'dark'] as const) {
+    for (const kind of ALL) {
+      it(`${kind} ${scheme}`, () => {
+        const { fill, text } = statusColor(kind);
+        const key = `on-${fill}` as keyof (typeof TOKENS)[typeof scheme];
+        expect(TOKENS[scheme][key]).toBe(text[scheme]);
+      });
+    }
+  }
 });

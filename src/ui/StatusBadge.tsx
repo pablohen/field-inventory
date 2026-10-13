@@ -1,4 +1,4 @@
-import { Badge, type BadgeProps, useComputedColorScheme } from '@mantine/core';
+import { Badge, type BadgeProps } from '@mantine/core';
 import type { ReactNode } from 'react';
 import { statusColor } from '#/ui/status';
 
@@ -12,15 +12,14 @@ export function StatusBadge({
   children: ReactNode;
   size?: BadgeProps['size'];
 }) {
-  const scheme = useComputedColorScheme('light');
-  const { fill, text } = statusColor(kind);
+  const { fill } = statusColor(kind);
   return (
     <Badge
       size={size}
       variant="filled"
       style={{
         backgroundColor: `var(--fi-${fill})`,
-        color: text[scheme],
+        color: `var(--fi-on-${fill})`,
       }}
     >
       {children}
