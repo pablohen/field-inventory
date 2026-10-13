@@ -51,3 +51,10 @@ export const updateCategoryInputSchema = categoryInputSchema.extend({
 export const updateReasonCodeInputSchema = reasonCodeInputSchema.extend({
   code: z.string().min(1),
 });
+
+/** URL search validation: a bad shared link falls back to an empty search. */
+export function parseProductSearch(search: unknown): { search?: string } {
+  const parsed = listProductsInputSchema.safeParse(search);
+  if (!parsed.success || !parsed.data.search) return {};
+  return { search: parsed.data.search };
+}
