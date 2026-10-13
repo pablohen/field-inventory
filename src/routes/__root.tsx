@@ -1,4 +1,6 @@
+import '@fontsource-variable/archivo/wdth.css';
 import '@mantine/core/styles.css';
+import '#/ui/tokens.css';
 import { ColorSchemeScript, MantineProvider } from '@mantine/core';
 import { TanStackDevtools } from '@tanstack/react-devtools';
 import type { QueryClient } from '@tanstack/react-query';
@@ -8,6 +10,7 @@ import {
   Scripts,
 } from '@tanstack/react-router';
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
+import { theme } from '#/ui/theme';
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools';
 import appCss from '../styles.css?url';
 
@@ -49,7 +52,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <ColorSchemeScript defaultColorScheme="auto" />
       </head>
       <body>
-        <MantineProvider defaultColorScheme="auto">{children}</MantineProvider>
+        <MantineProvider theme={theme} defaultColorScheme="auto">
+          {children}
+        </MantineProvider>
         <TanStackDevtools
           config={{
             position: 'bottom-right',

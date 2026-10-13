@@ -37,6 +37,7 @@ describe('pwa options', () => {
     const globs = pwaOptions.injectManifest?.globPatterns ?? [];
     expect(globs.some((g) => g.includes('wasm'))).toBe(true);
     expect(globs.some((g) => g.includes('js'))).toBe(true);
+    expect(globs.some((g) => g.includes('woff2'))).toBe(true);
     expect(
       pwaOptions.injectManifest?.maximumFileSizeToCacheInBytes,
     ).toBeGreaterThanOrEqual(16 * 1024 * 1024);

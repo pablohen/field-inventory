@@ -21,7 +21,7 @@ export const MAX_PRECACHE_FILE_BYTES = 16 * 1024 * 1024;
  * implemented in src/sw.ts using the helpers in src/pwa/sw-routes.ts.
  */
 export const PRECACHE_GLOBS = [
-  '**/*.{js,css,wasm,svg,png,ico,webmanifest}',
+  '**/*.{js,css,wasm,svg,png,ico,woff2,webmanifest}',
 ] as const;
 
 export const pwaOptions: Partial<VitePWAOptions> = {

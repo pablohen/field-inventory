@@ -1,0 +1,54 @@
+:root[data-mantine-color-scheme="light"] {
+  --fi-bg: #f4f1ea;
+  --fi-surface: #fffdf8;
+  --fi-ink: #1c1917;
+  --fi-muted: #57534e;
+  --fi-rule: #d6d3d1;
+  --fi-signal: #facc15;
+  --fi-rail: #1c1917;
+  --fi-danger: #dc2626;
+  --fi-ok: #15803d;
+  --fi-resolved: #d6d3d1;
+}
+
+:root[data-mantine-color-scheme="dark"] {
+  --fi-bg: #0c0a09;
+  --fi-surface: #1c1917;
+  --fi-ink: #e7e5e4;
+  --fi-muted: #a8a29e;
+  --fi-rule: #44403c;
+  --fi-signal: #facc15;
+  --fi-rail: #000000;
+  --fi-danger: #f87171;
+  --fi-ok: #4ade80;
+  --fi-resolved: #44403c;
+}
+
+:root[data-mantine-color-scheme] {
+  --mantine-color-body: var(--fi-bg);
+  --mantine-color-text: var(--fi-ink);
+  --mantine-color-dimmed: var(--fi-muted);
+}
+
+body {
+  background-color: var(--fi-bg);
+  color: var(--fi-ink);
+}
+
+.fi-stripe {
+  background: repeating-linear-gradient(
+    45deg,
+    #facc15 0 10px,
+    #1c1917 10px 20px
+  );
+}
+
+.fi-num {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--fi-signal);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--fi-ink);
+}
