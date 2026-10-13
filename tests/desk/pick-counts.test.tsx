@@ -9,7 +9,15 @@ import {
   waitFor,
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { scopeSummary } from '#/desk/count-scope';
 import type { CountTaskRow } from '#/server/desk/count-tasks.server';
 import type { LocationRow } from '#/server/desk/locations.server';
@@ -30,6 +38,10 @@ const fns = vi.hoisted(() => ({
   listWorkers: vi.fn(),
   listLocations: vi.fn(),
   getStock: vi.fn(),
+  listProducts: vi.fn(),
+}));
+vi.mock('#/server/admin/catalog.fn', () => ({
+  listProducts: fns.listProducts,
 }));
 vi.mock('#/server/desk/pick-lists.fn', () => ({
   suggestPickList: fns.suggestPickList,
@@ -85,6 +97,20 @@ afterEach(() => {
 });
 
 const WH = 'wh1';
+const PRODUCTS = [
+  { id: 'P1', sku: 'SKU-P1', name: 'Widget' },
+  { id: 'P9', sku: 'SKU-P9', name: 'Gadget' },
+];
+beforeEach(() => {
+  fns.listProducts.mockImplementation(
+    async ({ data }: { data: { search?: string } }) =>
+      PRODUCTS.filter((p) =>
+        `${p.sku} ${p.name}`
+          .toLowerCase()
+          .includes((data.search ?? '').toLowerCase()),
+      ),
+  );
+});
 const WORKERS = [{ id: 'w1', name: 'Wendy' }];
 const LOCATIONS: LocationRow[] = [
   { id: 'L1', code: 'A-01', zone: 'A', active: true },
@@ -151,9 +177,7 @@ describe('PickListForm', () => {
   }
 
   async function suggestFlow() {
-    fireEvent.change(screen.getByLabelText('SKU 1'), {
-      target: { value: 'P1' },
-    });
+    await choose('SKU 1', 'SKU-P1 · Widget');
     fireEvent.change(screen.getByLabelText('Qty 1'), {
       target: { value: '10' },
     });
@@ -392,6 +416,28 @@ describe('CountTaskForm', () => {
     );
   });
 
+  it('posts product ids for the SKUs scope', async () => {
+    fns.createCountTask.mockResolvedValue({ ok: true, id: 'c1' });
+    mount(
+      <CountTaskForm
+        warehouseId={WH}
+        workers={WORKERS}
+        locations={LOCATIONS}
+        onCreated={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('radio', { name: 'SKUs' }));
+    await choose('SKUs', 'SKU-P1 · Widget');
+    await choose('SKUs', 'SKU-P9 · Gadget');
+    fireEvent.click(screen.getByRole('button', { name: 'Create count task' }));
+    await waitFor(() =>
+      expect(fns.createCountTask).toHaveBeenCalledWith({
+        fetch: deskFetch,
+        data: { warehouseId: WH, scope: { skus: ['P1', 'P9'] } },
+      }),
+    );
+  });
+
   it('shows an INVALID result inside the drawer without closing it', async () => {
     fns.createCountTask.mockResolvedValue({
       ok: false,
@@ -579,17 +625,14 @@ describe('pages (R5)', () => {
     );
     expect(await screen.findByText('2/8')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'New pick list' }));
-    fireEvent.change(await screen.findByLabelText('SKU 1'), {
-      target: { value: 'P9' },
-    });
+    await screen.findByLabelText('SKU 1');
+    await choose('SKU 1', 'SKU-P9 · Gadget');
 
     fns.listPickLists.mockRejectedValue(new Error('boom'));
     await client.refetchQueries({ queryKey: ['desk', WH, 'pick-lists'] });
     expect(await screen.findByRole('status')).toBeTruthy();
     expect(screen.getByText('2/8')).toBeTruthy();
-    expect((screen.getByLabelText('SKU 1') as HTMLInputElement).value).toBe(
-      'P9',
-    );
+    expect((field('SKU 1') as HTMLInputElement).value).toBe('SKU-P9 · Gadget');
     expect(screen.queryByRole('alert')).toBeNull();
   });
 

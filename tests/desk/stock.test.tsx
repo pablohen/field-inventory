@@ -23,6 +23,9 @@ vi.mock('#/server/desk/stock.fn', () => ({
   getLedger,
   listReasonCodes: vi.fn(),
 }));
+vi.mock('#/server/admin/catalog.fn', () => ({
+  listProducts: async () => [{ id: 'S1', sku: 'SKU-1', name: 'One' }],
+}));
 vi.mock('#/server/desk/count-tasks.fn', () => ({
   listWorkers: async () => [{ id: 'w1', name: 'Wendy' }],
 }));

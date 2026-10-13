@@ -5,7 +5,6 @@ import {
   SegmentedControl,
   Select,
   Stack,
-  TagsInput,
 } from '@mantine/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
@@ -15,6 +14,7 @@ import { createCountTask } from '#/server/desk/count-tasks.fn';
 import type { LocationRow } from '#/server/desk/locations.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
 import { DeskErrorAlert } from './DeskErrorAlert';
+import { ProductPicker } from './ProductPicker';
 
 type Worker = { id: string; name: string };
 type Kind = 'locations' | 'zone' | 'skus';
@@ -134,9 +134,9 @@ export function CountTaskForm({
         />
       )}
       {kind === 'skus' && (
-        <TagsInput
+        <ProductPicker
+          multiple
           label="SKUs"
-          description="SKU ids; press Enter after each"
           value={skus}
           disabled={pending}
           onChange={setSkus}

@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import type { StockFilters } from '#/desk/stock-filters';
 import type { StockRow } from '#/server/desk/stock.server';
 import { TextFilter } from './ExceptionFilters';
+import { ProductPicker } from './ProductPicker';
 
 export function StockFilterBar({
   value,
@@ -13,10 +14,11 @@ export function StockFilterBar({
 }) {
   return (
     <Group align="flex-end" gap="sm">
-      <TextFilter
+      <ProductPicker
         label="SKU"
-        value={value.skuId}
-        onCommit={(skuId) => onChange({ ...value, skuId })}
+        w={220}
+        value={value.skuId ?? null}
+        onChange={(skuId) => onChange({ ...value, skuId: skuId ?? undefined })}
       />
       <TextFilter
         label="Bin"

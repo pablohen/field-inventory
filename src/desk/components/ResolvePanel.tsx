@@ -18,6 +18,7 @@ import type {
 } from '#/server/desk/exceptions.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
 import { DeskErrorAlert } from './DeskErrorAlert';
+import { ProductPicker } from './ProductPicker';
 
 export type ResolveFn = (args: {
   data: { warehouseId: string; exceptionId: string; input: ResolveInput };
@@ -173,11 +174,11 @@ export function ResolvePanel({
               disabled={disabled}
               onChange={setReasonCode}
             />
-            <TextInput
+            <ProductPicker
               label="SKU"
-              value={skuId}
+              value={skuId === '' ? null : skuId}
               disabled={disabled}
-              onChange={(e) => setSkuId(e.currentTarget.value)}
+              onChange={(id) => setSkuId(id ?? '')}
             />
             <TextInput
               label="Bin"

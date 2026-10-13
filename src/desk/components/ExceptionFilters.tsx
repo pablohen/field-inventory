@@ -12,6 +12,7 @@ import {
   type ExceptionFilters as Filters,
 } from '#/desk/exception-filters';
 import type { ExceptionType } from '#/domain/types';
+import { ProductPicker } from './ProductPicker';
 
 /** One badge per type with its open count; the active one clears on click. */
 export function TypeStrip({
@@ -94,10 +95,13 @@ export function ExceptionFilterBar({
             })
           }
         />
-        <TextFilter
+        <ProductPicker
           label="SKU"
-          value={value.skuId}
-          onCommit={(skuId) => onChange({ ...value, skuId })}
+          w={220}
+          value={value.skuId ?? null}
+          onChange={(skuId) =>
+            onChange({ ...value, skuId: skuId ?? undefined })
+          }
         />
         <TextFilter
           label="Bin"

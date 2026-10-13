@@ -7,7 +7,6 @@ import {
   Select,
   Stack,
   Text,
-  TextInput,
 } from '@mantine/core';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
@@ -17,6 +16,7 @@ import { createPickList, suggestPickList } from '#/server/desk/pick-lists.fn';
 import { getStock } from '#/server/desk/stock.fn';
 import type { DeskError } from '#/server/desk/warehouses.server';
 import { DeskErrorAlert } from './DeskErrorAlert';
+import { ProductPicker } from './ProductPicker';
 
 type Worker = { id: string; name: string };
 type Request = { skuId: string; qty: number | string };
@@ -225,15 +225,16 @@ export function PickListForm({
       {requests.map((r, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: rows are positional and have no id
         <Group key={i} align="flex-end" wrap="nowrap">
-          <TextInput
+          <ProductPicker
             label="SKU"
-            aria-label={`SKU ${i + 1}`}
-            value={r.skuId}
+            ariaLabel={`SKU ${i + 1}`}
+            w={260}
+            value={r.skuId === '' ? null : r.skuId}
             disabled={pending}
-            onChange={(e) =>
+            onChange={(id) =>
               edit(
                 requests.map((x, j) =>
-                  j === i ? { ...x, skuId: e.currentTarget.value } : x,
+                  j === i ? { ...x, skuId: id ?? '' } : x,
                 ),
               )
             }
