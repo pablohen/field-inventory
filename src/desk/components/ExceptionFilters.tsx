@@ -1,17 +1,11 @@
-import {
-  Badge,
-  Group,
-  NumberInput,
-  Select,
-  Stack,
-  TextInput,
-} from '@mantine/core';
+import { Group, NumberInput, Select, Stack, TextInput } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import {
   EXCEPTION_TYPES,
   type ExceptionFilters as Filters,
 } from '#/desk/exception-filters';
 import type { ExceptionType } from '#/domain/types';
+import { CountTiles } from './CountTiles';
 import { ProductPicker } from './ProductPicker';
 
 /** One badge per type with its open count; the active one clears on click. */
@@ -25,22 +19,14 @@ export function TypeStrip({
   onSelect: (type: ExceptionType | undefined) => void;
 }) {
   return (
-    <Group gap="xs">
-      {EXCEPTION_TYPES.map((t) => (
-        <Badge
-          key={t}
-          component="button"
-          type="button"
-          size="lg"
-          variant={active === t ? 'filled' : 'light'}
-          style={{ cursor: 'pointer' }}
-          aria-pressed={active === t}
-          onClick={() => onSelect(active === t ? undefined : t)}
-        >
-          {t} {counts ? counts[t] : '…'}
-        </Badge>
-      ))}
-    </Group>
+    <CountTiles
+      counts={Object.fromEntries(EXCEPTION_TYPES.map((t) => [t, counts?.[t]]))}
+      active={active}
+      onSelect={(t) => {
+        const type = t as ExceptionType;
+        onSelect(active === type ? undefined : type);
+      }}
+    />
   );
 }
 

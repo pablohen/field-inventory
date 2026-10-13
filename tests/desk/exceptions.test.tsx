@@ -329,6 +329,31 @@ describe('exceptions list page', () => {
     expect(await screen.findByText('Warehouse is not ready')).toBeTruthy();
   });
 
+  it('shows the floor-clear empty state when there are no rows', async () => {
+    listExceptions.mockResolvedValue({
+      ok: true,
+      rows: [],
+      countsByType: {},
+    });
+    const root = createRootRoute({
+      component: () => <ExceptionsListPage warehouseId={WH} />,
+    });
+    const router = createRouter({
+      routeTree: root,
+      history: createMemoryHistory({ initialEntries: ['/'] }),
+    });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MantineProvider>
+          <RouterProvider router={router} />
+        </MantineProvider>
+      </QueryClientProvider>,
+    );
+    expect(
+      await screen.findByText("No open exceptions. Floor's clear."),
+    ).toBeTruthy();
+  });
+
   it('keeps rows and notes a failed refresh when a poll errors', async () => {
     const qc = new QueryClient({
       defaultOptions: { queries: { retry: false } },

@@ -1,6 +1,5 @@
 import {
   Alert,
-  Badge,
   Button,
   Group,
   Modal,
@@ -20,6 +19,8 @@ import {
 import type { AdminDeviceRow } from '#/server/admin/devices.server';
 import type { AdminWarehouseRow } from '#/server/admin/warehouses.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
+import { EmptyNote } from '#/ui/EmptyNote';
+import { StatusBadge } from '#/ui/StatusBadge';
 
 export const REMOVED_HINT =
   'Rows for removed warehouses not yet synced will need attention on the device.';
@@ -47,7 +48,7 @@ export function DeviceTable({
   rows: AdminDeviceRow[];
   warehouses: WarehouseOption[];
 }) {
-  if (rows.length === 0) return <Text c="dimmed">No devices.</Text>;
+  if (rows.length === 0) return <EmptyNote>No devices.</EmptyNote>;
   const options = warehouseOptions(warehouses);
   return (
     <Table.ScrollContainer minWidth={860}>
@@ -142,11 +143,7 @@ function DeviceRowView({
           />
         </Table.Td>
         <Table.Td>
-          {row.revoked && (
-            <Badge color="gray" variant="light">
-              Revoked
-            </Badge>
-          )}
+          {row.revoked && <StatusBadge kind="resolved">Revoked</StatusBadge>}
         </Table.Td>
         <Table.Td>
           {row.revoked ? (

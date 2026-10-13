@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Table, Text, TextInput } from '@mantine/core';
+import { Button, Group, Table, TextInput } from '@mantine/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
@@ -15,15 +15,18 @@ import type {
   WarehouseStatus,
 } from '#/server/admin/warehouses.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
+import { EmptyNote } from '#/ui/EmptyNote';
+import { StatusBadge } from '#/ui/StatusBadge';
+import type { StatusKind } from '#/ui/status';
 
-const STATUS: Record<WarehouseStatus, { label: string; color: string }> = {
-  READY: { label: 'Ready', color: 'green' },
-  SETUP_INCOMPLETE: { label: 'Setup incomplete', color: 'red' },
-  NEEDS_MIGRATION: { label: 'Needs migration', color: 'orange' },
+const STATUS: Record<WarehouseStatus, { label: string; kind: StatusKind }> = {
+  READY: { label: 'Ready', kind: 'synced' },
+  SETUP_INCOMPLETE: { label: 'Setup incomplete', kind: 'attention' },
+  NEEDS_MIGRATION: { label: 'Needs migration', kind: 'pending' },
 };
 
 export function WarehouseTable({ rows }: { rows: AdminWarehouseRow[] }) {
-  if (rows.length === 0) return <Text c="dimmed">No warehouses.</Text>;
+  if (rows.length === 0) return <EmptyNote>No warehouses.</EmptyNote>;
   return (
     <Table.ScrollContainer minWidth={720}>
       <Table highlightOnHover>
@@ -139,11 +142,11 @@ function WarehouseRowView({ row }: { row: AdminWarehouseRow }) {
         <Table.Td>{row.id}</Table.Td>
         <Table.Td>{row.tursoDbName}</Table.Td>
         <Table.Td>
-          <Badge color={status.color} variant="light">
-            {status.label}
-          </Badge>
+          <StatusBadge kind={status.kind}>{status.label}</StatusBadge>
         </Table.Td>
-        <Table.Td ta="right">{row.deviceCount}</Table.Td>
+        <Table.Td ta="right" className="fi-num" fw={800}>
+          {row.deviceCount}
+        </Table.Td>
         <Table.Td>
           <Group gap="xs">
             {!renaming && (

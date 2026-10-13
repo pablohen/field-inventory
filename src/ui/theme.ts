@@ -111,11 +111,19 @@ export const theme = createTheme({
       styles: { root: { fontWeight: 800 } },
     },
     Table: {
+      defaultProps: { borderColor: 'var(--fi-rule)' },
       styles: {
         table: INK_BORDER,
-        th: { ...CONDENSED, fontSize: 12 },
+        th: {
+          ...CONDENSED,
+          fontSize: 12,
+          color: 'var(--fi-muted)',
+          borderBottom: '2px solid var(--fi-ink)',
+        },
+        td: { borderBottom: '1px solid var(--fi-rule)' },
       },
     },
+    Title: { styles: { root: CONDENSED } },
     TextInput: { styles: { input: INK_BORDER } },
     PasswordInput: { styles: { input: INK_BORDER } },
     NumberInput: { styles: { input: INK_BORDER } },

@@ -1,12 +1,4 @@
-import {
-  Badge,
-  Button,
-  Group,
-  Select,
-  Table,
-  Text,
-  Tooltip,
-} from '@mantine/core';
+import { Button, Group, Select, Table, Tooltip } from '@mantine/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { ROLE_OPTIONS } from '#/admin/components/UserForm';
@@ -17,6 +9,8 @@ import { runMutation } from '#/desk/run-mutation';
 import { setUserDisabled, updateUser } from '#/server/admin/users.fn';
 import type { AdminUserRow } from '#/server/admin/users.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
+import { EmptyNote } from '#/ui/EmptyNote';
+import { StatusBadge } from '#/ui/StatusBadge';
 
 export const SELF_TIP = "You can't change your own access";
 
@@ -31,7 +25,7 @@ export function UserTable({
   currentUserId: string;
   onResetPin: (user: PinTarget) => void;
 }) {
-  if (rows.length === 0) return <Text c="dimmed">No users.</Text>;
+  if (rows.length === 0) return <EmptyNote>No users.</EmptyNote>;
   return (
     <Table.ScrollContainer minWidth={760}>
       <Table highlightOnHover>
@@ -123,15 +117,9 @@ function UserRowView({
         <Table.Td>
           <Group gap={4}>
             {row.disabled && (
-              <Badge color="gray" variant="light">
-                Disabled
-              </Badge>
+              <StatusBadge kind="resolved">Disabled</StatusBadge>
             )}
-            {row.locked && (
-              <Badge color="red" variant="light">
-                Locked
-              </Badge>
-            )}
+            {row.locked && <StatusBadge kind="attention">Locked</StatusBadge>}
           </Group>
         </Table.Td>
         <Table.Td>

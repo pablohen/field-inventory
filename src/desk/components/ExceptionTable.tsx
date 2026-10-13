@@ -1,6 +1,8 @@
-import { Badge, Group, Table, Text } from '@mantine/core';
+import { Group, Table } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import type { ExceptionRow } from '#/server/desk/exceptions.server';
+import { EmptyNote } from '#/ui/EmptyNote';
+import { StatusBadge } from '#/ui/StatusBadge';
 
 export function ExceptionTable({
   warehouseId,
@@ -12,7 +14,7 @@ export function ExceptionTable({
   names: Record<string, string>;
 }) {
   if (rows.length === 0) {
-    return <Text c="dimmed">No open exceptions match.</Text>;
+    return <EmptyNote>No open exceptions. Floor's clear.</EmptyNote>;
   }
   return (
     <Table.ScrollContainer minWidth={640}>
@@ -31,7 +33,7 @@ export function ExceptionTable({
           {rows.map((r) => (
             <Table.Tr key={r.id}>
               <Table.Td>
-                <Badge variant="light">{r.type}</Badge>
+                <StatusBadge kind={r.type}>{r.type}</StatusBadge>
               </Table.Td>
               <Table.Td>
                 <Group gap="xs" wrap="nowrap">
@@ -42,9 +44,9 @@ export function ExceptionTable({
                     {r.summary}
                   </Link>
                   {r.malformed.length > 0 && (
-                    <Badge size="xs" color="red" variant="outline">
+                    <StatusBadge size="xs" kind="attention">
                       data issue
-                    </Badge>
+                    </StatusBadge>
                   )}
                 </Group>
               </Table.Td>

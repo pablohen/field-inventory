@@ -1,5 +1,7 @@
-import { Badge, Table, Text } from '@mantine/core';
+import { Table } from '@mantine/core';
 import type { LedgerRow } from '#/server/desk/stock.server';
+import { EmptyNote } from '#/ui/EmptyNote';
+import { StatusBadge } from '#/ui/StatusBadge';
 import { fmtTime } from './Timeline';
 
 function signed(n: number): string {
@@ -13,7 +15,7 @@ export function LedgerTable({
   rows: LedgerRow[];
   names: Record<string, string>;
 }) {
-  if (rows.length === 0) return <Text c="dimmed">No movements.</Text>;
+  if (rows.length === 0) return <EmptyNote>No movements.</EmptyNote>;
   return (
     <Table.ScrollContainer minWidth={760}>
       <Table highlightOnHover>
@@ -39,14 +41,22 @@ export function LedgerTable({
               <Table.Td>{r.type}</Table.Td>
               <Table.Td
                 ta="right"
-                c={r.delta < 0 ? 'red' : undefined}
+                className="fi-num"
+                fw={800}
+                style={r.delta < 0 ? { color: 'var(--fi-danger)' } : undefined}
                 data-testid="ledger-delta"
               >
                 {signed(r.delta)}
               </Table.Td>
               <Table.Td
                 ta="right"
-                c={r.runningBalance < 0 ? 'red' : undefined}
+                className="fi-num"
+                fw={800}
+                style={
+                  r.runningBalance < 0
+                    ? { color: 'var(--fi-danger)' }
+                    : undefined
+                }
                 data-testid="ledger-balance"
               >
                 {r.runningBalance}
@@ -57,9 +67,7 @@ export function LedgerTable({
                 {r.source === 'device' ? (
                   r.source
                 ) : (
-                  <Badge variant="light" color="grape">
-                    {r.source}
-                  </Badge>
+                  <StatusBadge kind="pending">{r.source}</StatusBadge>
                 )}
               </Table.Td>
             </Table.Tr>

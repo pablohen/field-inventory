@@ -1,7 +1,8 @@
-import { Checkbox, Group, Table, Text } from '@mantine/core';
+import { Checkbox, Group, Table } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import type { StockFilters } from '#/desk/stock-filters';
 import type { StockRow } from '#/server/desk/stock.server';
+import { EmptyNote } from '#/ui/EmptyNote';
 import { TextFilter } from './ExceptionFilters';
 import { ProductPicker } from './ProductPicker';
 
@@ -46,7 +47,7 @@ export function StockTable({
   warehouseId: string;
   rows: StockRow[];
 }) {
-  if (rows.length === 0) return <Text c="dimmed">No stock matches.</Text>;
+  if (rows.length === 0) return <EmptyNote>No stock matches.</EmptyNote>;
   return (
     <Table.ScrollContainer minWidth={480}>
       <Table highlightOnHover>
@@ -71,12 +72,15 @@ export function StockTable({
                 </Link>
               </Table.Td>
               <Table.Td>{r.name}</Table.Td>
-              <Table.Td>{r.locationCode}</Table.Td>
+              <Table.Td fw={800}>{r.locationCode}</Table.Td>
               <Table.Td
                 ta="right"
+                className="fi-num"
                 data-negative={r.qty < 0 ? 'true' : undefined}
-                c={r.qty < 0 ? 'red' : undefined}
-                fw={r.qty < 0 ? 600 : undefined}
+                style={
+                  r.qty < 0 ? { color: 'var(--fi-danger, red)' } : undefined
+                }
+                fw={800}
               >
                 {r.qty}
               </Table.Td>

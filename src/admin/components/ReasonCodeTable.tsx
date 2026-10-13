@@ -1,12 +1,4 @@
-import {
-  Badge,
-  Button,
-  Group,
-  MultiSelect,
-  Table,
-  Text,
-  TextInput,
-} from '@mantine/core';
+import { Button, Group, MultiSelect, Table, TextInput } from '@mantine/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import {
@@ -21,6 +13,8 @@ import { runMutation } from '#/desk/run-mutation';
 import { createReasonCode, updateReasonCode } from '#/server/admin/catalog.fn';
 import type { ReasonCodeRow } from '#/server/admin/catalog.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
+import { EmptyNote } from '#/ui/EmptyNote';
+import { StatusBadge } from '#/ui/StatusBadge';
 
 type Err = Pick<DeskError, 'code' | 'message'>;
 
@@ -70,7 +64,7 @@ export function ReasonCodeTable({ rows }: { rows: ReasonCodeRow[] }) {
           {rows.length === 0 && (
             <Table.Tr>
               <Table.Td colSpan={4}>
-                <Text c="dimmed">No reason codes.</Text>
+                <EmptyNote>No reason codes.</EmptyNote>
               </Table.Td>
             </Table.Tr>
           )}
@@ -101,14 +95,14 @@ function ReasonRowView({ row }: { row: ReasonCodeRow }) {
           <Group gap="xs">
             {row.code}
             {row.system && (
-              <Badge color="gray" size="xs">
+              <StatusBadge size="xs" kind="resolved">
                 System
-              </Badge>
+              </StatusBadge>
             )}
             {row.malformed && (
-              <Badge color="red" size="xs">
+              <StatusBadge size="xs" kind="attention">
                 Malformed
-              </Badge>
+              </StatusBadge>
             )}
           </Group>
         </Table.Td>

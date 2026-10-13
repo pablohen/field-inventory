@@ -1,7 +1,8 @@
-import { Badge, Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
 import { movementDeltas } from '#/domain/balance';
 import type { MovementSource, MovementType } from '#/domain/types';
 import type { TimelineMovement } from '#/server/desk/exceptions.server';
+import { StatusBadge } from '#/ui/StatusBadge';
 
 export type TimelineKey = { skuId: string; locationId: string };
 
@@ -73,9 +74,9 @@ function Column({
         >
           <Group justify="space-between" gap="xs" wrap="wrap">
             <Group gap={6}>
-              <Badge size="sm" variant="light">
+              <StatusBadge size="sm" kind={m.type}>
                 {m.type}
-              </Badge>
+              </StatusBadge>
               <Text size="sm">qty {m.qty}</Text>
               {m.delta !== null && (
                 <Text size="sm" c={m.delta < 0 ? 'red' : undefined}>
@@ -83,9 +84,9 @@ function Column({
                 </Text>
               )}
               {m.involved && (
-                <Badge size="sm" color="yellow">
+                <StatusBadge size="sm" kind="pending">
                   involved
-                </Badge>
+                </StatusBadge>
               )}
             </Group>
             <Text size="xs" c="dimmed">

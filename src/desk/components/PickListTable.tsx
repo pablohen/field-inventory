@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Select, Table, Text } from '@mantine/core';
+import { Button, Group, Select, Table } from '@mantine/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { deskCall } from '#/desk/desk-call';
@@ -6,6 +6,8 @@ import { runMutation } from '#/desk/run-mutation';
 import { assignPickList, closePickList } from '#/server/desk/pick-lists.fn';
 import type { PickListRow } from '#/server/desk/pick-lists.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
+import { EmptyNote } from '#/ui/EmptyNote';
+import { StatusBadge } from '#/ui/StatusBadge';
 import { DeskErrorAlert } from './DeskErrorAlert';
 
 type Worker = { id: string; name: string };
@@ -19,7 +21,7 @@ export function PickListTable({
   rows: PickListRow[];
   workers: Worker[];
 }) {
-  if (rows.length === 0) return <Text c="dimmed">No pick lists.</Text>;
+  if (rows.length === 0) return <EmptyNote>No pick lists.</EmptyNote>;
   return (
     <Table.ScrollContainer minWidth={640}>
       <Table highlightOnHover>
@@ -130,9 +132,9 @@ function PickListRowView({
         <Table.Td>{new Date(row.createdAt).toLocaleString()}</Table.Td>
         <Table.Td>{`${picked}/${requested}`}</Table.Td>
         <Table.Td>
-          <Badge color={done ? 'gray' : 'blue'} variant="light">
+          <StatusBadge kind={done ? 'resolved' : 'pending'}>
             {done ? 'Done' : 'Open'}
-          </Badge>
+          </StatusBadge>
         </Table.Td>
         <Table.Td>
           <Group gap="xs">

@@ -1,5 +1,7 @@
-import { Badge, Button, Group, Table, Text } from '@mantine/core';
+import { Button, Group, Table } from '@mantine/core';
 import type { ProductRow } from '#/server/admin/catalog.server';
+import { EmptyNote } from '#/ui/EmptyNote';
+import { StatusBadge } from '#/ui/StatusBadge';
 
 export function toleranceLabel(p: ProductRow): string {
   if (p.countTolerance !== null) return String(p.countTolerance);
@@ -16,7 +18,7 @@ export function ProductTable({
   rows: ProductRow[];
   onEdit: (row: ProductRow) => void;
 }) {
-  if (rows.length === 0) return <Text c="dimmed">No products.</Text>;
+  if (rows.length === 0) return <EmptyNote>No products.</EmptyNote>;
   return (
     <Table.ScrollContainer minWidth={640}>
       <Table highlightOnHover>
@@ -39,9 +41,9 @@ export function ProductTable({
                 <Group gap={4}>
                   {p.barcodes.join(', ')}
                   {p.malformed && (
-                    <Badge color="red" size="xs">
+                    <StatusBadge size="xs" kind="attention">
                       Malformed
-                    </Badge>
+                    </StatusBadge>
                   )}
                 </Group>
               </Table.Td>

@@ -1,4 +1,4 @@
-import { Button, Table, Text, TextInput } from '@mantine/core';
+import { Button, Table, TextInput } from '@mantine/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { categoryInputSchema } from '#/admin/catalog-input';
@@ -8,6 +8,7 @@ import { runMutation } from '#/desk/run-mutation';
 import { createCategory, updateCategory } from '#/server/admin/catalog.fn';
 import type { CategoryRow } from '#/server/admin/catalog.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
+import { EmptyNote } from '#/ui/EmptyNote';
 
 type Err = Pick<DeskError, 'code' | 'message'>;
 type Fields = { name: string; countTolerance: number };
@@ -69,7 +70,7 @@ export function CategoryTable({ rows }: { rows: CategoryRow[] }) {
           {rows.length === 0 && (
             <Table.Tr>
               <Table.Td colSpan={4}>
-                <Text c="dimmed">No categories.</Text>
+                <EmptyNote>No categories.</EmptyNote>
               </Table.Td>
             </Table.Tr>
           )}

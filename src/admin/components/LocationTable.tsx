@@ -7,6 +7,7 @@ import { runMutation } from '#/desk/run-mutation';
 import { setLocationActive } from '#/server/admin/locations.fn';
 import type { AdminLocationRow } from '#/server/admin/locations.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
+import { EmptyNote } from '#/ui/EmptyNote';
 
 type RowProps = {
   warehouseId: string;
@@ -18,7 +19,7 @@ export function LocationTable({
   rows,
   ...rest
 }: RowProps & { rows: AdminLocationRow[] }) {
-  if (rows.length === 0) return <Text c="dimmed">No locations.</Text>;
+  if (rows.length === 0) return <EmptyNote>No locations.</EmptyNote>;
   return (
     <Table.ScrollContainer minWidth={560}>
       <Table highlightOnHover>
@@ -91,7 +92,7 @@ function LocationRowView({
   return (
     <>
       <Table.Tr style={row.active ? undefined : { opacity: 0.55 }}>
-        <Table.Td>{row.code}</Table.Td>
+        <Table.Td fw={800}>{row.code}</Table.Td>
         <Table.Td>{row.zone ?? ''}</Table.Td>
         <Table.Td>
           <Switch
@@ -101,7 +102,9 @@ function LocationRowView({
             onChange={(e) => onSwitch(e.currentTarget.checked)}
           />
         </Table.Td>
-        <Table.Td ta="right">{row.stockUnits}</Table.Td>
+        <Table.Td ta="right" className="fi-num" fw={800}>
+          {row.stockUnits}
+        </Table.Td>
         <Table.Td>
           <Button
             size="xs"

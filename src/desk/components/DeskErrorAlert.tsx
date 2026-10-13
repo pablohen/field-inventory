@@ -14,7 +14,11 @@ export function DeskErrorAlert({
 }) {
   if (error.code === 'CONFLICT') {
     return (
-      <Alert color="orange" role="alert">
+      <Alert
+        color="orange"
+        role="alert"
+        style={{ border: '2px solid var(--fi-danger)' }}
+      >
         <Group justify="space-between" wrap="nowrap">
           <span>{CONFLICT_MESSAGE}</span>
           {onReload && (
@@ -27,7 +31,11 @@ export function DeskErrorAlert({
     );
   }
   return (
-    <Alert color="red" role="alert">
+    <Alert
+      color="red"
+      role="alert"
+      style={{ border: '2px solid var(--fi-danger)' }}
+    >
       {error.message}
     </Alert>
   );

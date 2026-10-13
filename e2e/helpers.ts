@@ -164,7 +164,9 @@ export interface DeskException {
 export async function openExceptions(page: Page): Promise<DeskException[]> {
   await page.goto(`/w/${WH}/exceptions`);
   await expect(
-    page.getByRole('table').or(page.getByText('No open exceptions match.')),
+    page
+      .getByRole('table')
+      .or(page.getByText("No open exceptions. Floor's clear.")),
   ).toBeVisible({ timeout: 30_000 });
   const rows = page.locator('tbody').getByRole('row');
   const n = await rows.count();

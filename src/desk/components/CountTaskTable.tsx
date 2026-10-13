@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Select, Table, Text } from '@mantine/core';
+import { Button, Group, Select, Table } from '@mantine/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { scopeSummary } from '#/desk/count-scope';
@@ -7,6 +7,8 @@ import { runMutation } from '#/desk/run-mutation';
 import { assignCountTask, closeCountTask } from '#/server/desk/count-tasks.fn';
 import type { CountTaskRow } from '#/server/desk/count-tasks.server';
 import type { DeskError } from '#/server/desk/warehouses.server';
+import { EmptyNote } from '#/ui/EmptyNote';
+import { StatusBadge } from '#/ui/StatusBadge';
 import { DeskErrorAlert } from './DeskErrorAlert';
 
 type Worker = { id: string; name: string };
@@ -20,7 +22,7 @@ export function CountTaskTable({
   rows: CountTaskRow[];
   workers: Worker[];
 }) {
-  if (rows.length === 0) return <Text c="dimmed">No count tasks.</Text>;
+  if (rows.length === 0) return <EmptyNote>No count tasks.</EmptyNote>;
   return (
     <Table.ScrollContainer minWidth={640}>
       <Table highlightOnHover>
@@ -126,11 +128,13 @@ function CountTaskRowView({
             }
           />
         </Table.Td>
-        <Table.Td ta="right">{row.countsRecorded}</Table.Td>
+        <Table.Td ta="right" className="fi-num" fw={800}>
+          {row.countsRecorded}
+        </Table.Td>
         <Table.Td>
-          <Badge color={done ? 'gray' : 'blue'} variant="light">
+          <StatusBadge kind={done ? 'resolved' : 'pending'}>
             {done ? 'Done' : 'Open'}
-          </Badge>
+          </StatusBadge>
         </Table.Td>
         <Table.Td>
           <Group gap="xs">
