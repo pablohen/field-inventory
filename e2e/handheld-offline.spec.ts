@@ -1,6 +1,7 @@
-import { expect, type Page, test } from '@playwright/test';
-import { DEV_PIN, LOCATION_CODES, PRODUCTS } from '../scripts/seed-data';
-import { waitForHandheldReady, waitForServiceWorkerControl } from './helpers';
+import type { Page } from '@playwright/test';
+import { LOCATION_CODES, PRODUCTS } from '../scripts/seed-data';
+import { expect, test } from './fixtures';
+import { waitForHandheldReady } from './helpers';
 
 test.skip(
   process.env.E2E_TURSO !== '1',
@@ -30,27 +31,10 @@ async function displayedQty(page: Page): Promise<string> {
 }
 
 test('count and adjust offline, then sync back to zero pending', async ({
-  page,
-  context,
+  handheldA,
 }) => {
-  // 1. Sign in as ana on dev-handheld-1.
-  await page.goto('/h/login');
-  await page.getByLabel('Device id').fill('dev-handheld-1');
-  await page.getByLabel('Username').fill('ana');
-  await page
-    .getByRole('group', { name: 'PIN' })
-    .locator('input')
-    .first()
-    .click();
-  await page.keyboard.type(DEV_PIN);
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  await page.waitForURL(/\/h$/);
-  await waitForServiceWorkerControl(page);
-
-  // The first replica pull must finish before any scan (lookups read local replicas).
-  await page.goto('/h');
-  await waitForHandheldReady(page);
-  await expect(page.getByText(/^Synced /)).toBeVisible({ timeout: 30_000 });
+  // 1. handheldA is signed in as ana on dev-handheld-1 with its first pull done.
+  const { page, context } = handheldA;
 
   // 2. Go offline BEFORE recording, so the scheduled sync cannot push the COUNT early.
   //    Scans only need the local replicas; the page loads from the service worker.

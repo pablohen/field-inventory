@@ -17,7 +17,8 @@
     "db:generate": "prisma generate --config prisma.global.config.ts && prisma generate --config prisma.catalog.config.ts && prisma generate --config prisma.warehouse.config.ts",
     "db:migrate": "tsx scripts/migrate-warehouses.ts",
     "db:seed": "tsx scripts/seed-dev.ts",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "e2e:reset": "tsx scripts/e2e-reset.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",

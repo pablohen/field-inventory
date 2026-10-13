@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { createClient } from '@libsql/client';
 import { hashPin } from '#/server/auth/password';
 import {
@@ -19,9 +20,9 @@ import {
   SCHEMA_VERSIONS,
 } from '#/server/db/migrate';
 import { type SyncDeps, syncMovementsCore } from '#/server/sync/sync-movements';
-import { DEV_PIN, LOCATION_CODES, PRODUCTS } from './seed-data';
+import { DEV_PIN, initialQty, LOCATION_CODES, PRODUCTS } from './seed-data';
 
-const WAREHOUSES = [
+export const WAREHOUSES = [
   { id: 'wh-1', name: 'Warehouse 1', tursoDbName: 'fi-wh-1' },
   { id: 'wh-2', name: 'Warehouse 2', tursoDbName: 'fi-wh-2' },
 ];
@@ -74,21 +75,8 @@ async function migrate(url: string, name: DbName): Promise<number> {
   }
 }
 
-/** Deterministic per-product/location quantity; null means no stock there. */
-function initialQty(
-  productIndex: number,
-  locationIndex: number,
-): number | null {
-  // Product i is stocked at location i, plus every third location after it.
-  if (
-    locationIndex === productIndex ||
-    (locationIndex + productIndex) % 3 === 0
-  )
-    return 10 + productIndex + locationIndex;
-  return null;
-}
-
-async function main() {
+/** Seeds the dev DBs (idempotent). Exported so the e2e reset can re-run it. */
+export async function seedDev() {
   const global = globalDb();
   const catalog = catalogDb();
 
@@ -130,6 +118,7 @@ async function main() {
 
   const devices = [
     { id: 'dev-handheld-1', label: 'Dev handheld 1' },
+    { id: 'dev-handheld-2', label: 'Dev handheld 2' },
     { id: SEED_DEVICE_ID, label: 'Seed device' },
   ];
   for (const d of devices) {
@@ -299,9 +288,15 @@ async function main() {
   );
 }
 
-main()
-  .catch((err) => {
-    console.error(err);
-    process.exitCode = 1;
-  })
-  .finally(() => closeClients());
+// Run only when executed directly (`pnpm db:seed`), not when imported.
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  seedDev()
+    .catch((err) => {
+      console.error(err);
+      process.exitCode = 1;
+    })
+    .finally(() => closeClients());
+}

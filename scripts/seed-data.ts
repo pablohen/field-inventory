@@ -48,3 +48,17 @@ export const PRODUCTS = [
 ];
 
 export const LOCATION_CODES = ['A-01', 'A-02', 'A-03', 'A-04', 'A-05', 'A-06'];
+
+/** Deterministic per-product/location quantity; null means no stock there. */
+export function initialQty(
+  productIndex: number,
+  locationIndex: number,
+): number | null {
+  // Product i is stocked at location i, plus every third location after it.
+  if (
+    locationIndex === productIndex ||
+    (locationIndex + productIndex) % 3 === 0
+  )
+    return 10 + productIndex + locationIndex;
+  return null;
+}
