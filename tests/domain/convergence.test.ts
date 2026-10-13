@@ -196,4 +196,59 @@ describe('convergence', () => {
       RUNS,
     );
   });
+
+  it('(d) open count exceptions: at most one per count, and the same counts flagged in every order when each bin has at most one count', () => {
+    // Open CV/LM draft count ids; null when a count has more than one.
+    const flaggedCounts = (
+      order: Movement[],
+      tolerance: number,
+    ): Set<string> | null => {
+      const seen = new Set<string>();
+      for (const e of simulate(order, () => tolerance).exceptions) {
+        if (e.type !== 'COUNT_VARIANCE' && e.type !== 'LATE_MOVEMENT') continue;
+        const id = e.movementIds[0];
+        if (id === undefined || seen.has(id)) return null;
+        seen.add(id);
+      }
+      return seen;
+    };
+    // Keep only the first COUNT per bin (same ids dropped from both orders).
+    const onePerBin = (movements: Movement[], permutation: Movement[]) => {
+      const keep = new Set<string>();
+      const bins = new Set<string>();
+      for (const m of movements) {
+        if (m.type !== 'COUNT') keep.add(m.id);
+        else {
+          const k = keysOf(m)[0] ?? '';
+          if (!bins.has(k)) {
+            bins.add(k);
+            keep.add(m.id);
+          }
+        }
+      }
+      return [
+        movements.filter((m) => keep.has(m.id)),
+        permutation.filter((m) => keep.has(m.id)),
+      ] as const;
+    };
+    fc.assert(
+      fc.property(
+        scenarioArb(ALL),
+        fc.integer({ min: 0, max: 6 }),
+        ({ movements, permutation }, tolerance) => {
+          if (
+            flaggedCounts(movements, tolerance) === null ||
+            flaggedCounts(permutation, tolerance) === null
+          )
+            return false;
+          const [a, b] = onePerBin(movements, permutation);
+          const x = flaggedCounts(a, tolerance);
+          const y = flaggedCounts(b, tolerance);
+          if (x === null || y === null) return false;
+          return x.size === y.size && [...x].every((id) => y.has(id));
+        },
+      ),
+      RUNS,
+    );
+  });
 });

@@ -122,7 +122,7 @@ The catalog is kept separate from the global database so user and device data ne
 | `TRANSFER_STUCK` | A `TRANSFER_OUT` has had no matching `TRANSFER_IN` after N hours (configurable). Checked when the exceptions list is loaded and on each sync |
 | `CLOCK_SKEW` | A device's measured clock drift is over the threshold |
 
-A count has at most one open count exception (`COUNT_VARIANCE` or `LATE_MOVEMENT`), whatever the arrival order of the movements around it. When a late movement makes the server re-run a count:
+Each count has at most one open count exception (`COUNT_VARIANCE` or `LATE_MOVEMENT`), whatever the arrival order of the movements around it. For bins with a single count, the same counts end up flagged in every arrival order. When a late movement makes the server re-run a count:
 - If the corrected variance is within tolerance, the count's open exception is closed as `SUPERSEDED` (resolved by `system`, in the same transaction).
 - If the corrected variance is still over tolerance and the re-run changes the result, the old exception is superseded and one `LATE_MOVEMENT` with the corrected variance replaces it.
 - If it is over tolerance and nothing changes, the existing exception stays open.
@@ -237,4 +237,5 @@ Lists use route search params validated by Zod (shareable URLs) and refresh by p
 - **Turso browser sync maturity:** covered by milestone 0 and the approach B fallback.
 - **Device clock drift:** count reconciliation depends on `occurredAt`. Drift is measured on every sync and flagged with `CLOCK_SKEW`, but not corrected automatically.
 - **Revocation lag on replica tokens:** a disabled worker or revoked device keeps read-only replica access with already-minted tokens until they expire (7 days at most). Turso tokens can't be revoked individually; rotate the group token if this needs to be cut off sooner.
+- **Order-dependent flagging with several counts in one bin:** when a bin gets several contradicting counts while devices are offline, an earlier count's kept auto-adjust can change whether a later count is flagged, so flagging can depend on arrival order. Balances still converge.
 - **OPFS on rugged Android Chrome versions:** checked in milestone 0 on a real or emulated target if possible.

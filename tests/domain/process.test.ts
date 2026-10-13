@@ -3,6 +3,7 @@ import { balanceKeyString, computeBalances } from '#/domain/balance';
 import type { Effects, ProcessContext } from '#/domain/process';
 import { processMovement } from '#/domain/process';
 import type { Movement } from '#/domain/types';
+import { simulate } from '../support/simulate';
 
 const at = (hhmm: string) => new Date(`2026-01-01T${hhmm}:00.000Z`);
 const KEY = balanceKeyString({ skuId: 'S1', locationId: 'A' });
@@ -310,6 +311,35 @@ describe('processMovement', () => {
         .filter((x) => x.type === 'LATE_MOVEMENT')
         .map((x) => x.movementIds[0]),
     ).toEqual(['c1', 'c2']);
+  });
+
+  it('keeps at most one open exception per count when several counts share a bin (documented limit)', () => {
+    const base = {
+      toLocationId: 'A',
+      fromLocationId: null,
+      occurredAt: at('10:00'),
+    };
+    const move = mv({
+      id: 'mv',
+      type: 'MOVE',
+      fromLocationId: 'Z',
+      toLocationId: 'A',
+      qty: 1,
+      occurredAt: at('10:00'),
+    });
+    const c12 = mv({ ...base, id: 'm-12', type: 'COUNT', qty: 5 });
+    const c14 = mv({ ...base, id: 'm-14', type: 'COUNT', qty: 0 });
+    const c2 = mv({ ...base, id: 'm-2', type: 'COUNT', qty: 0 });
+    for (const order of [
+      [move, c12, c14, c2],
+      [c14, c2, move, c12],
+    ]) {
+      const open = simulate(order, () => 4).exceptions.filter(
+        (x) => x.type === 'COUNT_VARIANCE' || x.type === 'LATE_MOVEMENT',
+      );
+      const ids = open.map((x) => x.movementIds[0]);
+      expect(new Set(ids).size).toBe(ids.length);
+    }
   });
 
   it('raises OVER_PICK', () => {
