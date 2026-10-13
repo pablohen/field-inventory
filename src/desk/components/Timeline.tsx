@@ -6,7 +6,7 @@ import { StatusBadge } from '#/ui/StatusBadge';
 
 export type TimelineKey = { skuId: string; locationId: string };
 
-function signed(n: number): string {
+export function signed(n: number): string {
   return n < 0 ? `−${Math.abs(n)}` : n > 0 ? `+${n}` : '0';
 }
 
@@ -16,7 +16,10 @@ export function fmtTime(iso: string): string {
 }
 
 /** Net effect of `m` on `key`; null when there is no key to measure against. */
-function deltaFor(m: TimelineMovement, key: TimelineKey | null): number | null {
+export function deltaFor(
+  m: TimelineMovement,
+  key: TimelineKey | null,
+): number | null {
   if (!key) return null;
   return movementDeltas({
     id: m.id,

@@ -1,7 +1,8 @@
-import { Badge, Group, Loader, Stack, Text, Title } from '@mantine/core';
+import { Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { asList } from '#/desk/as-list';
+import { ConflictLanes } from '#/desk/components/ConflictLanes';
 import { DeskErrorAlert } from '#/desk/components/DeskErrorAlert';
 import { errorMessage, RefreshNote } from '#/desk/components/RefreshNote';
 import { ResolvePanel } from '#/desk/components/ResolvePanel';
@@ -13,6 +14,7 @@ import {
   resolveException,
 } from '#/server/desk/exceptions.fn';
 import { listReasonCodes } from '#/server/desk/stock.fn';
+import { StatusBadge } from '#/ui/StatusBadge';
 
 export const Route = createFileRoute('/w/$warehouseId/exceptions/$id')({
   component: ExceptionDetailRoute,
@@ -90,12 +92,10 @@ export function ExceptionDetailPage({
       {back}
       {detail.isError && <RefreshNote />}
       <Group gap="sm">
-        <Badge variant="light">{ex.type}</Badge>
+        <StatusBadge kind={ex.type}>{ex.type}</StatusBadge>
         <Title order={3}>{ex.summary}</Title>
         {ex.malformed.length > 0 && (
-          <Badge color="red" variant="outline">
-            data issue
-          </Badge>
+          <StatusBadge kind="attention">data issue</StatusBadge>
         )}
       </Group>
       <Text size="sm" c="dimmed">
@@ -131,7 +131,9 @@ export function ExceptionDetailPage({
         />
       ) : (
         <Stack gap={2} data-testid="resolution">
-          <Text fw={600}>Resolved: {ex.resolution}</Text>
+          <div>
+            <StatusBadge kind="resolved">Resolved: {ex.resolution}</StatusBadge>
+          </div>
           {ex.note && <Text size="sm">Note: {ex.note}</Text>}
           <Text size="sm" c="dimmed">
             By {ex.resolvedBy ? who(ex.resolvedBy) : '—'}
@@ -139,6 +141,7 @@ export function ExceptionDetailPage({
           </Text>
         </Stack>
       )}
+      <ConflictLanes movements={bySeq} keyOf={key} names={names} />
       <Timeline
         byOccurredAt={byOccurredAt}
         bySeq={bySeq}
