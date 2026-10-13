@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { globalDb } from '#/server/db/clients';
 import { main, resetWarehouseData } from '../../scripts/e2e-reset';
+import { seedDev } from '../../scripts/seed-dev';
 import { createTestEnv, type TestEnv } from '../support/test-env';
 
 describe('e2e reset', () => {
@@ -89,6 +91,67 @@ describe('e2e reset', () => {
       );
       process.env.E2E_TURSO = '1';
       await expect(main()).rejects.toThrow('Refusing to reset');
+    } finally {
+      if (prev.t === undefined) delete process.env.E2E_TURSO;
+      else process.env.E2E_TURSO = prev.t;
+      if (prev.a === undefined) delete process.env.E2E_ALLOW_RESET;
+      else process.env.E2E_ALLOW_RESET = prev.a;
+    }
+  });
+
+  it('restores seeded devices, users and login attempts after a reset', async () => {
+    const prev = { t: process.env.E2E_TURSO, a: process.env.E2E_ALLOW_RESET };
+    process.env.E2E_TURSO = '1';
+    process.env.E2E_ALLOW_RESET = '1';
+    try {
+      await seedDev();
+      const g = globalDb();
+      await g.device.update({
+        where: { id: 'dev-handheld-1' },
+        data: { revokedAt: new Date() },
+      });
+      await g.deviceWarehouse.delete({
+        where: {
+          deviceId_warehouseId: {
+            deviceId: 'dev-handheld-1',
+            warehouseId: 'wh-2',
+          },
+        },
+      });
+      await g.user.update({
+        where: { username: 'ana' },
+        data: { disabledAt: new Date() },
+      });
+      await g.loginAttempt.create({
+        data: { deviceId: 'dev-handheld-1', username: 'ana', failures: 5 },
+      });
+      await (await env.warehouse('fi-wh-1')).countTask.update({
+        where: { id: 'ct-1' },
+        data: { assignedUserId: null },
+      });
+
+      await main();
+
+      const dev = await g.device.findUniqueOrThrow({
+        where: { id: 'dev-handheld-1' },
+        include: { warehouses: true },
+      });
+      expect(dev.revokedAt).toBeNull();
+      expect(dev.warehouses.map((w) => w.warehouseId).sort()).toEqual([
+        'wh-1',
+        'wh-2',
+      ]);
+      const ana = await g.user.findUniqueOrThrow({
+        where: { username: 'ana' },
+      });
+      expect(ana.disabledAt).toBeNull();
+      expect(await g.loginAttempt.count()).toBe(0);
+      const ct = await (
+        await env.warehouse('fi-wh-1')
+      ).countTask.findUniqueOrThrow({
+        where: { id: 'ct-1' },
+      });
+      expect(ct.assignedUserId).toBe('user-ana');
     } finally {
       if (prev.t === undefined) delete process.env.E2E_TURSO;
       else process.env.E2E_TURSO = prev.t;

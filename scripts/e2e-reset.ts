@@ -1,8 +1,12 @@
 import { pathToFileURL } from 'node:url';
 import {
+  catalogUrl,
   closeClients,
+  globalDb,
+  globalUrl,
   type WarehouseClient,
   warehouseDb,
+  warehouseUrl,
 } from '#/server/db/clients';
 import { seedDev, WAREHOUSES } from './seed-dev';
 
@@ -26,6 +30,11 @@ export async function main(): Promise<void> {
   if (process.env.E2E_TURSO !== '1' || process.env.E2E_ALLOW_RESET !== '1') {
     throw new Error('Refusing to reset: set E2E_TURSO=1 and E2E_ALLOW_RESET=1');
   }
+  console.log(`e2e reset: global ${globalUrl()}, catalog ${catalogUrl()}`);
+  for (const wh of WAREHOUSES) {
+    console.log(`e2e reset: ${wh.id} ${warehouseUrl(wh.tursoDbName)}`);
+  }
+  await globalDb().loginAttempt.deleteMany();
   for (const wh of WAREHOUSES) {
     await resetWarehouseData(warehouseDb(wh.tursoDbName));
   }

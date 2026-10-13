@@ -98,7 +98,7 @@ export async function seedDev() {
     await global.user.upsert({
       where: { id: u.id },
       create: { ...u, pinHash },
-      update: { ...u, pinHash },
+      update: { ...u, pinHash, disabledAt: null },
     });
   }
 
@@ -113,7 +113,7 @@ export async function seedDev() {
       role: 'admin',
       pinHash: lockedHash,
     },
-    update: { name: 'Seed', role: 'admin' },
+    update: { name: 'Seed', role: 'admin', disabledAt: null },
   });
 
   const devices = [
@@ -125,13 +125,13 @@ export async function seedDev() {
     await global.device.upsert({
       where: { id: d.id },
       create: d,
-      update: { label: d.label },
+      update: { label: d.label, revokedAt: null },
     });
+    // Assignments are exactly the seeded set, so a revoked or trimmed device is restored.
+    await global.deviceWarehouse.deleteMany({ where: { deviceId: d.id } });
     for (const wh of WAREHOUSES) {
-      await global.deviceWarehouse.upsert({
-        where: { deviceId_warehouseId: { deviceId: d.id, warehouseId: wh.id } },
-        create: { deviceId: d.id, warehouseId: wh.id },
-        update: {},
+      await global.deviceWarehouse.create({
+        data: { deviceId: d.id, warehouseId: wh.id },
       });
     }
   }
@@ -280,7 +280,10 @@ export async function seedDev() {
       assignedUserId: 'user-ana',
       status: 'OPEN',
     },
-    update: { scope: JSON.stringify({ zone: 'A' }) },
+    update: {
+      scope: JSON.stringify({ zone: 'A' }),
+      assignedUserId: 'user-ana',
+    },
   });
 
   console.log(
