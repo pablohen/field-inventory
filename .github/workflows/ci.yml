@@ -22,3 +22,54 @@ jobs:
       - run: pnpm biome ci .
       - run: pnpm typecheck
       - run: pnpm test
+
+  e2e:
+    needs: check
+    runs-on: ubuntu-latest
+    # Two runs must never reset the shared Turso dev DBs at the same time.
+    concurrency:
+      group: e2e-turso
+      cancel-in-progress: false
+    env:
+      TURSO_PLATFORM_TOKEN: ${{ secrets.TURSO_PLATFORM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm generate-routes
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: mkdir -p .data
+      # Secrets are unavailable to `if:`, so gate on the job-level env var.
+      # Without Turso the run uses file DBs: the Turso specs skip.
+      - name: Enable Turso e2e
+        if: env.TURSO_PLATFORM_TOKEN != ''
+        env:
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          TURSO_ORG: ${{ secrets.TURSO_ORG }}
+          CATALOG_TURSO_DB: ${{ secrets.CATALOG_TURSO_DB }}
+          WAREHOUSE_DB_URL_TEMPLATE: ${{ secrets.WAREHOUSE_DB_URL_TEMPLATE }}
+          TURSO_GROUP_AUTH_TOKEN: ${{ secrets.TURSO_GROUP_AUTH_TOKEN }}
+          GLOBAL_DB_URL: ${{ secrets.GLOBAL_DB_URL }}
+          CATALOG_DB_URL: ${{ secrets.CATALOG_DB_URL }}
+        run: |
+          for k in SESSION_SECRET TURSO_ORG TURSO_PLATFORM_TOKEN CATALOG_TURSO_DB \
+            WAREHOUSE_DB_URL_TEMPLATE TURSO_GROUP_AUTH_TOKEN GLOBAL_DB_URL CATALOG_DB_URL; do
+            printf '%s<<EOF_E2E\n%s\nEOF_E2E\n' "$k" "${!k}" >> "$GITHUB_ENV"
+          done
+          echo "E2E_TURSO=1" >> "$GITHUB_ENV"
+          echo "E2E_ALLOW_RESET=1" >> "$GITHUB_ENV"
+      - run: pnpm e2e
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: test-results/
+          if-no-files-found: ignore
