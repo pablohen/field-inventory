@@ -20,6 +20,10 @@ const RECONNECT_ORDERS = ['A then B', 'B then A', 'together'] as const;
 
 const { countVsMove: cm, lastUnits: lu } = CONTESTS;
 
+if (cm.countQty !== cm.initialQty - cm.moveQty) {
+  throw new Error('countVsMove.countQty must equal initialQty - moveQty');
+}
+
 /** Expected final quantities, derived from the contest data. */
 const EXPECTED = [
   { skuId: cm.skuId, locationId: cm.from.id, qty: cm.initialQty - cm.moveQty },
@@ -69,8 +73,8 @@ for (const order of RECONNECT_ORDERS) {
       qty: lu.initialQty,
     });
 
-    expect(await pendingCount(a.page)).toBe(2);
-    expect(await pendingCount(b.page)).toBe(2);
+    await expect.poll(() => pendingCount(a.page)).toBe(2);
+    await expect.poll(() => pendingCount(b.page)).toBe(2);
 
     // Reconnect in the given order.
     if (order === 'A then B') {
@@ -129,7 +133,10 @@ for (const order of RECONNECT_ORDERS) {
     await desk.getByLabel('Reason').click();
     await desk.getByRole('option', { name: 'Found' }).click();
     await desk.getByRole('button', { name: 'Resolve', exact: true }).click();
-    await expect(desk.getByText('Resolved.')).toBeVisible({ timeout: 15_000 });
+    await expect(desk.getByTestId('resolution')).toContainText(
+      'Resolved: ADJUSTED',
+      { timeout: 15_000 },
+    );
 
     await expect.poll(() => openExceptions(desk), POLL).toEqual([]);
     await expect.poll(() => deskQty(desk, lu.skuId, lu.from.id), POLL).toBe(0);
