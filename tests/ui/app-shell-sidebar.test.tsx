@@ -81,7 +81,7 @@ describe('AppShellSidebar', () => {
     fireEvent.click(burger);
     expect(
       screen
-        .getByRole('button', { name: 'Open navigation' })
+        .getByRole('button', { name: 'Close navigation' })
         .getAttribute('aria-expanded'),
     ).toBe('true');
     // Links render once; the navbar is toggled, not duplicated.

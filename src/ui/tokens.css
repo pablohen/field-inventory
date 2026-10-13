@@ -210,3 +210,9 @@ body {
 .fi-rail-footer [role="alert"] {
   color: #fca5a5;
 }
+
+@media (min-width: 900px) {
+  .fi-rail-top {
+    display: none;
+  }
+}

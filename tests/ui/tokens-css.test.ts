@@ -20,3 +20,11 @@ describe('tokens.css mirrors TOKENS', () => {
     });
   }
 });
+
+describe('rail header', () => {
+  it('is hidden from 900px up (jsdom cannot evaluate media queries)', () => {
+    expect(css).toMatch(
+      /@media \(min-width: 900px\)\s*\{\s*\.fi-rail-top\s*\{\s*display:\s*none;?\s*\}\s*\}/,
+    );
+  });
+});

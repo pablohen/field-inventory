@@ -1,7 +1,7 @@
 import { AppShell, Burger } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { Link, type LinkProps } from '@tanstack/react-router';
-import type { ReactNode } from 'react';
+import { Link, type LinkProps, useRouterState } from '@tanstack/react-router';
+import { type ReactNode, useEffect } from 'react';
 import { Wordmark } from '#/ui/Wordmark';
 
 /** Inactive rail link text; legible on `--fi-rail` in both schemes. */
@@ -30,6 +30,10 @@ export function AppShellSidebar({
   children: ReactNode;
 }) {
   const [opened, { toggle, close }] = useDisclosure(false);
+  // Any navigation (link, warehouse switch) closes the mobile drawer.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // biome-ignore lint/correctness/useExhaustiveDependencies: close on pathname change only
+  useEffect(() => close(), [pathname]);
   return (
     <AppShell
       header={{ height: { base: 48, [`${BREAKPOINT}px`]: 0 } }}
@@ -40,15 +44,11 @@ export function AppShellSidebar({
       }}
       padding="md"
     >
-      <AppShell.Header
-        className="fi-rail-top"
-        hiddenFrom={`${BREAKPOINT}px`}
-        withBorder={false}
-      >
+      <AppShell.Header className="fi-rail-top" withBorder={false}>
         <Burger
           opened={opened}
           onClick={toggle}
-          aria-label="Open navigation"
+          aria-label={opened ? 'Close navigation' : 'Open navigation'}
           aria-expanded={opened}
           size="sm"
           color="var(--fi-signal)"
