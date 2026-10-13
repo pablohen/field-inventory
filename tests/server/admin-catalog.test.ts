@@ -162,6 +162,61 @@ describe('catalog admin', () => {
       expect(await catalog.product.count()).toBe(1);
     });
 
+    it('rejects cross-field collisions (sku/id/barcode), case-insensitively', async () => {
+      await createProductCore(
+        catalog,
+        prod({ sku: 'SKU9', barcodes: ['1111'] }),
+      );
+      const msg = (v: string) => ({
+        ok: false,
+        code: 'INVALID',
+        message: `${v} is already used by SKU9 Anvil`,
+      });
+      // barcode equal to another product's SKU
+      expect(
+        await createProductCore(
+          catalog,
+          prod({ sku: 'B1', name: 'B', barcodes: ['SKU9'] }),
+        ),
+      ).toEqual(msg('SKU9'));
+      // SKU equal to another product's barcode
+      expect(
+        await createProductCore(
+          catalog,
+          prod({ sku: '1111', name: 'B', barcodes: [] }),
+        ),
+      ).toEqual(msg('1111'));
+      // case variants, both directions
+      expect(
+        await createProductCore(
+          catalog,
+          prod({ sku: 'B1', name: 'B', barcodes: ['sku9'] }),
+        ),
+      ).toEqual(msg('sku9'));
+      expect(
+        await createProductCore(
+          catalog,
+          prod({ sku: 'sku9', name: 'B', barcodes: [] }),
+        ),
+      ).toEqual(msg('sku9'));
+      // a SKU equal to another product's id
+      expect(
+        await createProductCore(
+          catalog,
+          prod({ sku: 'PROD-sku9', name: 'B', barcodes: [] }),
+        ),
+      ).toEqual(msg('PROD-sku9'));
+      expect(await catalog.product.count()).toBe(1);
+      // keeping its own values on update is fine
+      expect(
+        await updateProductCore(
+          catalog,
+          'prod-sku9',
+          prod({ sku: 'SKU9', barcodes: ['1111'] }),
+        ),
+      ).toEqual({ ok: true });
+    });
+
     it('rejects a duplicate sku on create', async () => {
       await createProductCore(catalog, prod());
       const r = await createProductCore(

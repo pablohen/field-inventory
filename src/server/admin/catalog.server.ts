@@ -77,8 +77,14 @@ function parseStrings(json: string): { values: string[]; malformed: boolean } {
 type CatalogTx = Parameters<Parameters<CatalogClient['$transaction']>[0]>[0];
 
 /**
- * First SKU or barcode of `candidate` already used by another product.
- * `barcodes` is a JSON column, so the DB cannot enforce uniqueness.
+ * First value of `candidate` (SKU, then barcodes in order) that collides with
+ * any scan key (SKU, id or barcode) of another product. The handheld lookup
+ * matches sku OR id OR barcode, so any cross-field collision would silently
+ * shadow a product. Comparison is case-insensitive because scanners and typing
+ * vary in case. `barcodes` is a JSON column, so the DB cannot enforce this.
+ * It reads all products (fine at catalog scale); concurrent creates rely on
+ * SQLite serializing writes, and the loser may surface as a busy error (a
+ * documented residual).
  */
 async function findConflicts(
   catalog: CatalogClient | CatalogTx,
@@ -87,20 +93,19 @@ async function findConflicts(
 ): Promise<DeskError | null> {
   const others = await catalog.product.findMany({
     where: excludeProductId ? { id: { not: excludeProductId } } : undefined,
-    select: { sku: true, name: true, barcodes: true },
+    select: { id: true, sku: true, name: true, barcodes: true },
   });
+  const holders = new Map<string, { sku: string; name: string }>();
   for (const o of others) {
-    if (o.sku === candidate.sku) {
-      return invalid(`${candidate.sku} is already used by ${o.sku} ${o.name}`);
+    const keys = [o.sku, o.id, ...parseStrings(o.barcodes).values];
+    for (const k of keys) {
+      const key = k.toLowerCase();
+      if (!holders.has(key)) holders.set(key, o);
     }
   }
-  const wanted = new Set(candidate.barcodes);
-  for (const o of others) {
-    for (const b of parseStrings(o.barcodes).values) {
-      if (wanted.has(b)) {
-        return invalid(`${b} is already used by ${o.sku} ${o.name}`);
-      }
-    }
+  for (const value of [candidate.sku, ...candidate.barcodes]) {
+    const o = holders.get(value.toLowerCase());
+    if (o) return invalid(`${value} is already used by ${o.sku} ${o.name}`);
   }
   return null;
 }
