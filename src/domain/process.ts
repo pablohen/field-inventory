@@ -1,7 +1,7 @@
 import { balanceKeyString, movementDeltas } from '#/domain/balance';
 import {
   correctForLateMovement,
-  findAffectedCount,
+  findAffectedCounts,
   reconcileCount,
 } from '#/domain/count';
 import { detectOverPick } from '#/domain/detectors';
@@ -91,19 +91,23 @@ export function processMovement(
   for (let x = queue.shift(); x !== undefined; x = queue.shift()) {
     for (const key of touchedKeys(x)) {
       const ledger = ledgerFor(key);
-      const count = findAffectedCount(x, ledger);
-      if (count === null || corrected.has(count.id)) continue;
-      corrected.add(count.id);
-      const outcome = correctForLateMovement(
-        count,
-        ledger,
-        ctx.tolerance,
-        newId,
-        x.id,
-      );
-      if (outcome.supersedes) supersededCountIds.push(count.id);
-      if (outcome.kind === 'auto_adjust') produce(outcome.adjust);
-      else if (outcome.kind === 'exception') exceptions.push(outcome.exception);
+      // Every count x precedes, in ledger order; each sees the auto-adjusts
+      // produced for earlier counts in this call (they are recorded in `ledger`).
+      for (const count of findAffectedCounts(x, ledger)) {
+        if (corrected.has(count.id)) continue;
+        corrected.add(count.id);
+        const outcome = correctForLateMovement(
+          count,
+          ledger,
+          ctx.tolerance,
+          newId,
+          x.id,
+        );
+        if (outcome.supersedes) supersededCountIds.push(count.id);
+        if (outcome.kind === 'auto_adjust') produce(outcome.adjust);
+        else if (outcome.kind === 'exception')
+          exceptions.push(outcome.exception);
+      }
     }
   }
 

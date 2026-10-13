@@ -285,6 +285,33 @@ describe('processMovement', () => {
     });
   });
 
+  it('re-runs every later count when the earliest stays over tolerance (D3)', () => {
+    const c1 = mv({
+      id: 'c1',
+      type: 'COUNT',
+      qty: 10,
+      occurredAt: at('10:00'),
+    });
+    const c2 = mv({
+      id: 'c2',
+      type: 'COUNT',
+      qty: 10,
+      occurredAt: at('11:00'),
+    });
+    const late = pick({ id: 'p9', qty: 8, occurredAt: at('09:00') });
+    const e = processMovement(
+      late,
+      ctxFor([receipt, c1, c2], { tolerance: 2 }),
+      idGen(),
+    );
+    expect(e.supersededCountIds).toEqual(['c1', 'c2']);
+    expect(
+      e.exceptions
+        .filter((x) => x.type === 'LATE_MOVEMENT')
+        .map((x) => x.movementIds[0]),
+    ).toEqual(['c1', 'c2']);
+  });
+
   it('raises OVER_PICK', () => {
     const e = processMovement(
       pick({ qty: 3 }),

@@ -145,6 +145,25 @@ export function findAffectedCount(
   return best;
 }
 
+/**
+ * Every COUNT (by orderKey, earliest first) on a key `late` touches that `late`
+ * is strictly before. Same rules as `findAffectedCount`.
+ */
+export function findAffectedCounts(
+  late: Movement,
+  ledger: Movement[],
+): Movement[] {
+  const keys = new Set(movementDeltas(late).map(balanceKeyString));
+  return ledger
+    .filter(
+      (c) =>
+        c.type === 'COUNT' &&
+        keys.has(countKey(c)) &&
+        isBefore(late, c, ledger),
+    )
+    .sort((a, b) => compareKeys(orderKey(a, ledger), orderKey(b, ledger)));
+}
+
 export function correctForLateMovement(
   count: Movement,
   binLedgerIncludingLate: Movement[],
