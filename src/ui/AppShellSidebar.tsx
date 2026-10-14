@@ -10,6 +10,7 @@ export const RAIL_LINK_COLOR = '#d6d3d1';
 export const RAIL_ACTIVE_INK = '#1c1917';
 
 const BREAKPOINT = 900;
+const NAVBAR_ID = 'fi-navbar';
 
 export type SidebarLink = {
   label: string;
@@ -50,12 +51,18 @@ export function AppShellSidebar({
           onClick={toggle}
           aria-label={opened ? 'Close navigation' : 'Open navigation'}
           aria-expanded={opened}
+          aria-controls={NAVBAR_ID}
           size="sm"
           color="var(--fi-signal)"
         />
         <Wordmark size="sm" />
       </AppShell.Header>
-      <AppShell.Navbar className="fi-rail" withBorder={false}>
+      <AppShell.Navbar
+        id={NAVBAR_ID}
+        className="fi-rail"
+        data-open={opened || undefined}
+        withBorder={false}
+      >
         <div className="fi-stripe fi-rail-stripe" aria-hidden="true" />
         <div className="fi-rail-brand">
           <Wordmark />

@@ -88,6 +88,20 @@ describe('AppShellSidebar', () => {
     expect(screen.getAllByRole('link')).toHaveLength(2);
   });
 
+  it('hides the closed drawer from the tab order and controls it from the burger', async () => {
+    await mountSidebar();
+    const burger = screen.getByRole('button', { name: 'Open navigation' });
+    const navbar = document.getElementById(
+      burger.getAttribute('aria-controls') ?? 'missing',
+    ) as HTMLElement;
+    expect(navbar).toBeTruthy();
+    expect(navbar.classList.contains('fi-rail')).toBe(true);
+    // CSS (tokens.css) hides `.fi-rail:not([data-open])` below 900px.
+    expect(navbar.hasAttribute('data-open')).toBe(false);
+    fireEvent.click(burger);
+    expect(navbar.hasAttribute('data-open')).toBe(true);
+  });
+
   it('titles long link labels and footer text with the full string', async () => {
     await mountSidebar();
     expect(screen.getByRole('link', { name: LONG }).getAttribute('title')).toBe(
