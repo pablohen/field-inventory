@@ -67,7 +67,12 @@ export function OnboardingTour({
       className="fi-tour"
     >
       {shown.map((s) => (
-        <Tour.Step key={s.id} target={s.target} title={s.title}>
+        <Tour.Step
+          key={s.id}
+          target={s.target}
+          title={s.title}
+          position={s.position}
+        >
           {s.body}
         </Tour.Step>
       ))}

@@ -157,6 +157,16 @@ describe('OnboardingTour', () => {
   });
 });
 
+describe('tour layout', () => {
+  it('places every sidebar-rail step to the right of the rail', () => {
+    for (const s of DESK_TOUR) {
+      expect(s.position).toBe(
+        s.target?.includes('rail-') ? 'right' : undefined,
+      );
+    }
+  });
+});
+
 describe('tour copy', () => {
   it('desk tour', () => {
     expect(DESK_TOUR.map((s) => [s.title, s.body, s.target ?? null])).toEqual([

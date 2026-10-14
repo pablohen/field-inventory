@@ -4,6 +4,8 @@ export type TourStepDef = {
   target?: string;
   title: string;
   body: string;
+  /** Tooltip side; rail steps sit to the right so they don't cover the rail. */
+  position?: 'right';
 };
 
 /** Per-device "seen" flags; bump the version to show a changed tour again. */
@@ -29,12 +31,14 @@ export const DESK_TOUR: TourStepDef[] = [
     target: at('rail-switcher'),
     title: 'Warehouse',
     body: "Switch warehouse here. The page you're on stays the same.",
+    position: 'right',
   },
   {
     id: 'sections',
     target: at('rail-sections'),
     title: 'Sections',
     body: 'Exceptions to review, stock and its ledger, and the pick lists and counts you hand out.',
+    position: 'right',
   },
   {
     id: 'tiles',
@@ -53,6 +57,7 @@ export const DESK_TOUR: TourStepDef[] = [
     target: at('rail-footer'),
     title: 'Settings',
     body: 'Switch light or dark here, and replay this tour any time.',
+    position: 'right',
   },
 ];
 
