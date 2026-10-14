@@ -159,7 +159,7 @@
 
 - **`src/desk/components/ConflictLanes.tsx`** renders above the existing `Timeline` lists in `src/routes/w/$warehouseId/exceptions.$id.tsx`. The lists stay as the detailed, accessible view.
 - **The pure function `laneLayout(movements)`** goes in `src/desk/conflict-lanes.ts`:
-  - Input: the involved movements with `id`, `occurredAt`, `seq`, `type`, `delta` and `worker`.
+  - Input: every movement on the exception's bin (the same set as the lists) with `id`, `occurredAt`, `seq`, `type`, `delta`, `worker`, `observed` (a COUNT's quantity) and `involved`. All of them are drawn, because the late arrival that explains an exception is usually not one of its involved movements. Involved movements get a larger signal-yellow dot and bold label.
   - Output: `{ id, happenedRank, arrivedRank, late, label }[]`.
   - `happenedRank` is the movement's position when sorted by `occurredAt`, with ties broken by `seq`. `arrivedRank` is its position by `seq`.
   - `late` is true iff some other movement happened after it but arrived before it (higher `happenedRank`, lower `arrivedRank`). Only the later-arriving side of an inverted pair is late. In the stale-count example, the move is late and the count is not.
@@ -167,9 +167,10 @@
   - Two horizontal axes, labelled "HAPPENED" (top) and "ARRIVED" (bottom).
   - One line per movement, drawn from `happenedRank` on the top axis to `arrivedRank` on the bottom axis.
   - Late lines are `--fi-danger` with a "late" label. Others are `--fi-muted`.
-  - Endpoint dots carry `type delta · worker` labels.
+  - Endpoint dots carry short labels: `TYPE delta`, or `COUNT =N` for a count. The worker is in each dot's and line's `<title>`.
   - The SVG has `role="img"` and an `aria-label` summarising the late arrivals.
-- **Fallback:** above 12 involved movements, it renders the note "Too many movements to draw — see the lists below." instead of the SVG.
+- **Nothing to compare:** with fewer than 2 movements it renders nothing.
+- **Fallback:** above 12 movements, it renders the note "Too many movements to draw — see the lists below." instead of the SVG.
 
 ## 6. Cross-cutting
 

@@ -43,13 +43,14 @@
   --mantine-color-anchor: var(--fi-ink);
 }
 
+/* Links are underlined so they never rely on colour alone (WCAG 1.4.1). */
 a:where(:not([class*="mantine-"])) {
   color: var(--fi-ink);
-  text-decoration: none;
-}
-a:where(:not([class*="mantine-"])):hover {
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+a:where(:not([class*="mantine-"])):hover {
+  text-decoration-thickness: 2px;
 }
 
 .mantine-Input-input {

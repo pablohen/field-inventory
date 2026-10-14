@@ -52,16 +52,20 @@ const show = (ms: TimelineMovement[]) =>
   );
 
 describe('ConflictLanes', () => {
-  it('draws one line per involved movement and reports late count', () => {
+  it('draws every bin movement, marks the involved ones, and reports late count', () => {
     const { container } = show([
-      mv(1, true, '2026-03-01T10:00:00.000Z', 19),
+      mv(1, false, '2026-03-01T10:00:00.000Z', 19),
       mv(2, true, '2026-03-01T10:30:00.000Z', 17),
       mv(3, false, '2026-03-01T09:00:00.000Z', 5),
     ]);
-    expect(container.querySelectorAll('line[data-late]')).toHaveLength(2);
+    // The late movement that explains the exception is usually not "involved".
+    expect(container.querySelectorAll('line[data-late]')).toHaveLength(3);
     expect(container.querySelectorAll('line[data-late="true"]')).toHaveLength(
       1,
     );
+    expect(
+      container.querySelectorAll('circle[data-involved="true"]'),
+    ).toHaveLength(1);
     expect(
       screen.getByRole('img', {
         name: 'Arrival order vs physical order: 1 late arrival(s)',
@@ -99,8 +103,17 @@ describe('ConflictLanes', () => {
     ).toBeTruthy();
   });
 
-  it('renders nothing with no involved movements', () => {
-    const { container } = show([mv(1, false, '2026-03-01T10:00:00.000Z', 1)]);
+  it('labels a count with its observed quantity', () => {
+    show([
+      mv(1, false, '2026-03-01T10:00:00.000Z', 1),
+      mv(2, true, '2026-03-01T10:30:00.000Z', 2),
+    ]);
+    expect(screen.getAllByText('COUNT =3').length).toBeGreaterThan(0);
+    expect(screen.queryByText('COUNT 0')).toBeNull();
+  });
+
+  it('renders nothing with fewer than two movements', () => {
+    const { container } = show([mv(1, true, '2026-03-01T10:00:00.000Z', 1)]);
     expect(container.querySelector('svg')).toBeNull();
     expect(screen.queryByText(/Too many movements/)).toBeNull();
     expect(

@@ -7,6 +7,10 @@ export type LaneInput = {
   type: string;
   delta: number | null;
   worker: string;
+  /** A COUNT's observed quantity; counts are labelled `COUNT =N`, not by delta. */
+  observed?: number | null;
+  /** Part of the exception (highlighted), as opposed to bin context. */
+  involved?: boolean;
 };
 
 export type LaneEntry = {
@@ -16,10 +20,16 @@ export type LaneEntry = {
   late: boolean;
   /** `TYPE delta · worker` */
   label: string;
-  /** `TYPE delta` (just `TYPE` without a delta); what is drawn on the chart. */
+  /** `TYPE delta`, `COUNT =N`, or just `TYPE`; what is drawn on the chart. */
   shortLabel: string;
   worker: string;
+  involved: boolean;
 };
+
+function shortLabelFor(m: LaneInput): string {
+  if (m.type === 'COUNT' && m.observed != null) return `COUNT =${m.observed}`;
+  return m.delta === null ? m.type : `${m.type} ${signed(m.delta)}`;
+}
 
 /** Ranks movements by physical time and by arrival; "late" = overtaken on arrival. */
 export function laneLayout(ms: LaneInput[]): LaneEntry[] {
@@ -42,8 +52,7 @@ export function laneLayout(ms: LaneInput[]): LaneEntry[] {
         (happened.get(o.id) ?? 0) > h &&
         (arrived.get(o.id) ?? 0) < a,
     );
-    const shortLabel =
-      m.delta === null ? m.type : `${m.type} ${signed(m.delta)}`;
+    const shortLabel = shortLabelFor(m);
     return {
       id: m.id,
       happenedRank: h,
@@ -52,6 +61,7 @@ export function laneLayout(ms: LaneInput[]): LaneEntry[] {
       label: `${shortLabel} · ${m.worker}`,
       shortLabel,
       worker: m.worker,
+      involved: m.involved ?? false,
     };
   });
 }

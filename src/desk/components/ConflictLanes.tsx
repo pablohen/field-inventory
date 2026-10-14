@@ -19,9 +19,10 @@ export function ConflictLanes({
   keyOf: TimelineKey | null;
   names: Record<string, string>;
 }) {
-  const involved = movements.filter((m) => m.involved);
-  if (involved.length === 0) return null;
-  if (involved.length > MAX) {
+  // Every movement on the bin, like the lists below: the late arrival that
+  // explains an exception is usually not one of its involved movements.
+  if (movements.length < 2) return null;
+  if (movements.length > MAX) {
     return (
       <Text size="sm" c="dimmed">
         Too many movements to draw — see the lists below.
@@ -29,13 +30,15 @@ export function ConflictLanes({
     );
   }
   const lanes = laneLayout(
-    involved.map((m) => ({
+    movements.map((m) => ({
       id: m.id,
       occurredAt: m.occurredAt,
       seq: m.seq,
       type: m.type,
       delta: deltaFor(m, keyOf),
       worker: names[m.userId] ?? m.userId,
+      observed: m.type === 'COUNT' ? m.qty : null,
+      involved: m.involved,
     })),
   );
   const n = lanes.length;
@@ -77,25 +80,42 @@ export function ConflictLanes({
         const bot = laneSlot(l.arrivedRank, n);
         return (
           <g key={`pt-${l.id}`}>
-            <circle cx={top.x} cy={TOP} r={4} fill="var(--fi-ink)">
+            <circle
+              cx={top.x}
+              cy={TOP}
+              r={l.involved ? 6 : 4}
+              fill={l.involved ? 'var(--fi-signal)' : 'var(--fi-ink)'}
+              stroke="var(--fi-ink)"
+              strokeWidth={l.involved ? 2 : 0}
+              data-involved={l.involved ? 'true' : 'false'}
+            >
               <title>{l.label}</title>
             </circle>
             <text
               x={top.labelX}
               y={TOP - 10 - top.row * ROW_H}
               fontSize={10}
+              fontWeight={l.involved ? 700 : 400}
               textAnchor="middle"
               fill="var(--fi-ink)"
             >
               {l.shortLabel}
             </text>
-            <circle cx={bot.x} cy={BOTTOM} r={4} fill="var(--fi-ink)">
+            <circle
+              cx={bot.x}
+              cy={BOTTOM}
+              r={l.involved ? 6 : 4}
+              fill={l.involved ? 'var(--fi-signal)' : 'var(--fi-ink)'}
+              stroke="var(--fi-ink)"
+              strokeWidth={l.involved ? 2 : 0}
+            >
               <title>{l.label}</title>
             </circle>
             <text
               x={bot.labelX}
               y={BOTTOM + 16 + bot.row * ROW_H}
               fontSize={10}
+              fontWeight={l.involved ? 700 : 400}
               textAnchor="middle"
               fill="var(--fi-ink)"
             >
