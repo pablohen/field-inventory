@@ -1,4 +1,5 @@
 import { Alert, Group, Loader, Stack, Text, Title } from '@mantine/core';
+import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, useSearch } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
@@ -29,8 +30,13 @@ export function LedgerPage({ warehouseId }: { warehouseId: string }) {
   const search = useSearch({ strict: false });
   const parsed = ledgerKeySchema.safeParse(search);
   const back = (
-    <Link to="/w/$warehouseId/stock" params={{ warehouseId }}>
-      ← Stock
+    <Link
+      to="/w/$warehouseId/stock"
+      params={{ warehouseId }}
+      className="fi-icon-link"
+    >
+      <ArrowLeftIcon size={14} weight="bold" aria-hidden="true" />
+      Stock
     </Link>
   );
   if (!parsed.success) {

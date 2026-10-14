@@ -1,4 +1,5 @@
 import { Button, Text } from '@mantine/core';
+import { SignOutIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { deskCall } from '#/desk/desk-call';
 import { deskLogout } from '#/server/desk/desk-auth.fn';
@@ -27,7 +28,12 @@ export function SignOutButton({
           {error}
         </Text>
       )}
-      <Button size="compact-sm" variant="subtle" onClick={signOut}>
+      <Button
+        size="compact-sm"
+        variant="subtle"
+        onClick={signOut}
+        leftSection={<SignOutIcon size={16} weight="bold" aria-hidden="true" />}
+      >
         Sign out
       </Button>
     </>

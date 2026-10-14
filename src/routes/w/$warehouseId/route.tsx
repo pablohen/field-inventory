@@ -1,4 +1,11 @@
 import { Alert, Text } from '@mantine/core';
+import {
+  ClipboardTextIcon,
+  GearSixIcon,
+  ListChecksIcon,
+  PackageIcon,
+  WarningIcon,
+} from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import {
   createFileRoute,
@@ -32,10 +39,30 @@ function DeskLayout() {
 }
 
 const DESK_LINKS = [
-  { to: '/w/$warehouseId/exceptions', label: 'Exceptions', seg: 'exceptions' },
-  { to: '/w/$warehouseId/stock', label: 'Stock', seg: 'stock' },
-  { to: '/w/$warehouseId/pick-lists', label: 'Pick lists', seg: 'pick-lists' },
-  { to: '/w/$warehouseId/counts', label: 'Counts', seg: 'counts' },
+  {
+    to: '/w/$warehouseId/exceptions',
+    label: 'Exceptions',
+    seg: 'exceptions',
+    icon: WarningIcon,
+  },
+  {
+    to: '/w/$warehouseId/stock',
+    label: 'Stock',
+    seg: 'stock',
+    icon: PackageIcon,
+  },
+  {
+    to: '/w/$warehouseId/pick-lists',
+    label: 'Pick lists',
+    seg: 'pick-lists',
+    icon: ListChecksIcon,
+  },
+  {
+    to: '/w/$warehouseId/counts',
+    label: 'Counts',
+    seg: 'counts',
+    icon: ClipboardTextIcon,
+  },
 ] as const;
 
 const assignUrl = (url: string) => window.location.assign(url);
@@ -78,6 +105,7 @@ export function DeskLayoutView({
   const links = DESK_LINKS.map((l) => ({
     label: l.label,
     to: l.to,
+    icon: l.icon,
     params: { warehouseId },
     active: pathname.endsWith(`/${l.seg}`) || pathname.includes(`/${l.seg}/`),
   }));
@@ -94,7 +122,12 @@ export function DeskLayoutView({
       links={links}
       footer={
         <>
-          {session.role === 'admin' && <Link to="/admin">Admin</Link>}
+          {session.role === 'admin' && (
+            <Link to="/admin" className="fi-icon-link">
+              <GearSixIcon size={16} weight="bold" aria-hidden="true" />
+              Admin
+            </Link>
+          )}
           <Text size="sm" className="fi-trunc" title={session.name}>
             {session.name}
           </Text>

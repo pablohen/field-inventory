@@ -216,7 +216,9 @@ body {
   overflow-y: auto;
 }
 .fi-rail-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
   padding: 8px 12px;
   border-radius: 999px;
@@ -230,6 +232,16 @@ body {
 .fi-rail-link[data-active] {
   background: var(--fi-signal);
   color: #1c1917;
+}
+.fi-rail-icon {
+  flex: none;
+}
+
+/* Text links with a leading decorative icon (back links, rail footer). */
+.fi-icon-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .fi-trunc {
   display: block;

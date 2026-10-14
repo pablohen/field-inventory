@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { MantineProvider } from '@mantine/core';
+import { PackageIcon } from '@phosphor-icons/react';
 import {
   createMemoryHistory,
   createRootRoute,
@@ -64,6 +65,38 @@ async function mountSidebar() {
   );
   await waitFor(() => screen.getByText('Stock'));
 }
+
+describe('AppShellSidebar icons', () => {
+  it('draws a decorative icon before a link label when one is given', async () => {
+    const root = createRootRoute({
+      component: () => (
+        <AppShellSidebar
+          switcher={null}
+          links={[
+            { label: 'Stock', to: '/a', active: true, icon: PackageIcon },
+            { label: 'Plain', to: '/b', active: false },
+          ]}
+          footer={null}
+        >
+          <p>content</p>
+        </AppShellSidebar>
+      ),
+    });
+    const router = createRouter({
+      routeTree: root,
+      history: createMemoryHistory({ initialEntries: ['/'] }),
+    });
+    render(
+      <MantineProvider>
+        <RouterProvider router={router} />
+      </MantineProvider>,
+    );
+    const stock = await screen.findByRole('link', { name: 'Stock' });
+    expect(stock.querySelectorAll('svg[aria-hidden="true"]')).toHaveLength(1);
+    const plain = screen.getByRole('link', { name: 'Plain' });
+    expect(plain.querySelector('svg')).toBeNull();
+  });
+});
 
 describe('AppShellSidebar', () => {
   it('marks only the active link with aria-current', async () => {

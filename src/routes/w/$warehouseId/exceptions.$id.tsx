@@ -1,4 +1,5 @@
 import { Group, Loader, Stack, Text, Title } from '@mantine/core';
+import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { asList } from '#/desk/as-list';
@@ -52,8 +53,13 @@ export function ExceptionDetailPage({
   const data = detail.data;
 
   const back = (
-    <Link to="/w/$warehouseId/exceptions" params={{ warehouseId }}>
-      ← All exceptions
+    <Link
+      to="/w/$warehouseId/exceptions"
+      params={{ warehouseId }}
+      className="fi-icon-link"
+    >
+      <ArrowLeftIcon size={14} weight="bold" aria-hidden="true" />
+      All exceptions
     </Link>
   );
 

@@ -1,4 +1,5 @@
 import { Anchor, Title } from '@mantine/core';
+import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { StockView } from '#/handheld/components/StockView';
 import { TOUCH } from '#/handheld/touch';
@@ -12,8 +13,14 @@ function StockPage() {
       <Anchor
         component={Link}
         to="/h"
-        style={{ ...TOUCH, display: 'inline-flex', alignItems: 'center' }}
+        style={{
+          ...TOUCH,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+        }}
       >
+        <ArrowLeftIcon size={16} weight="bold" aria-hidden="true" />
         Warehouses
       </Anchor>
       <Title order={4}>Stock in {wh}</Title>

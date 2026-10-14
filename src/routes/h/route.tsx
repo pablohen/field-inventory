@@ -1,4 +1,5 @@
 import { Button, Container, Group, Stack, Title } from '@mantine/core';
+import { SignOutIcon } from '@phosphor-icons/react';
 import {
   createFileRoute,
   Link,
@@ -80,6 +81,9 @@ export function Header() {
                 style={{ ...TOUCH, color: 'var(--fi-signal)' }}
                 size="compact-sm"
                 variant="subtle"
+                leftSection={
+                  <SignOutIcon size={16} weight="bold" aria-hidden="true" />
+                }
                 onClick={() => signOut()}
               >
                 Sign out

@@ -1,5 +1,6 @@
 import { AppShell, Burger } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+import type { Icon } from '@phosphor-icons/react';
 import { Link, type LinkProps, useRouterState } from '@tanstack/react-router';
 import { type ReactNode, useEffect } from 'react';
 import { ThemeToggle } from '#/ui/ThemeToggle';
@@ -18,6 +19,8 @@ export type SidebarLink = {
   to: string;
   params?: Record<string, string>;
   active: boolean;
+  /** Decorative; the label stays the accessible name. */
+  icon?: Icon;
 };
 
 export function AppShellSidebar({
@@ -80,6 +83,14 @@ export function AppShellSidebar({
               title={l.label}
               onClick={close}
             >
+              {l.icon && (
+                <l.icon
+                  size={18}
+                  weight="bold"
+                  aria-hidden="true"
+                  className="fi-rail-icon"
+                />
+              )}
               <span className="fi-trunc">{l.label}</span>
             </Link>
           ))}

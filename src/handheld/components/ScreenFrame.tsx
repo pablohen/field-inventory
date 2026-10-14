@@ -1,4 +1,5 @@
 import { Anchor, Title } from '@mantine/core';
+import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { Link, Navigate } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { getCachedSession } from '../session-store';
@@ -32,9 +33,11 @@ export function ScreenFrame({
             ...TOUCH,
             display: 'inline-flex',
             alignItems: 'center',
+            gap: 6,
             color: 'var(--fi-ink)',
           }}
         >
+          <ArrowLeftIcon size={16} weight="bold" aria-hidden="true" />
           Warehouses
         </Anchor>
         <Title order={4}>

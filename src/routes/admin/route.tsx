@@ -1,5 +1,14 @@
 import { Text } from '@mantine/core';
 import {
+  ArrowLeftIcon,
+  BarcodeIcon,
+  DeviceMobileIcon,
+  ListBulletsIcon,
+  TagIcon,
+  UsersIcon,
+  WarehouseIcon,
+} from '@phosphor-icons/react';
+import {
   createFileRoute,
   Link,
   Outlet,
@@ -32,12 +41,12 @@ function AdminLayout() {
 }
 
 const ADMIN_LINKS = [
-  { to: '/admin/warehouses', label: 'Warehouses' },
-  { to: '/admin/users', label: 'Users' },
-  { to: '/admin/devices', label: 'Devices' },
-  { to: '/admin/products', label: 'Products' },
-  { to: '/admin/categories', label: 'Categories' },
-  { to: '/admin/reason-codes', label: 'Reason codes' },
+  { to: '/admin/warehouses', label: 'Warehouses', icon: WarehouseIcon },
+  { to: '/admin/users', label: 'Users', icon: UsersIcon },
+  { to: '/admin/devices', label: 'Devices', icon: DeviceMobileIcon },
+  { to: '/admin/products', label: 'Products', icon: BarcodeIcon },
+  { to: '/admin/categories', label: 'Categories', icon: TagIcon },
+  { to: '/admin/reason-codes', label: 'Reason codes', icon: ListBulletsIcon },
 ] as const;
 
 const assignUrl = (url: string) => window.location.assign(url);
@@ -78,7 +87,10 @@ export function AdminLayoutView({
       }))}
       footer={
         <>
-          <Link to="/">Back to desk</Link>
+          <Link to="/" className="fi-icon-link">
+            <ArrowLeftIcon size={16} weight="bold" aria-hidden="true" />
+            Back to desk
+          </Link>
           <Text size="sm" className="fi-trunc" title={session?.name}>
             {session?.name}
           </Text>

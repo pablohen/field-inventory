@@ -7,6 +7,7 @@ import {
   Stack,
   Title,
 } from '@mantine/core';
+import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -51,7 +52,10 @@ export function LocationsPage({ warehouseId }: { warehouseId: string }) {
   const typedError = data && !('locations' in data) ? data : null;
   return (
     <Stack>
-      <Link to="/admin/warehouses">Back to warehouses</Link>
+      <Link to="/admin/warehouses" className="fi-icon-link">
+        <ArrowLeftIcon size={14} weight="bold" aria-hidden="true" />
+        Back to warehouses
+      </Link>
       <Group justify="space-between">
         <Title order={3}>{`Locations: ${name ?? warehouseId}`}</Title>
         <Button onClick={() => setDrawer({ row: null })}>New location</Button>

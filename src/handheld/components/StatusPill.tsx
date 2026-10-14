@@ -1,4 +1,11 @@
 import { Button, Group } from '@mantine/core';
+import {
+  ArrowsClockwiseIcon,
+  CheckCircleIcon,
+  CloudArrowUpIcon,
+  type Icon,
+  WarningCircleIcon,
+} from '@phosphor-icons/react';
 import { Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { TOUCH } from '#/handheld/touch';
@@ -14,10 +21,29 @@ const LINK_STYLE = {
   textDecoration: 'none',
 } as const;
 
-function overallStatus(
-  attention: boolean,
-  pending: boolean,
-): 'synced' | 'pending' | 'attention' {
+type Status = 'synced' | 'pending' | 'attention';
+
+const STATUS_ICON: Record<Status, Icon> = {
+  synced: CheckCircleIcon,
+  pending: CloudArrowUpIcon,
+  attention: WarningCircleIcon,
+};
+
+/** The overall status as a shape too, so it is not carried by colour alone. */
+function StatusIcon({ status }: { status: Status }) {
+  const Glyph = STATUS_ICON[status];
+  return (
+    <Glyph
+      size={18}
+      weight="bold"
+      aria-hidden="true"
+      data-icon={status}
+      style={{ color: 'var(--fi-signal)' }}
+    />
+  );
+}
+
+function overallStatus(attention: boolean, pending: boolean): Status {
   if (attention) return 'attention';
   return pending ? 'pending' : 'synced';
 }
@@ -65,6 +91,7 @@ export function StatusPill({ now: nowProp }: { now?: number }) {
   if (!backend || !syncState) {
     return (
       <Group gap="xs" data-status="pending">
+        <StatusIcon status="pending" />
         <StatusBadge kind="resolved">Starting…</StatusBadge>
       </Group>
     );
@@ -84,6 +111,7 @@ export function StatusPill({ now: nowProp }: { now?: number }) {
 
   return (
     <Group gap="xs" wrap="wrap" data-status={status}>
+      <StatusIcon status={status} />
       <StatusBadge kind={isOnline ? 'synced' : 'resolved'}>
         {isOnline ? 'Online' : 'Offline'}
       </StatusBadge>
@@ -124,6 +152,9 @@ export function StatusPill({ now: nowProp }: { now?: number }) {
         style={TOUCH}
         size="compact-xs"
         variant="light"
+        leftSection={
+          <ArrowsClockwiseIcon size={14} weight="bold" aria-hidden="true" />
+        }
         loading={syncing}
         onClick={() => {
           setSyncing(true);

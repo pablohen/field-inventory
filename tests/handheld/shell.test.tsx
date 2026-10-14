@@ -205,6 +205,19 @@ describe('StatusPill', () => {
     ).toBe(status);
   });
 
+  it.each([
+    [{}, 'synced'],
+    [{ pendingCount: 2 }, 'pending'],
+    [{ phase: 'device_revoked' }, 'attention'],
+  ] as const)('shows the %j status as an icon too', async (patch, status) => {
+    await pill({ ...patch }, T0);
+    const sync = await screen.findByRole('button', { name: 'Sync now' });
+    const icon = document.querySelector('[data-status] svg[data-icon]');
+    expect(icon?.getAttribute('data-icon')).toBe(status);
+    expect(icon?.getAttribute('aria-hidden')).toBe('true');
+    expect(sync.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+  });
+
   it('shows Update required for update_required', async () => {
     await pill({ phase: 'update_required' }, T0);
     expect(await screen.findByText('Update required')).toBeTruthy();

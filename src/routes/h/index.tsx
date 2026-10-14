@@ -1,9 +1,9 @@
-import { Button, Card, Group, Stack, Text, Title } from '@mantine/core';
+import { Card, Group, Stack, Text, Title } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
+import { WarehouseActions } from '#/handheld/components/WarehouseActions';
 import { useHandheld } from '#/handheld/context';
 import { getCachedReplicaConfig } from '#/handheld/session-store';
-import { TOUCH } from '#/handheld/touch';
 import { StatusBadge } from '#/ui/StatusBadge';
 
 export const Route = createFileRoute('/h/')({ component: HandheldHome });
@@ -52,67 +52,7 @@ function HandheldHome() {
         <Card key={wh} withBorder>
           <Stack gap="xs">
             <Text fw={600}>{wh}</Text>
-            <Group gap="xs">
-              <Button
-                style={TOUCH}
-                renderRoot={(props) => (
-                  <Link to="/h/$wh/stock" params={{ wh }} {...props} />
-                )}
-                size="compact-md"
-              >
-                Stock
-              </Button>
-              <Button
-                style={TOUCH}
-                renderRoot={(props) => (
-                  <Link to="/h/$wh/count" params={{ wh }} {...props} />
-                )}
-                size="compact-md"
-                variant="light"
-              >
-                Count
-              </Button>
-              <Button
-                style={TOUCH}
-                renderRoot={(props) => (
-                  <Link to="/h/$wh/move" params={{ wh }} {...props} />
-                )}
-                size="compact-md"
-                variant="light"
-              >
-                Move
-              </Button>
-              <Button
-                style={TOUCH}
-                renderRoot={(props) => (
-                  <Link to="/h/$wh/transfer-in" params={{ wh }} {...props} />
-                )}
-                size="compact-md"
-                variant="light"
-              >
-                Transfer in
-              </Button>
-              <Button
-                style={TOUCH}
-                renderRoot={(props) => (
-                  <Link to="/h/$wh/pick" params={{ wh }} {...props} />
-                )}
-                size="compact-md"
-                variant="light"
-              >
-                Pick
-              </Button>
-              <Button
-                style={TOUCH}
-                renderRoot={(props) => (
-                  <Link to="/h/$wh/adjust" params={{ wh }} {...props} />
-                )}
-                size="compact-md"
-                variant="light"
-              >
-                Adjust
-              </Button>
-            </Group>
+            <WarehouseActions wh={wh} />
             <Exceptions wh={wh} />
           </Stack>
         </Card>
