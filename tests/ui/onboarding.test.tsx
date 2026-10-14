@@ -157,6 +157,45 @@ describe('OnboardingTour', () => {
   });
 });
 
+describe('replay timing', () => {
+  it('picks visible steps after the replay request has been handled', async () => {
+    // A drawer that hides itself in response to the same replay request.
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      '<div id="drawer"><div data-tour="drawer-item"></div></div>',
+    );
+    const hideDrawer = () =>
+      document.getElementById('drawer')?.setAttribute('hidden', '');
+    const steps: TourStepDef[] = [
+      { id: 'welcome', title: 'Welcome', body: 'Hello.' },
+      {
+        id: 'item',
+        target: '[data-tour="drawer-item"]',
+        title: 'Drawer item',
+        body: 'In the drawer.',
+      },
+    ];
+    markTourSeen(TOUR_KEYS.desk);
+    render(
+      <MantineProvider>
+        <OnboardingTour
+          storageKey={TOUR_KEYS.desk}
+          steps={steps}
+          autoStart={false}
+          isShown={(el) => !el.closest('[hidden]')}
+        />
+      </MantineProvider>,
+    );
+    // Registered after the tour's own listener, as the sidebar's is in the app
+    // (the tour sits deeper in the tree, so its effect runs first).
+    window.addEventListener('fi-tour-replay', hideDrawer);
+    act(() => requestTourReplay(TOUR_KEYS.desk));
+    expect(await screen.findByText('1 of 1')).toBeTruthy();
+    window.removeEventListener('fi-tour-replay', hideDrawer);
+    document.getElementById('drawer')?.remove();
+  });
+});
+
 describe('tour layout', () => {
   it('places every sidebar-rail step to the right of the rail', () => {
     for (const s of DESK_TOUR) {

@@ -20,8 +20,12 @@ import {
 } from '#/desk/exception-filters';
 import { listWorkers } from '#/server/desk/count-tasks.fn';
 import { listExceptions } from '#/server/desk/exceptions.fn';
+import { inCollapsedRail } from '#/ui/AppShellSidebar';
 import { OnboardingTour } from '#/ui/OnboardingTour';
-import { DESK_TOUR, TOUR_KEYS } from '#/ui/onboarding';
+import { DESK_TOUR, isShown, TOUR_KEYS } from '#/ui/onboarding';
+
+/** Desk steps skip the sidebar while it is a shut drawer on narrow screens. */
+const deskStepShown = (el: Element) => isShown(el) && !inCollapsedRail(el);
 
 export const Route = createFileRoute('/w/$warehouseId/exceptions/')({
   validateSearch: parseExceptionSearch,
@@ -96,6 +100,7 @@ export function ExceptionsListPage({ warehouseId }: { warehouseId: string }) {
         storageKey={TOUR_KEYS.desk}
         steps={DESK_TOUR}
         autoStart={data?.ok === true}
+        isShown={deskStepShown}
       />
     </Stack>
   );

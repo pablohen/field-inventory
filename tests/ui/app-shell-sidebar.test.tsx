@@ -8,6 +8,7 @@ import {
   RouterProvider,
 } from '@tanstack/react-router';
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -15,7 +16,8 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { AppShellSidebar } from '#/ui/AppShellSidebar';
+import { AppShellSidebar, inCollapsedRail } from '#/ui/AppShellSidebar';
+import { requestTourReplay, TOUR_KEYS } from '#/ui/onboarding';
 
 const LONG = 'x'.repeat(60);
 
@@ -133,6 +135,25 @@ describe('AppShellSidebar', () => {
     expect(navbar.hasAttribute('data-open')).toBe(false);
     fireEvent.click(burger);
     expect(navbar.hasAttribute('data-open')).toBe(true);
+  });
+
+  it('closes the mobile drawer when a tour replay is requested', async () => {
+    await mountSidebar();
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    const navbar = document.getElementById('fi-navbar') as HTMLElement;
+    expect(navbar.hasAttribute('data-open')).toBe(true);
+    act(() => requestTourReplay(TOUR_KEYS.desk));
+    expect(navbar.hasAttribute('data-open')).toBe(false);
+  });
+
+  it('reports rail elements as collapsed on narrow screens while the drawer is shut', async () => {
+    // The beforeAll matchMedia stub reports a 600px (narrow) viewport.
+    await mountSidebar();
+    const link = screen.getByRole('link', { name: 'Stock' });
+    expect(inCollapsedRail(link)).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    expect(inCollapsedRail(link)).toBe(false);
+    expect(inCollapsedRail(screen.getByText('content'))).toBe(false);
   });
 
   it('titles long link labels and footer text with the full string', async () => {

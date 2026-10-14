@@ -150,8 +150,14 @@ export function onReplayRequest(key: TourKey, handler: () => void): () => void {
   return () => window.removeEventListener(REPLAY_EVENT, listener);
 }
 
+/** Any tour's replay request, e.g. so the mobile drawer can get out of the way. */
+export function onAnyReplayRequest(handler: () => void): () => void {
+  window.addEventListener(REPLAY_EVENT, handler);
+  return () => window.removeEventListener(REPLAY_EVENT, handler);
+}
+
 /** Visible by the browser's own rules where supported (jsdom: always). */
-function isShown(el: Element): boolean {
+export function isShown(el: Element): boolean {
   const check = (el as Element & { checkVisibility?: (o?: object) => boolean })
     .checkVisibility;
   return check

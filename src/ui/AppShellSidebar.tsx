@@ -3,6 +3,7 @@ import { useDisclosure } from '@mantine/hooks';
 import type { Icon } from '@phosphor-icons/react';
 import { Link, type LinkProps, useRouterState } from '@tanstack/react-router';
 import { type ReactNode, useEffect } from 'react';
+import { onAnyReplayRequest } from '#/ui/onboarding';
 import { ThemeToggle } from '#/ui/ThemeToggle';
 import { Wordmark } from '#/ui/Wordmark';
 
@@ -13,6 +14,18 @@ export const RAIL_ACTIVE_INK = '#1c1917';
 
 const BREAKPOINT = 900;
 const NAVBAR_ID = 'fi-navbar';
+
+/**
+ * True when `el` sits in the rail while it is a shut drawer (narrow screens).
+ * Reads the drawer's state, not its computed visibility, which lags behind by
+ * the slide-out animation.
+ */
+export function inCollapsedRail(el: Element): boolean {
+  const narrow = window.matchMedia(
+    `(max-width: ${BREAKPOINT - 0.02}px)`,
+  ).matches;
+  return narrow && el.closest('.fi-rail:not([data-open])') !== null;
+}
 
 export type SidebarLink = {
   label: string;
@@ -39,6 +52,8 @@ export function AppShellSidebar({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   // biome-ignore lint/correctness/useExhaustiveDependencies: close on pathname change only
   useEffect(() => close(), [pathname]);
+  // A tour replay from inside the drawer: get out of the tour's way.
+  useEffect(() => onAnyReplayRequest(close), [close]);
   return (
     <AppShell
       header={{ height: { base: 48, [`${BREAKPOINT}px`]: 0 } }}
