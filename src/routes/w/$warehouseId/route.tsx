@@ -1,6 +1,7 @@
 import { Alert, Text } from '@mantine/core';
 import {
   ClipboardTextIcon,
+  CompassIcon,
   GearSixIcon,
   ListChecksIcon,
   PackageIcon,
@@ -22,6 +23,7 @@ import { WarehouseSwitcher } from '#/desk/components/WarehouseSwitcher';
 import { deskCall } from '#/desk/desk-call';
 import { getDeskSession, getWarehouses } from '#/server/desk/desk-auth.fn';
 import { AppShellSidebar } from '#/ui/AppShellSidebar';
+import { requestTourReplay, TOUR_KEYS } from '#/ui/onboarding';
 
 export const Route = createFileRoute('/w/$warehouseId')({
   beforeLoad: async () => {
@@ -128,6 +130,15 @@ export function DeskLayoutView({
               Admin
             </Link>
           )}
+          <Link
+            to="/w/$warehouseId/exceptions"
+            params={{ warehouseId }}
+            className="fi-icon-link"
+            onClick={() => requestTourReplay(TOUR_KEYS.desk)}
+          >
+            <CompassIcon size={16} weight="bold" aria-hidden="true" />
+            Take the tour
+          </Link>
           <Text size="sm" className="fi-trunc" title={session.name}>
             {session.name}
           </Text>

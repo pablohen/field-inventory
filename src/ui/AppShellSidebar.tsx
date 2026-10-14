@@ -71,8 +71,14 @@ export function AppShellSidebar({
         <div className="fi-rail-brand">
           <Wordmark />
         </div>
-        <div className="fi-rail-switcher">{switcher}</div>
-        <nav className="fi-rail-links" aria-label="Sections">
+        <div className="fi-rail-switcher" data-tour="rail-switcher">
+          {switcher}
+        </div>
+        <nav
+          className="fi-rail-links"
+          aria-label="Sections"
+          data-tour="rail-sections"
+        >
           {links.map((l) => (
             <Link
               key={l.label}
@@ -95,7 +101,7 @@ export function AppShellSidebar({
             </Link>
           ))}
         </nav>
-        <div className="fi-rail-footer">
+        <div className="fi-rail-footer" data-tour="rail-footer">
           <ThemeToggle variant="segmented" />
           {footer}
         </div>

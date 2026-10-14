@@ -1,9 +1,13 @@
-import { Card, Group, Stack, Text, Title } from '@mantine/core';
+import { Button, Card, Group, Stack, Text, Title } from '@mantine/core';
+import { CompassIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { WarehouseActions } from '#/handheld/components/WarehouseActions';
 import { useHandheld } from '#/handheld/context';
 import { getCachedReplicaConfig } from '#/handheld/session-store';
+import { TOUCH } from '#/handheld/touch';
+import { OnboardingTour } from '#/ui/OnboardingTour';
+import { HANDHELD_TOUR, requestTourReplay, TOUR_KEYS } from '#/ui/onboarding';
 import { StatusBadge } from '#/ui/StatusBadge';
 
 export const Route = createFileRoute('/h/')({ component: HandheldHome });
@@ -33,7 +37,7 @@ function Exceptions({ wh }: { wh: string }) {
 }
 
 function HandheldHome() {
-  const { session } = useHandheld();
+  const { session, backend } = useHandheld();
   // Re-read on every render: the leader writes the config after its first fetch.
   const warehouses = (getCachedReplicaConfig()?.replicas ?? [])
     .map((r) => r.name)
@@ -57,6 +61,20 @@ function HandheldHome() {
           </Stack>
         </Card>
       ))}
+      <Button
+        variant="subtle"
+        style={TOUCH}
+        leftSection={<CompassIcon size={18} weight="bold" aria-hidden="true" />}
+        onClick={() => requestTourReplay(TOUR_KEYS.handheld)}
+      >
+        Take the tour
+      </Button>
+      {/* Waits for the warehouses and the sync engine, so every step has its target. */}
+      <OnboardingTour
+        storageKey={TOUR_KEYS.handheld}
+        steps={HANDHELD_TOUR}
+        autoStart={warehouses.length > 0 && backend !== null}
+      />
     </Stack>
   );
 }

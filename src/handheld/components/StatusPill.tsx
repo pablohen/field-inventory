@@ -90,7 +90,7 @@ export function StatusPill({ now: nowProp }: { now?: number }) {
 
   if (!backend || !syncState) {
     return (
-      <Group gap="xs" data-status="pending">
+      <Group gap="xs" data-status="pending" data-tour="sync-status">
         <StatusIcon status="pending" />
         <StatusBadge kind="resolved">Starting…</StatusBadge>
       </Group>
@@ -110,7 +110,7 @@ export function StatusPill({ now: nowProp }: { now?: number }) {
   );
 
   return (
-    <Group gap="xs" wrap="wrap" data-status={status}>
+    <Group gap="xs" wrap="wrap" data-status={status} data-tour="sync-status">
       <StatusIcon status={status} />
       <StatusBadge kind={isOnline ? 'synced' : 'resolved'}>
         {isOnline ? 'Online' : 'Offline'}
@@ -152,6 +152,7 @@ export function StatusPill({ now: nowProp }: { now?: number }) {
         style={TOUCH}
         size="compact-xs"
         variant="light"
+        data-tour="sync-now"
         leftSection={
           <ArrowsClockwiseIcon size={14} weight="bold" aria-hidden="true" />
         }

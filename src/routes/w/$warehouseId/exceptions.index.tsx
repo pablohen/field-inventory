@@ -20,6 +20,8 @@ import {
 } from '#/desk/exception-filters';
 import { listWorkers } from '#/server/desk/count-tasks.fn';
 import { listExceptions } from '#/server/desk/exceptions.fn';
+import { OnboardingTour } from '#/ui/OnboardingTour';
+import { DESK_TOUR, TOUR_KEYS } from '#/ui/onboarding';
 
 export const Route = createFileRoute('/w/$warehouseId/exceptions/')({
   validateSearch: parseExceptionSearch,
@@ -58,11 +60,13 @@ export function ExceptionsListPage({ warehouseId }: { warehouseId: string }) {
   return (
     <Stack>
       <Title order={3}>Exceptions</Title>
-      <TypeStrip
-        counts={data?.ok ? data.countsByType : undefined}
-        active={filters.type}
-        onSelect={(type) => setSearch((prev) => ({ ...prev, type }))}
-      />
+      <div data-tour="exception-tiles">
+        <TypeStrip
+          counts={data?.ok ? data.countsByType : undefined}
+          active={filters.type}
+          onSelect={(type) => setSearch((prev) => ({ ...prev, type }))}
+        />
+      </div>
       <ExceptionFilterBar
         value={filters}
         workers={workerList}
@@ -78,14 +82,21 @@ export function ExceptionsListPage({ warehouseId }: { warehouseId: string }) {
           <Loader size="sm" />
         )
       ) : data.ok ? (
-        <ExceptionTable
-          warehouseId={warehouseId}
-          rows={data.rows}
-          names={names}
-        />
+        <div data-tour="exception-list">
+          <ExceptionTable
+            warehouseId={warehouseId}
+            rows={data.rows}
+            names={names}
+          />
+        </div>
       ) : (
         <DeskErrorAlert error={data} onReload={() => void list.refetch()} />
       )}
+      <OnboardingTour
+        storageKey={TOUR_KEYS.desk}
+        steps={DESK_TOUR}
+        autoStart={data?.ok === true}
+      />
     </Stack>
   );
 }

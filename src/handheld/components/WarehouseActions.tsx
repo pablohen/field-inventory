@@ -35,7 +35,7 @@ const ACTIONS: Action[] = [
 /** The per-warehouse actions on the handheld home; Stock is the primary one. */
 export function WarehouseActions({ wh }: { wh: string }) {
   return (
-    <Group gap="xs">
+    <Group gap="xs" data-tour="warehouse-actions">
       {ACTIONS.map(({ label, to, icon: Glyph }, i) => (
         <Button
           key={to}

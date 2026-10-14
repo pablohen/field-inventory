@@ -75,6 +75,7 @@ export function ThemeToggle({ variant }: { variant: 'segmented' | 'cycle' }) {
     <ActionIcon
       variant="subtle"
       className="fi-theme-cycle"
+      data-tour="theme-toggle"
       aria-label={`Theme: ${LABEL[current]}. Switch to ${LABEL[next]}`}
       onClick={() => setColorScheme(next)}
       style={{ minHeight: 48, minWidth: 48, color: 'var(--fi-signal)' }}

@@ -7,11 +7,21 @@ import {
   type Page,
 } from '@playwright/test';
 import { DEV_PIN } from '../scripts/seed-data';
+import { TOUR_KEYS } from '../src/ui/onboarding';
 import { waitForHandheldReady, waitForServiceWorkerControl } from './helpers';
 
 export interface Handheld {
   page: Page;
   context: BrowserContext;
+}
+
+/** A fresh context with the onboarding tours already seen, so they never cover a spec. */
+async function newTestContext(browser: Browser): Promise<BrowserContext> {
+  const context = await browser.newContext();
+  await context.addInitScript((keys: string[]) => {
+    for (const key of keys) window.localStorage.setItem(key, 'done');
+  }, Object.values(TOUR_KEYS));
+  return context;
 }
 
 async function typePin(page: Page) {
@@ -29,7 +39,7 @@ async function signedInHandheld(
   deviceId: string,
   username: string,
 ): Promise<Handheld> {
-  const context = await browser.newContext();
+  const context = await newTestContext(browser);
   const page = await context.newPage();
   await page.goto('/h/login');
   await page.getByLabel('Device id').fill(deviceId);
@@ -87,7 +97,7 @@ export const test = base.extend<{
 
   desk: [
     async ({ browser, resetData: _reset }, use) => {
-      const context = await browser.newContext();
+      const context = await newTestContext(browser);
       const page = await context.newPage();
       await page.goto('/desk/login');
       await page.getByLabel('Username').fill('sup');
@@ -106,7 +116,7 @@ export const test = base.extend<{
 
   admin: [
     async ({ browser, resetData: _reset }, use) => {
-      const context = await browser.newContext();
+      const context = await newTestContext(browser);
       const page = await context.newPage();
       await page.goto('/desk/login');
       await page.getByLabel('Username').fill('admin');
