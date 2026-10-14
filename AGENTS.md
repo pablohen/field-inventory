@@ -116,6 +116,13 @@ reached the client bundle. This command must print nothing:
 
 - **Visual changes stay visual.** Restyling never changes behaviour, routes,
   queries or user-visible copy unless that's the explicit task.
+- **Onboarding tours** (`src/ui/onboarding.ts`, `OnboardingTour`) target
+  elements by `data-tour="…"`. If you move or remove one of those elements, keep
+  the attribute or update the step.
+  - Changing a tour's steps means bumping its key in `TOUR_KEYS`, e.g. to `:v2`,
+    so people see the new version.
+  - E2E contexts mark every tour as seen (`e2e/fixtures.ts`). A new tour key
+    needs no fixture change.
 - **Colours** come from `--fi-*` tokens (`src/ui/theme.ts` `TOKENS` mirrored
   in `src/ui/tokens.css`; a test keeps them in sync).
   - Status colours go only through `statusColor()` and `StatusBadge`. Never

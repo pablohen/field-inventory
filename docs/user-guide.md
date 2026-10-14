@@ -11,6 +11,12 @@ The choice is remembered on that device. You'll find the switch in three places:
 - the top-right corner of the desk sign-in page
 - the handheld status bar, as a single button that cycles through the three
 
+**Guided tour.** The first time you open the desk's Exceptions page or the
+handheld home on a device, a short tour points out the main controls. Skip it
+any time. To see it again, use **Take the tour**: in the desk sidebar footer, or
+under the warehouse list on the handheld. On a narrow desk window, steps for the
+collapsed sidebar are left out.
+
 ## Handheld (warehouse workers)
 
 Sign in at `/h/login` with the **device id**, your **username** and your
