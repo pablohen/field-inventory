@@ -52,29 +52,40 @@ function registerServiceWorker(): void {
     .catch((err) => console.error('service worker registration failed', err));
 }
 
-function Header() {
+export function Header() {
   const { session } = useHandheld();
   return (
-    <Stack gap="xs">
-      <Group justify="space-between">
-        <Title order={3}>
-          <Link to="/h" style={{ color: 'inherit', textDecoration: 'none' }}>
-            Field Inventory
-          </Link>
-        </Title>
-        {session && (
-          <Button
-            style={TOUCH}
-            size="compact-sm"
-            variant="subtle"
-            onClick={() => signOut()}
-          >
-            Sign out
-          </Button>
-        )}
-      </Group>
-      <StatusPill />
-    </Stack>
+    <div className="fi-hh-bar">
+      <div className="fi-stripe fi-hh-stripe" aria-hidden="true" />
+      <Stack gap="xs" className="fi-hh-body">
+        <Group justify="space-between">
+          <Title order={3} style={{ color: 'var(--fi-signal)' }}>
+            <Link
+              to="/h"
+              className="fi-hh-title"
+              style={{
+                ...TOUCH,
+                display: 'inline-flex',
+                alignItems: 'center',
+              }}
+            >
+              Field Inventory
+            </Link>
+          </Title>
+          {session && (
+            <Button
+              style={{ ...TOUCH, color: 'var(--fi-signal)' }}
+              size="compact-sm"
+              variant="subtle"
+              onClick={() => signOut()}
+            >
+              Sign out
+            </Button>
+          )}
+        </Group>
+        <StatusPill />
+      </Stack>
+    </div>
   );
 }
 
@@ -82,9 +93,9 @@ function HandheldLayout() {
   useEffect(registerServiceWorker, []);
   return (
     <HandheldProvider>
+      <Header />
       <Container size="sm" py="md">
         <Stack>
-          <Header />
           <Outlet />
         </Stack>
       </Container>

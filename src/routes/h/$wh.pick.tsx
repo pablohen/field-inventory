@@ -91,7 +91,11 @@ export function PickFlow({ wh }: { wh: string }) {
   if (!list) {
     return (
       <Stack>
-        {error && <Text c="red">Could not load pick lists</Text>}
+        {error && (
+          <Text style={{ color: 'var(--fi-danger)' }}>
+            Could not load pick lists
+          </Text>
+        )}
         {lists && lists.length === 0 && (
           <Text c="dimmed">No pick lists assigned</Text>
         )}
@@ -135,6 +139,8 @@ export function PickFlow({ wh }: { wh: string }) {
       </Button>
       <Switch
         label="Show completed"
+        size="lg"
+        styles={{ body: { ...TOUCH, alignItems: 'center' } }}
         checked={showCompleted}
         onChange={(e) => setShowCompleted(e.currentTarget.checked)}
       />

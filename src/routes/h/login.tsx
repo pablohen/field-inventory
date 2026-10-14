@@ -90,8 +90,7 @@ function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--fi-surface)' }}>
-      <div className="fi-stripe" style={{ height: 16 }} aria-hidden="true" />
+    <div style={{ background: 'var(--fi-surface)' }}>
       <form
         style={{ padding: 16 }}
         onSubmit={(e) => {

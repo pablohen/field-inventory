@@ -136,6 +136,16 @@ export function MoveFlow({ wh }: { wh: string }) {
           <DisplayedQty wh={wh} skuId={product.id} locationId={from.id} />
           <QtyInput min={1} value={qty} onChange={setQty} onEnter={confirm} />
           <SegmentedControl
+            size="lg"
+            styles={{
+              control: TOUCH,
+              label: {
+                ...TOUCH,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              },
+            }}
             value={mode}
             onChange={(v) => setMode(v as 'here' | 'other')}
             data={[

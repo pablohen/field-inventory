@@ -40,6 +40,7 @@ import { CountFlow } from '../../src/routes/h/$wh.count';
 import { MoveFlow } from '../../src/routes/h/$wh.move';
 import { PickFlow } from '../../src/routes/h/$wh.pick';
 import { TransferInFlow } from '../../src/routes/h/$wh.transfer-in';
+import { Header } from '../../src/routes/h/route';
 
 beforeAll(() => {
   window.scrollTo = () => {};
@@ -567,6 +568,17 @@ describe('Pick', () => {
     },
   ];
 
+  it('pick Show completed switch hit area is at least 48px', async () => {
+    const t = setup({ pickLists: lists() });
+    await mount(<PickFlow wh="w1" />, t.value);
+    await click('Start');
+    const input = await screen.findByLabelText('Show completed');
+    const body = input.closest('.mantine-Switch-body') as Element;
+    expect(
+      Number.parseFloat(getComputedStyle(body).minHeight),
+    ).toBeGreaterThanOrEqual(48);
+  });
+
   it('rejects a wrong location and a wrong product, recording nothing', async () => {
     const t = setup({ pickLists: lists() });
     await mount(<PickFlow wh="w1" />, t.value);
@@ -687,16 +699,51 @@ describe('handheld signage styling', () => {
   const minPx = (el: Element, prop: 'minHeight' | 'minWidth') =>
     Number.parseFloat(getComputedStyle(el)[prop]);
 
-  it('ScreenFrame renders a stripe status bar', async () => {
+  it('the route Header is the single stripe status bar with the pill', async () => {
     const t = setup();
     await mount(
-      <ScreenFrame wh="w1" title="Count">
-        <p>content</p>
-      </ScreenFrame>,
+      <>
+        <Header />
+        <ScreenFrame wh="w1" title="Count">
+          <p>content</p>
+        </ScreenFrame>
+      </>,
       t.value,
     );
     await screen.findByText('content');
-    expect(document.querySelector('.fi-stripe')).toBeTruthy();
+    expect(document.querySelectorAll('.fi-stripe')).toHaveLength(1);
+    const bar = document.querySelector('.fi-hh-bar') as Element;
+    expect(bar.querySelector('.fi-stripe')).toBeTruthy();
+    expect(bar.textContent).toContain('Field Inventory');
+    expect(bar.querySelector('[data-status]')).toBeTruthy();
+  });
+
+  it('header title link and ScreenFrame back link are at least 48px', async () => {
+    const t = setup();
+    await mount(
+      <>
+        <Header />
+        <ScreenFrame wh="w1" title="Count">
+          <p>content</p>
+        </ScreenFrame>
+      </>,
+      t.value,
+    );
+    const title = await screen.findByRole('link', { name: 'Field Inventory' });
+    const back = await screen.findByRole('link', { name: 'Warehouses' });
+    expect(minPx(title, 'minHeight')).toBeGreaterThanOrEqual(48);
+    expect(minPx(back, 'minHeight')).toBeGreaterThanOrEqual(48);
+  });
+
+  it('move SegmentedControl segments are at least 48px', async () => {
+    const t = setup();
+    await mount(<MoveFlow wh="w1" />, t.value);
+    await scan('Scan source location', 'BIN-A');
+    await scan('Scan product', 'WIDGET');
+    const label = await screen.findByText('This warehouse');
+    const control = label.closest('.mantine-SegmentedControl-control');
+    expect(control).toBeTruthy();
+    expect(minPx(control as Element, 'minHeight')).toBeGreaterThanOrEqual(48);
   });
 
   it('ConfirmButton is at least 48px tall', () => {
