@@ -1,10 +1,18 @@
 import {
   ActionIcon,
+  Center,
   type MantineColorScheme,
   SegmentedControl,
   useMantineColorScheme,
+  VisuallyHidden,
 } from '@mantine/core';
 import { useMounted } from '@mantine/hooks';
+import {
+  DesktopIcon,
+  type Icon,
+  MoonIcon,
+  SunIcon,
+} from '@phosphor-icons/react';
 
 const ORDER = ['light', 'dark', 'auto'] as const;
 const LABEL: Record<MantineColorScheme, string> = {
@@ -12,10 +20,10 @@ const LABEL: Record<MantineColorScheme, string> = {
   dark: 'Dark',
   auto: 'Auto',
 };
-const ICON: Record<MantineColorScheme, string> = {
-  light: '☀',
-  dark: '☾',
-  auto: 'A',
+const ICON: Record<MantineColorScheme, Icon> = {
+  light: SunIcon,
+  dark: MoonIcon,
+  auto: DesktopIcon,
 };
 
 /**
@@ -40,12 +48,29 @@ export function ThemeToggle({ variant }: { variant: 'segmented' | 'cycle' }) {
         color="signal"
         value={current}
         onChange={(v) => setColorScheme(v as MantineColorScheme)}
-        data={ORDER.map((v) => ({ value: v, label: LABEL[v] }))}
+        data={ORDER.map((v) => {
+          const Glyph = ICON[v];
+          return {
+            value: v,
+            label: (
+              <Center title={LABEL[v]}>
+                <Glyph
+                  size={16}
+                  weight="bold"
+                  aria-hidden="true"
+                  data-icon={v}
+                />
+                <VisuallyHidden>{LABEL[v]}</VisuallyHidden>
+              </Center>
+            ),
+          };
+        })}
       />
     );
   }
 
   const next = ORDER[(ORDER.indexOf(current) + 1) % ORDER.length];
+  const Glyph = ICON[current];
   return (
     <ActionIcon
       variant="subtle"
@@ -54,7 +79,7 @@ export function ThemeToggle({ variant }: { variant: 'segmented' | 'cycle' }) {
       onClick={() => setColorScheme(next)}
       style={{ minHeight: 48, minWidth: 48, color: 'var(--fi-signal)' }}
     >
-      <span aria-hidden="true">{ICON[current]}</span>
+      <Glyph size={24} weight="bold" aria-hidden="true" data-icon={current} />
     </ActionIcon>
   );
 }

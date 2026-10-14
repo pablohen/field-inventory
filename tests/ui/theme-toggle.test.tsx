@@ -48,6 +48,14 @@ describe('ThemeToggle, segmented', () => {
     expect(screen.getByRole('radio', { name: 'Dark' })).toBeTruthy();
   });
 
+  it('shows an icon in each segment, keeping the text names for screen readers', () => {
+    const { container } = show('segmented');
+    expect(container.querySelectorAll('svg[data-icon]')).toHaveLength(3);
+    for (const name of ['Light', 'Dark', 'Auto']) {
+      expect(screen.getByRole('radio', { name })).toBeTruthy();
+    }
+  });
+
   it('applies and remembers each choice', () => {
     show('segmented');
     fireEvent.click(screen.getByRole('radio', { name: 'Dark' }));
@@ -89,6 +97,17 @@ describe('ThemeToggle, cycle', () => {
     expect(btn().getAttribute('aria-label')).toBe(
       'Theme: Auto. Switch to Light',
     );
+  });
+
+  it('shows the icon for the current mode', () => {
+    const { container } = show('cycle');
+    const btn = screen.getByRole('button', { name: /^Theme: / });
+    expect(btn.querySelector('svg[data-icon="auto"]')).not.toBeNull();
+    fireEvent.click(btn);
+    expect(btn.querySelector('svg[data-icon="light"]')).not.toBeNull();
+    fireEvent.click(btn);
+    expect(btn.querySelector('svg[data-icon="dark"]')).not.toBeNull();
+    expect(container.textContent).not.toMatch(/[☀☾]/);
   });
 
   it('is a 48px touch target', () => {

@@ -25,6 +25,7 @@
     "@libsql/client": "^0.18.0",
     "@mantine/core": "^9.7.1",
     "@mantine/hooks": "^9.7.1",
+    "@phosphor-icons/react": "^2.1.10",
     "@prisma/adapter-libsql": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@tanstack/react-devtools": "0.10.13",
