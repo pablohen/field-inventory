@@ -94,7 +94,9 @@ function LedgerContent({
             <Text fw={600}>Current balance:</Text>
             <Text
               fw={600}
-              c={data.balance < 0 ? 'red' : undefined}
+              style={
+                data.balance < 0 ? { color: 'var(--fi-danger)' } : undefined
+              }
               data-testid="ledger-header-balance"
             >
               {data.balance}

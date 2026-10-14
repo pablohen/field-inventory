@@ -28,7 +28,7 @@ export const TOKENS: Record<'light' | 'dark', Record<TokenName, string>> = {
     rule: '#d6d3d1',
     signal: '#facc15',
     rail: '#1c1917',
-    danger: '#dc2626',
+    danger: '#b91c1c',
     ok: '#15803d',
     resolved: '#d6d3d1',
     'btn-bg': '#1c1917',
@@ -92,6 +92,7 @@ const CONDENSED = {
 };
 
 const INK_BORDER = { border: '2px solid var(--fi-ink)' };
+const SURFACE = { backgroundColor: 'var(--fi-surface)' };
 
 export const theme = createTheme({
   colors: { stone, signal },
@@ -125,7 +126,7 @@ export const theme = createTheme({
     Table: {
       defaultProps: { borderColor: 'var(--fi-rule)' },
       styles: {
-        table: INK_BORDER,
+        table: { ...INK_BORDER, ...SURFACE },
         th: {
           ...CONDENSED,
           fontSize: 12,
@@ -136,11 +137,8 @@ export const theme = createTheme({
       },
     },
     Title: { styles: { root: CONDENSED } },
-    TextInput: { styles: { input: INK_BORDER } },
-    PasswordInput: { styles: { input: INK_BORDER } },
-    NumberInput: { styles: { input: INK_BORDER } },
-    Select: { styles: { input: INK_BORDER } },
-    PinInput: { styles: { input: INK_BORDER } },
+    Paper: { styles: { root: SURFACE } },
+    Card: { styles: { root: { ...INK_BORDER, ...SURFACE } } },
     Drawer: { styles: { content: INK_BORDER, title: CONDENSED } },
     Modal: { styles: { content: INK_BORDER, title: CONDENSED } },
   },

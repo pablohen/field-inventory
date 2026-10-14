@@ -65,7 +65,11 @@ export function TransferInFlow({ wh }: { wh: string }) {
 
   return (
     <Stack>
-      {error && <Text c="red">Could not load transfers</Text>}
+      {error && (
+        <Text style={{ color: 'var(--fi-danger)' }}>
+          Could not load transfers
+        </Text>
+      )}
       {!chosen && data && transfers.length === 0 && (
         <Text c="dimmed">Nothing in transit</Text>
       )}

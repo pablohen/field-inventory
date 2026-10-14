@@ -114,7 +114,7 @@ export function ExceptionDetailPage({
         </Text>
       )}
       {missingMovementIds.length > 0 && (
-        <Text size="sm" c="red">
+        <Text size="sm" style={{ color: 'var(--fi-danger)' }}>
           Referenced movements not found: {missingMovementIds.join(', ')}
         </Text>
       )}

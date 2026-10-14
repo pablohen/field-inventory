@@ -1,12 +1,9 @@
 import { Table } from '@mantine/core';
+import { signed } from '#/desk/format';
 import type { LedgerRow } from '#/server/desk/stock.server';
 import { EmptyNote } from '#/ui/EmptyNote';
 import { StatusBadge } from '#/ui/StatusBadge';
 import { fmtTime } from './Timeline';
-
-function signed(n: number): string {
-  return n < 0 ? `−${Math.abs(n)}` : n > 0 ? `+${n}` : '0';
-}
 
 export function LedgerTable({
   rows,

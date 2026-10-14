@@ -65,10 +65,9 @@ function Column({
           p="xs"
           data-involved={m.involved ? 'true' : 'false'}
           data-movement-id={m.id}
-          bg={m.involved ? 'yellow.0' : undefined}
           style={
             m.involved
-              ? { borderColor: 'var(--mantine-color-yellow-6)' }
+              ? { borderLeft: '4px solid var(--fi-signal)' }
               : undefined
           }
         >

@@ -54,7 +54,12 @@ export function StockView({ wh }: { wh: string }) {
       )}
       {filter && (
         <Group gap="xs">
-          <Badge variant="outline">{label}</Badge>
+          <Badge
+            variant="outline"
+            style={{ color: 'var(--fi-ink)', borderColor: 'var(--fi-ink)' }}
+          >
+            {label}
+          </Badge>
           <Button
             style={TOUCH}
             size="compact-xs"

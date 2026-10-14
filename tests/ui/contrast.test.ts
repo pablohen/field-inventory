@@ -47,6 +47,22 @@ for (const scheme of ['light', 'dark'] as const) {
       expect(contrastRatio(PITCH_COLOR, t.rail)).toBeGreaterThanOrEqual(4.5);
     });
 
+    it('danger, muted and ink text on the page bg meet AA 4.5', () => {
+      expect(contrastRatio(t.danger, t.bg)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(t.danger, t.surface)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(t.muted, t.bg)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(t.ink, t.bg)).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('rail footer link text (signal) on the rail meets AA 4.5', () => {
+      expect(contrastRatio(t.signal, t.rail)).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('conflict lane labels (ink, muted) on surface meet AA 4.5', () => {
+      expect(contrastRatio(t.ink, t.surface)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(t.muted, t.surface)).toBeGreaterThanOrEqual(4.5);
+    });
+
     it('rail link pairs meet AA 4.5', () => {
       expect(contrastRatio(RAIL_LINK_COLOR, t.rail)).toBeGreaterThanOrEqual(
         4.5,

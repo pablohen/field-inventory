@@ -42,7 +42,7 @@
 | `--fi-rule` | `#d6d3d1` | `#44403c` | table row rules |
 | `--fi-signal` | `#facc15` | `#facc15` | brand accent (safety yellow) |
 | `--fi-rail` | `#1c1917` | `#000000` | sidebar, login panel, handheld status bar |
-| `--fi-danger` | `#dc2626` | `#f87171` | negative balance, errors, late lane |
+| `--fi-danger` | `#b91c1c` | `#f87171` | negative balance, errors, late lane |
 | `--fi-ok` | `#15803d` | `#4ade80` | synced / OK only |
 | `--fi-resolved` | `#d6d3d1` (fill) | `#44403c` (fill) | resolved / superseded badges |
 
@@ -68,10 +68,10 @@
 
 - Uppercase condensed page titles, labels, tabs and button text.
 - 2px `--fi-ink` borders on cards, tables, inputs, drawers and modals. The radius is 6px.
-- **The hazard stripe** is a repeating 45° yellow/black gradient. It appears in exactly three places:
+- **The hazard stripe** is a repeating 45° yellow/black gradient. It appears in exactly three surface families: login brand panel, sidebar rail, handheld status bar:
   - the bottom of the login brand panel
   - the top edge of the sidebar rail
-  - the handheld status bar
+  - the top of the handheld status bar (the `/h` route header, shared by every handheld screen)
 
   It is a CSS class `fi-stripe`.
 - **The wordmark** is "▲ Field Inventory", in uppercase condensed. It replaces any text logo. No image logo.
@@ -148,7 +148,8 @@
 
 ### 5.4 Handheld
 
-- **`ScreenFrame`:** the status bar is `--fi-rail` with a `fi-stripe` above it. It holds the screen title in uppercase signal text, plus `StatusPill`.
+- **Handheld status bar:** the `/h` route header is `--fi-rail` with a `fi-stripe` above it. It holds "Field Inventory", Sign out and `StatusPill`, on every handheld screen.
+- **`ScreenFrame`:** the screen title and a back link, on `--fi-surface` in ink.
 - **`StatusPill`:** green for synced, yellow for "N pending", red for revoked or needs-attention. The text, link targets and logic are unchanged.
 - **Scan steps:** `ScanInput`, `ScanStep` and `QtyInput` get large inputs with 2px borders. The confirmed quantity in `DisplayedQty` is 40px, bold and `fi-num`.
 - **Actions:** `ConfirmButton` is full width, at least 48px tall, with an ink fill and signal text (signal fill and ink text in dark).

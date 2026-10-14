@@ -6,7 +6,7 @@
   --fi-rule: #d6d3d1;
   --fi-signal: #facc15;
   --fi-rail: #1c1917;
-  --fi-danger: #dc2626;
+  --fi-danger: #b91c1c;
   --fi-ok: #15803d;
   --fi-resolved: #d6d3d1;
   --fi-btn-bg: #1c1917;
@@ -40,6 +40,29 @@
   --mantine-color-body: var(--fi-bg);
   --mantine-color-text: var(--fi-ink);
   --mantine-color-dimmed: var(--fi-muted);
+  --mantine-color-anchor: var(--fi-ink);
+}
+
+a:where(:not([class*="mantine-"])) {
+  color: var(--fi-ink);
+  text-decoration: none;
+}
+a:where(:not([class*="mantine-"])):hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mantine-Input-input {
+  border-width: 2px;
+  --input-bd: var(--fi-ink);
+}
+.mantine-Input-input:focus-visible {
+  outline: 2px solid var(--fi-signal);
+  outline-offset: 2px;
+}
+.mantine-Input-input[data-error],
+[data-error] > .mantine-Input-input {
+  --input-bd: var(--fi-danger);
 }
 
 body {
@@ -215,12 +238,31 @@ body {
   color: var(--fi-signal);
   padding-inline: 0;
 }
-.fi-rail-footer [role="alert"] {
-  color: #fca5a5;
-}
 
 @media (min-width: 900px) {
   .fi-rail-top {
     display: none;
   }
+}
+
+@media (max-width: 899.98px) {
+  .fi-rail:not([data-open]) {
+    visibility: hidden;
+    transition: visibility 0s linear var(--app-shell-transition-duration, 200ms);
+  }
+}
+
+.fi-hh-bar {
+  background: var(--fi-rail);
+  color: var(--fi-signal);
+}
+.fi-hh-stripe {
+  height: 8px;
+}
+.fi-hh-body {
+  padding: 8px 12px 12px;
+}
+.fi-hh-title {
+  color: var(--fi-signal);
+  text-decoration: none;
 }

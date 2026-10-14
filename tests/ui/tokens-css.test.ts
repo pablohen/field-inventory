@@ -28,3 +28,27 @@ describe('rail header', () => {
     );
   });
 });
+
+describe('collapsed drawer', () => {
+  it('is visibility:hidden below 900px unless open', () => {
+    expect(css).toMatch(
+      /@media \(max-width: 899\.98px\)\s*\{\s*\.fi-rail:not\(\[data-open\]\)\s*\{\s*visibility:\s*hidden;/,
+    );
+  });
+});
+
+describe('colour defaults', () => {
+  it('anchors default to ink, not the signal primary', () => {
+    expect(css).toContain('--mantine-color-anchor: var(--fi-ink);');
+  });
+  it('inputs carry the border, focus ring and error colour in CSS', () => {
+    expect(css).toMatch(/\.mantine-Input-input\s*\{[^}]*border-width: 2px/);
+    expect(css).toMatch(
+      /\.mantine-Input-input:focus-visible\s*\{[^}]*var\(--fi-signal\)/,
+    );
+    expect(css).toMatch(/\[data-error\][^{]*\{[^}]*var\(--fi-danger\)/);
+  });
+  it('has no dead rail-footer alert rule', () => {
+    expect(css).not.toContain('[role="alert"]');
+  });
+});

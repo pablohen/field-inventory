@@ -25,7 +25,10 @@ export function DisplayedQty({
       ),
     enabled: backend !== null,
   });
-  if (error) return <Text c="red">Could not load quantity</Text>;
+  if (error)
+    return (
+      <Text style={{ color: 'var(--fi-danger)' }}>Could not load quantity</Text>
+    );
   if (!data) return <Text c="dimmed">Loading quantity…</Text>;
   const row = data.find(
     (r) => r.skuId === skuId && r.locationId === locationId,
