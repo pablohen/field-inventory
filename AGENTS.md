@@ -43,7 +43,18 @@ reached the client bundle. This command must print nothing:
 ## Tooling rules
 
 - **Biome is the only linter and formatter.** Never add ESLint or Prettier.
-- **TypeScript is strict.** `#/*` and `@/*` both resolve to `src/*`.
+- **TypeScript 7, strict.** `#/*` and `@/*` both resolve to `src/*`.
+  - Don't derive types from overloaded functions with
+    `Parameters`/`ReturnType`. Which overload is picked differs between
+    compilers. Use the library's named type, e.g. `Prisma.TransactionClient`
+    for a transaction client.
+  - Add `as const` when building tuples for `new Map(…)` from `.map(…)`.
+    TypeScript 7 doesn't infer a tuple there.
+- **pnpm settings live in `pnpm-workspace.yaml`.** That covers `allowBuilds`
+  and `overrides`. pnpm 12 ignores the `"pnpm"` field in `package.json`.
+- **Pinned dependencies.** `@tursodatabase/sync-wasm` is pinned exactly, and
+  its emnapi overrides are guarded by a test. Only upgrade it together with a
+  passing Turso e2e run (see [docs/e2e.md](docs/e2e.md)).
 - **TDD.** Write the failing test first. Component tests use
   `// @vitest-environment jsdom`, and Mantine needs `matchMedia` (and, for
   SegmentedControl, `ResizeObserver`) stubbed. Copy the setup from a

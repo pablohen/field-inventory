@@ -14,7 +14,7 @@ warehouses, master data, users and devices.
   products, categories, reason codes, users, devices.
 
 Stack: TanStack Start, Router and Query, Prisma 7 on libSQL/Turso, Mantine 9,
-Zod 4, Phosphor icons, Biome, Vitest and Playwright.
+Zod 4, Phosphor icons, TypeScript 7, Biome, Vitest and Playwright.
 
 More docs:
 - [Architecture](docs/architecture.md): data model, the ledger, sync and
@@ -27,7 +27,9 @@ More docs:
 
 ## Quick start (local, no Turso)
 
-Requires Node 24 and pnpm 12.
+Requires Node 24 and pnpm 12. The project uses TypeScript 7 (the native
+compiler). For editor support, use its native language server, e.g. VS Code's
+**TypeScript (Native Preview)** extension; the old `tsserver` doesn't exist in 7.
 
 ```bash
 pnpm install
@@ -63,7 +65,7 @@ Seeded dev accounts all use PIN `1234`:
 | `pnpm db:seed` | Seed dev data (idempotent; restores seeded users/devices) |
 | `pnpm db:migrate` | Apply warehouse DB migrations to every warehouse |
 | `pnpm lint` / `pnpm format` | Biome check / fix (the only linter and formatter) |
-| `pnpm typecheck` | `tsc --noEmit` |
+| `pnpm typecheck` | `tsc --noEmit` (TypeScript 7) |
 | `pnpm test` | Vitest: unit, property, scenario and server tests |
 | `pnpm e2e` | Playwright; Turso specs run only with `E2E_TURSO=1` |
 | `pnpm e2e:reset` | Test-only: wipe and re-seed the dev warehouses (guarded) |
