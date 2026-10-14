@@ -28,8 +28,10 @@ reached the client bundle. This command must print nothing:
 
 ## Repo and git
 
-- **Local only: there is no git remote.** Finish work by merging into local
-  `main` with `git merge --ff-only`. Never push.
+- **Remote: `origin` on GitHub.** Finish work by merging into local `main`
+  with `git merge --ff-only`. Push `main` only when asked. Pushing needs
+  credentials with the `workflow` scope, because the repo contains
+  `.github/workflows/ci.yml`.
 - **Do feature work in a git worktree** under `.claude/worktrees/<name>`
   (git-ignored) on a `feat/…` branch. Merge, then remove the worktree and
   delete the merged branch.
