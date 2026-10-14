@@ -10,12 +10,15 @@ import type {
   MovementSource,
   MovementType,
 } from '#/domain/types';
+import type { Prisma } from '#/generated/warehouse/client';
 import type { CatalogClient, WarehouseClient } from '#/server/db/clients';
 
-/** The interactive-transaction client passed to `$transaction` callbacks. */
-export type WarehouseTx = Parameters<
-  Parameters<WarehouseClient['$transaction']>[0]
->[0];
+/**
+ * The interactive-transaction client passed to `$transaction` callbacks.
+ * Prisma's named type, not `Parameters<$transaction>`: that method is
+ * overloaded, and which overload `Parameters` picks differs by compiler.
+ */
+export type WarehouseTx = Prisma.TransactionClient;
 
 /**
  * Interactive-transaction limits for the ledger paths. Prisma's defaults

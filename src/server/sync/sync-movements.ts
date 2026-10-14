@@ -186,7 +186,7 @@ export async function syncMovementsCore(
     return { status: 'DEVICE_REVOKED', serverTime };
 
   const assigned = new Map(
-    device.warehouses.map((dw) => [dw.warehouseId, dw.warehouse]),
+    device.warehouses.map((dw) => [dw.warehouseId, dw.warehouse] as const),
   );
 
   const results: RowResult[] = new Array(batch.movements.length);
