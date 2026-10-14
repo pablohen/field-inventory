@@ -2,6 +2,7 @@ import { AppShell, Burger } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Link, type LinkProps, useRouterState } from '@tanstack/react-router';
 import { type ReactNode, useEffect } from 'react';
+import { ThemeToggle } from '#/ui/ThemeToggle';
 import { Wordmark } from '#/ui/Wordmark';
 
 /** Inactive rail link text; legible on `--fi-rail` in both schemes. */
@@ -83,7 +84,10 @@ export function AppShellSidebar({
             </Link>
           ))}
         </nav>
-        <div className="fi-rail-footer">{footer}</div>
+        <div className="fi-rail-footer">
+          <ThemeToggle variant="segmented" />
+          {footer}
+        </div>
       </AppShell.Navbar>
       <AppShell.Main>{children}</AppShell.Main>
     </AppShell>

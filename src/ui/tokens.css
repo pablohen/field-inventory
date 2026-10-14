@@ -122,11 +122,31 @@ body {
 }
 
 .fi-auth-form {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 16px;
+  padding: 64px 16px 24px;
+}
+
+.fi-auth-theme {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+/* Theme toggle on the black rail: rail text, a yellow pill for the choice. */
+.fi-rail-footer .fi-theme-seg {
+  background: transparent;
+  border: 1px solid #57534e;
+  align-self: stretch;
+}
+.fi-rail-footer .fi-theme-seg .mantine-SegmentedControl-label {
+  color: #d6d3d1;
+}
+.fi-rail-footer .fi-theme-seg .mantine-SegmentedControl-label[data-active] {
+  color: #1c1917;
 }
 
 .fi-auth-card {

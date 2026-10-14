@@ -1,5 +1,6 @@
 import { Title } from '@mantine/core';
 import type { ReactNode } from 'react';
+import { ThemeToggle } from '#/ui/ThemeToggle';
 import { Wordmark } from '#/ui/Wordmark';
 
 /** Light stone pitch-line colour; legible on `--fi-rail` in both schemes. */
@@ -24,6 +25,9 @@ export function AuthSplit({
         <div className="fi-stripe fi-auth-stripe" aria-hidden="true" />
       </aside>
       <main className="fi-auth-form">
+        <div className="fi-auth-theme">
+          <ThemeToggle variant="segmented" />
+        </div>
         <section className="fi-auth-card" aria-label={title}>
           <Title order={2} mb="md">
             {title}

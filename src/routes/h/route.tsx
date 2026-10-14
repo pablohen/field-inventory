@@ -13,6 +13,7 @@ import { getCachedSession } from '#/handheld/session-store';
 import { signOut } from '#/handheld/sign-out';
 import { TOUCH } from '#/handheld/touch';
 import { SW_SCOPE, SW_URL } from '#/pwa-options';
+import { ThemeToggle } from '#/ui/ThemeToggle';
 
 export const Route = createFileRoute('/h')({
   ssr: false,
@@ -72,16 +73,19 @@ export function Header() {
               Field Inventory
             </Link>
           </Title>
-          {session && (
-            <Button
-              style={{ ...TOUCH, color: 'var(--fi-signal)' }}
-              size="compact-sm"
-              variant="subtle"
-              onClick={() => signOut()}
-            >
-              Sign out
-            </Button>
-          )}
+          <Group gap="xs">
+            <ThemeToggle variant="cycle" />
+            {session && (
+              <Button
+                style={{ ...TOUCH, color: 'var(--fi-signal)' }}
+                size="compact-sm"
+                variant="subtle"
+                onClick={() => signOut()}
+              >
+                Sign out
+              </Button>
+            )}
+          </Group>
         </Group>
         <StatusPill />
       </Stack>

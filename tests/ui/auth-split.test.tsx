@@ -15,6 +15,12 @@ beforeAll(() => {
     dispatchEvent: () => false,
     onchange: null,
   })) as unknown as typeof window.matchMedia;
+  // Mantine's SegmentedControl (the theme toggle) measures itself.
+  globalThis.ResizeObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
 });
 afterEach(cleanup);
 
@@ -36,5 +42,16 @@ describe('AuthSplit', () => {
       within(region).getByRole('heading', { name: 'Supervisor sign-in' }),
     ).toBeTruthy();
     expect(within(region).getByText('child')).toBeTruthy();
+  });
+
+  it('offers the theme toggle on the login', () => {
+    render(
+      <MantineProvider>
+        <AuthSplit title="Supervisor sign-in">
+          <span />
+        </AuthSplit>
+      </MantineProvider>,
+    );
+    expect(screen.getByRole('radio', { name: 'Dark' })).toBeTruthy();
   });
 });
